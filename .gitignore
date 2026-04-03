@@ -1,0 +1,59 @@
+# Miscellaneous
+*.log
+*.bak
+*.swp
+.DS_Store
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+.classpath
+.project
+.settings/
+
+# Flutter / Dart
+flutter/.dart_tool/
+flutter/.flutter-plugins
+flutter/.flutter-plugins-dependencies
+flutter/.packages
+flutter/build/
+flutter/ios/Pods/
+flutter/ios/.symlinks/
+flutter/ios/Flutter/App.framework
+flutter/ios/Flutter/Flutter.framework
+flutter/ios/Flutter/Generated.xcconfig
+flutter/ios/Flutter/ephemeral/
+flutter/android/app/src/main/res/values/strings.xml
+
+# Python / FastAPI
+backend/__pycache__/
+backend/*.py[cod]
+backend/*$py.class
+backend/.venv/
+backend/venv/
+backend/ENV/
+backend/env/
+backend/.pytest_cache/
+backend/.coverage
+backend/htmlcov/
+backend/dist/
+backend/build/
+backend/*.egg-info/
+backend/app/__pycache__/
+
+# Database
+backend/*.db
+backend/*.sqlite3
+
+# Environment Secrets
+*.env
+.env.*
+!flutter/assets/env/.env.example
+
+# OS specific
+.DS_Store
+Thumbs.db
+Desktop.ini
