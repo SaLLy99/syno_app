@@ -15,18 +15,37 @@
 .settings/
 
 # Flutter / Dart
-flutter/.dart_tool/
-flutter/.flutter-plugins
-flutter/.flutter-plugins-dependencies
-flutter/.packages
-flutter/build/
-flutter/ios/Pods/
-flutter/ios/.symlinks/
-flutter/ios/Flutter/App.framework
-flutter/ios/Flutter/Flutter.framework
-flutter/ios/Flutter/Generated.xcconfig
-flutter/ios/Flutter/ephemeral/
-flutter/android/app/src/main/res/values/strings.xml
+flutter/.dart_tool/ # Dart tool-generated files
+flutter/.flutter-plugins # Flutter plugin registration file
+flutter/.flutter-plugins-dependencies # Flutter plugin dependencies
+flutter/.packages # Dart package resolution file
+flutter/build/ # Flutter build output directory
+flutter/ios/Pods/ # iOS CocoaPods dependencies
+flutter/ios/.symlinks/ # iOS symlinks for Flutter
+flutter/ios/Flutter/App.framework # iOS app framework
+flutter/ios/Flutter/Flutter.framework # iOS Flutter framework
+flutter/ios/Flutter/Generated.xcconfig # iOS generated Xcode config
+flutter/ios/Flutter/ephemeral/ # iOS ephemeral files
+flutter/android/app/src/main/res/values/strings.xml # Android generated strings
+flutter/android/.gradle/ # Android Gradle cache
+flutter/android/build/ # Android build output directory
+flutter/android/app/build/ # Android app build output directory
+flutter/android/app/.gradle/ # Android app Gradle cache
+flutter/android/app/src/main/kotlin/ # Kotlin source files (often generated)
+flutter/android/app/src/main/java/ # Java source files (often generated)
+flutter/android/app/src/main/res/raw/ # Android raw resources (e.g., for Firebase config)
+flutter/android/local.properties # Android local properties (SDK paths)
+flutter/ios/.generated/ # iOS generated files
+flutter/ios/Flutter/flutter_export_environment.sh # iOS export script
+flutter/ios/Runner.xcworkspace/ # iOS Xcode workspace (user-specific)
+flutter/ios/Runner.xcodeproj/project.xcworkspace/ # iOS Xcode project workspace
+flutter/ios/Runner.xcodeproj/xcuserdata/ # iOS Xcode user data
+flutter/ios/Runner.xcodeproj/xcshareddata/ # iOS Xcode shared data
+flutter/ios/Flutter/Debug.xcconfig # iOS debug config
+flutter/ios/Flutter/Release.xcconfig # iOS release config
+flutter/ios/Flutter/App.framework.dSYM # iOS debug symbols
+flutter/ios/Flutter/Flutter.framework.dSYM # iOS Flutter debug symbols
+flutter/ios/Flutter/flutter_assets/ # iOS Flutter assets
 
 # Python / FastAPI
 backend/__pycache__/
