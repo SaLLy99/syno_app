@@ -1,0 +1,30 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16
+    container_name: syno_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: syno
+      POSTGRES_PASSWORD: synopass
+      POSTGRES_DB: syno
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d
+
+  backend:
+    build: .
+    container_name: syno_backend
+    restart: always
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgres://syno:synopass@db:5432/syno
+
+volumes:
+  postgres_data:

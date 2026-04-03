@@ -1,0 +1,280 @@
+openapi: 3.0.0
+info:
+  title: "SYNO App API"
+  version: "1.0.0"
+  description: "API for SYNO, a cosmic matching application."
+
+servers:
+  - url: "http://localhost:3000/api"
+    description: "Local development server"
+
+components:
+  securitySchemes:
+    tokenAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # Schema for the first step of registration
+    UserRegister:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+        password:
+          type: string
+          format: password
+          example: "******" # Updated secure example
+
+    # Schema for the second step of registration (profile creation)
+    ProfileInput:
+      type: object
+      required:
+        - sex_id
+        - orientation_id
+        - name
+        - birth_date
+
+      properties:
+        name:
+          type: string
+          example: "Cosmic User"
+        birth_date:
+          type: string
+          format: date
+          example: "1995-05-23"
+        birth_time:
+          type: string
+          example: "14:30"
+        location_id:
+          type: integer
+          example: 1
+        sex_id:
+          type: integer
+          example: 1
+        orientation_id:
+          type: integer
+          example: 1
+        intention:
+          type: string
+          example: "Cosmic Connection"
+        core_values:
+          type: array
+          items:
+            type: string
+          example: ["Authenticity", "Growth"]
+        bio:
+          type: string
+          example: "Exploring the universe within and without."
+    
+    Sex:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+    
+    Orientation:
+      type: object
+      properties:
+        id:
+          type: integer
+
+    # Schema for the full user profile response
+    UserProfile:
+      allOf:
+        - $ref: '#/components/schemas/ProfileInput'
+        - type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            user_id:
+              type: integer
+              example: 1
+            email:
+              type: string
+              format: email
+              example: "user@example.com"
+            created_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
+
+    # Schema for the login request
+    UserLogin:
+      type: object
+      description: "Requires email and password to authenticate and receive a token."
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: "test@example.com"
+        password:
+          type: string
+          format: password
+          example: "******" # Updated secure example
+
+    # Schema for the token response
+    Token:
+      type: object
+      properties:
+        token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+    # Schema for a generic error
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "An error occurred."
+
+paths:
+  /api/auth/register:
+    post:
+      summary: "Register a new user (Step 1)"
+      description: "Creates a new user account with an email and password. This is the first step of registration."
+      tags:
+        - "Auth"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegister'
+      responses:
+        '201':
+          description: "User created successfully. Returns a token to proceed to step 2."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Token'
+        '400':
+          description: "Invalid input or user already exists."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: "Conflict. User with this email already exists."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /api/auth/login:
+    post:
+      summary: "User login"
+      description: "Authenticates a user with their email and password, returning a JWT token upon success."
+      tags:
+        - "Auth"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLogin'
+      responses:
+        '200':
+          description: "Login successful."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Token'
+        '401':
+          description: "Invalid credentials."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  
+  /users/me:
+    get:
+      summary: "Get current user data"
+      description: "Retrieves the profile data for the currently authenticated user. Requires token authorization."
+      tags:
+        - "Profile"
+      security:
+        - tokenAuth: []
+      responses:
+        '200':
+          description: "Successful response with user profile data."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '404':
+          description: "Profile not found."
+    put:
+      summary: "Update current user profile"
+      description: "Updates the profile data for the currently authenticated user. Requires token authorization."
+      tags:
+        - "Profile"
+      security:
+        - tokenAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileInput'
+      responses:
+        '200':
+          description: "Profile updated successfully."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '400':
+          description: "Invalid input."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /sexes:
+    get:
+      summary: "List sexes"
+      description: "Get all available sexes."
+      tags:
+        - "General"
+      responses:
+        '200':
+          description: "A list of sexes."
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Sex'
+
+  /orientations:
+    get:
+      summary: "List orientations"
+      description: "Get all available sexual orientations."
+      tags:
+        - "General"
+      responses:
+        '200':
+          description: "A list of orientations."
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Orientation'
+        '404':
+          description: "Profile not found."
