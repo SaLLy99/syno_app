@@ -110,6 +110,17 @@ def check_email_availability(user_data: schemas.UserBase, db: Session = Depends(
         )
     return {"message": "Email is available"}
 
+@app.post("/api/auth/request-otp", status_code=status.HTTP_200_OK)
+def request_otp(user_data: schemas.UserBase, db: Session = Depends(get_db)):
+    """
+    Endpoint to request a One-Time Password (OTP) for login/registration.
+    In a production environment, this would integrate with an email/SMS provider.
+    """
+    # For now, we just simulate the process. 
+    # In the future, logic to generate and store/send a code goes here.
+    return {"message": f"OTP successfully requested for {user_data.email}"}
+
+
 @app.post("/api/auth/register-complete", response_model=schemas.Token, status_code=status.HTTP_201_CREATED)
 async def register_complete_user(
     form_data: RegisterCompleteForm = Depends(RegisterCompleteForm.as_form),

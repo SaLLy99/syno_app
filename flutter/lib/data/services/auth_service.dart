@@ -189,4 +189,23 @@ class AuthService {
     }
   }
   
+  /// Requests a One-Time Password (OTP) for the given email.
+  Future<void> requestOtp(String email) async {
+    debugPrint("[AuthService] Requesting OTP for: $email");
+    final url = Uri.parse('$_backendUrl/api/auth/request-otp');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'email': email}),
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Failed to request OTP: ${response.body}');
+      }
+    } catch (e) {
+      rethrow;
+    }
+  }
 }

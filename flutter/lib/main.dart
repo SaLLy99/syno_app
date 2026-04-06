@@ -32,6 +32,7 @@ import 'package:syno_app/presentation/providers/loading_provider.dart';
 import 'package:syno_app/presentation/screens/main_shell.dart';
 import 'package:syno_app/presentation/screens/synastry_report_screen.dart';
 import 'package:syno_app/presentation/screens/login_screen.dart';
+import 'package:syno_app/presentation/screens/login_method_screen.dart';
 import 'package:syno_app/presentation/screens/theme.dart';
 import 'package:syno_app/presentation/providers/theme_provider.dart';
 import 'package:syno_app/presentation/providers/registration_provider.dart';
@@ -118,6 +119,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           '/register-photos',
           '/onboarding',
           '/landing',
+          '/login-method',
           '/terms',
           '/privacy'
         ];
@@ -166,6 +168,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/landing',
         name: 'landing',
         builder: (context, state) => const LandingScreen(),
+      ),
+      GoRoute(
+        path: '/login-method',
+        name: 'login-method',
+        builder: (context, state) => const LoginMethodScreen(),
       ),
       GoRoute(
         path: '/login',

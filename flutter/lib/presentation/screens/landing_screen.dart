@@ -84,10 +84,10 @@ class LandingScreen extends ConsumerWidget {
                   width: double.infinity,
                   height: 60,
                   child: ElevatedButton(
-                    onPressed: () => context.push('/login'),
+                    onPressed: () => context.push('/login-method'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: appTheme.accentColor,
-                      foregroundColor: appTheme.primaryTextColor,
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
                       ),

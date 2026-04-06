@@ -170,9 +170,7 @@
         "logging_in": "Logging in...",
         "redirecting_to_facebook": "Redirecting to Facebook...",
         "redirecting_to_mobile": "Redirecting to mobile login...",
-        "success_title": "Login Successful!",
-        "success_message": "Welcome back!"
-
+        "success_title": "Login Successful!"
     },
     "onboarding": {
         "welcome": "Welcome to SYNO",
