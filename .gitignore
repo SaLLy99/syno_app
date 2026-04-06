@@ -5,7 +5,6 @@
 .DS_Store
 
 # IDEs and Editors
-.github/
 .vscode/
 .idea/
 *.iml
