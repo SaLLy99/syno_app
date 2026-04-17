@@ -58,6 +58,18 @@ CREATE TABLE IF NOT EXISTS intentions (
     translation_key VARCHAR(100) NOT NULL
 );
 
+SELECT cleanup_expired_otps();
+-- 5️⃣.7 Create otps table for email verification
+CREATE TABLE IF NOT EXISTS otps (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(100) NOT NULL,
+    otp_hash VARCHAR(255) NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    used_flag BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_otps_email ON otps(email);
+
 -- 6️⃣ Users table: authentication and account basics
 CREATE TABLE IF NOT EXISTS syno_users (
     id SERIAL PRIMARY KEY,
@@ -288,9 +300,37 @@ CREATE TABLE settings (
 
 -- 2. Add theme_id column to profiles table if it doesn't exist
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS theme_id VARCHAR(50);
+ALTER TABLE otps ADD COLUMN attempts INTEGER DEFAULT 0;
 
 -- ===============================================
 -- 1️⃣7️⃣ Done.
 -- Done. Tables ready and test user inserted safely.
 -- Remember to seed cities, countries, hobbies, orientations, and sexes.
 -- ===============================================
+
+-- 5️⃣.8 Cleanup Function for OTPs
+-- Create a trigger function
+CREATE OR REPLACE FUNCTION cleanup_expired_otps()
+RETURNS void AS $$
+BEGIN
+    DELETE FROM otps
+    WHERE expires_at < NOW()
+       OR used_flag = TRUE;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 3. Create a Trigger Function to call the Cleanup
+CREATE OR REPLACE FUNCTION trigger_cleanup_otps_handler()
+RETURNS TRIGGER AS $$
+BEGIN
+    PERFORM cleanup_expired_otps();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 4. Set the Trigger to fire every time a new code is created
+DROP TRIGGER IF EXISTS cleanup_on_insert ON otps;
+CREATE TRIGGER cleanup_on_insert
+AFTER INSERT ON otps
+FOR EACH STATEMENT
+EXECUTE FUNCTION trigger_cleanup_otps_handler();

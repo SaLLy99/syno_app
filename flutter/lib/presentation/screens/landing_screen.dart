@@ -139,7 +139,7 @@ class _LanguageSelector extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-             _DiamondFlag(flag: _getFlag(currentLocale.languageCode), size: 32),
+             _GeometricFlag(flag: _getFlag(currentLocale.languageCode), size: 32),
              const SizedBox(width: 16),
              Text(
                _getLanguageName(currentLocale.languageCode),
@@ -194,44 +194,18 @@ class _LanguageSelector extends StatelessWidget {
   }
 }
 
-class _DiamondFlag extends StatelessWidget {
+class _GeometricFlag extends StatelessWidget {
   final String flag;
   final double size;
-  const _DiamondFlag({required this.flag, this.size = 28});
+  const _GeometricFlag({required this.flag, this.size = 28});
 
   @override
   Widget build(BuildContext context) {
-    return ClipPath(
-      clipper: DiamondClipper(),
-      child: Container(
-        width: size,
-        height: size,
-        color: Colors.white24,
-        child: Center(
-          child: Text(
-            flag, 
-            style: TextStyle(fontSize: size * 0.6),
-          ),
-        ),
-      ),
+    return Text(
+      flag,
+      style: TextStyle(fontSize: size),
     );
   }
-}
-
-class DiamondClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    path.moveTo(size.width / 2, 0);
-    path.lineTo(size.width, size.height / 2);
-    path.lineTo(size.width / 2, size.height);
-    path.lineTo(0, size.height / 2);
-    path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
 
 class _LegalText extends StatelessWidget {
@@ -307,7 +281,7 @@ class _LanguageOption extends StatelessWidget {
         context.setLocale(locale);
         Navigator.pop(context);
       },
-      leading: _DiamondFlag(flag: flag),
+      leading: _GeometricFlag(flag: flag),
       title: Text(
         name,
         style: TextStyle(

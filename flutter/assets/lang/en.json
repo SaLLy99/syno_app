@@ -117,6 +117,23 @@
         "bio_hint": "A glimpse of your soul...",
         "finish_button": "Finish Registration",
         "success_message": "Registration Successful! ✨",
+        "photos_title": "Gallery",
+        "photos_subtitle": "Upload at least 2 photos to continue.",
+        "additional_photos": "Additional Photos",
+        "add_more": "Add More ({current}/{max})",
+        "complete_registration": "Complete Registration",
+        "min_photos_required": "Minimum 2 Photos Required",
+        "primary_badge": "PRIMARY",
+        "photo_index": "Photo #{0}",
+        "drag_placeholder": "Drag additional photos here",
+        "limit_reached": "Limit Reached",
+        "limit_message": "You can only upload up to {max} photos.",
+        "missing_data": "Missing Data",
+        "missing_name_error": "Profile name is missing. Please restart the registration process.",
+        "missing_creds_error": "Registration credentials missing. Please restart.",
+        "welcome_title": "Welcome!",
+        "welcome_message": "Registration complete.",
+        "failed_title": "Registration Failed",
         "email": "Email",
         "password":"Password",
         "email_required":"Email is required.",
@@ -170,7 +187,13 @@
         "logging_in": "Logging in...",
         "redirecting_to_facebook": "Redirecting to Facebook...",
         "redirecting_to_mobile": "Redirecting to mobile login...",
-        "success_title": "Login Successful!"
+        "success_title": "Login Successful!",
+        "success_message": "Welcome back! You have logged in successfully.",
+        "email_toggle": "Email",
+        "mobile_toggle": "Mobile",
+        "phone_hint": "000 000 000",
+        "no_account_prompt": "Don't have an account? ",
+        "signup_link": "Sign up"
     },
     "onboarding": {
         "welcome": "Welcome to SYNO",
@@ -422,6 +445,19 @@
         "content":"Syno respects your privacy. We collect minimal data to provide matching services. Full details are available on the Privacy Policy page."
       },
     "legal_snippet": "By continuing, you agree to Syno’s {terms} and {privacy}."
+    },
+    "otp": {
+        "otp_subject": "Your SYNO Verification Code",
+        "otp_message": "Your verification code is {code}. It expires in {minutes} minutes.",
+        "verify_title": "Verify Email",
+        "verify_subtitle": "We sent a 6-digit code to {email}",
+        "verify_message": "Enter the code we sent to {}",
+        "paste_tip": "Tip: You can paste the code directly",
+        "verify_button": "Verify Code",
+        "resend_code": "Resend Code",
+        "invalid_code": "The code you entered is incorrect.",
+        "expired_code": "This code has expired. Please request a new one.",
+        "rate_limit_error": "Please wait a moment before requesting another code."
     }
   }
 

@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
 import 'package:syno_app/presentation/providers/auth_providers.dart';
 import 'package:syno_app/presentation/providers/loading_provider.dart';
@@ -42,7 +43,7 @@ class _RegisterPhotosScreenState extends ConsumerState<RegisterPhotosScreen> {
   Future<void> _pickPhotos() async {
     final photos = ref.read(registrationProvider).photos;
     if (photos.length >= _maxPhotos) {
-      if (mounted) AppDialogs.showErrorDialog(context, "Limit Reached", "You can only upload up to $_maxPhotos photos.");
+      if (mounted) AppDialogs.showErrorDialog(context, "register.limit_reached".tr(), "register.limit_message".tr(namedArgs: {'max': '$_maxPhotos'}));
       return;
     }
 
@@ -75,12 +76,12 @@ class _RegisterPhotosScreenState extends ConsumerState<RegisterPhotosScreen> {
 
     // 2. Perform a strong validation check for the essential 'name' field.
     if (profile.isInitial || profile.name == null || profile.name!.trim().isEmpty) {
-      if (mounted) AppDialogs.showErrorDialog(context, "Missing Data", "Profile name is missing. Please restart the registration process.");
+      if (mounted) AppDialogs.showErrorDialog(context, "register.missing_data".tr(), "register.missing_name_error".tr());
       return; 
     }
 
     if (regState.email.isEmpty || regState.password.isEmpty) {
-      if (mounted) AppDialogs.showErrorDialog(context, "Missing Data", "Registration credentials missing. Please restart.");
+      if (mounted) AppDialogs.showErrorDialog(context, "register.missing_data".tr(), "register.missing_creds_error".tr());
       return;
     }
 
@@ -112,15 +113,15 @@ class _RegisterPhotosScreenState extends ConsumerState<RegisterPhotosScreen> {
       if (mounted) {
         AppDialogs.showSuccessDialog(
           context,
-          "Welcome!",
-          "Registration complete.",
+          "register.welcome_title".tr(),
+          "register.welcome_message".tr(),
           onDismiss: () => context.go('/theme-selection'),
         );
       }
     } catch (e) {
       if (mounted) {
         ref.read(loadingStateProvider.notifier).hide();
-        AppDialogs.showErrorDialog(context, "Registration Failed", e.toString());
+        AppDialogs.showErrorDialog(context, "register.failed_title".tr(), e.toString());
       }
     }
   }
@@ -137,7 +138,7 @@ class _RegisterPhotosScreenState extends ConsumerState<RegisterPhotosScreen> {
           icon: const Icon(Icons.arrow_back_ios_new, size: 20),
           onPressed: () => context.go('/register-step2'),
         ),
-        title: const Text('Gallery'),
+        title: Text('register.photos_title'.tr()),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -149,15 +150,15 @@ class _RegisterPhotosScreenState extends ConsumerState<RegisterPhotosScreen> {
           child: Column(
             children: [
               const SizedBox(height: 10),
-              const Text('Upload at least 2 photos to continue.', style: TextStyle(color: Colors.white70)),
+              Text('register.photos_subtitle'.tr(), style: const TextStyle(color: Colors.white70)),
               const SizedBox(height: 30),
               
               _buildPrimarySlot(photos),
               
               const SizedBox(height: 30),
-              const Align(
+              Align(
                 alignment: Alignment.centerLeft,
-                child: Text("Additional Photos", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)),
+                child: Text("register.additional_photos".tr(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)),
               ),
               const SizedBox(height: 12),
               
@@ -183,7 +184,7 @@ class _RegisterPhotosScreenState extends ConsumerState<RegisterPhotosScreen> {
                 TextButton.icon(
                   onPressed: _pickPhotos,
                   icon: const Icon(Icons.add_a_photo, color: CosmicColors.cosmicPink),
-                  label: Text("Add More (${photos.length}/$_maxPhotos)", style: const TextStyle(color: CosmicColors.cosmicPink)),
+                  label: Text("register.add_more".tr(namedArgs: {'current': '${photos.length}', 'max': '$_maxPhotos'}), style: const TextStyle(color: CosmicColors.cosmicPink)),
                 ),
                 
               const SizedBox(height: 16),
@@ -196,7 +197,7 @@ class _RegisterPhotosScreenState extends ConsumerState<RegisterPhotosScreen> {
                     backgroundColor: canComplete ? CosmicColors.cosmicPink : Colors.grey.shade800,
                     foregroundColor: Colors.white,
                   ),
-                  child: Text(canComplete ? 'Complete Registration' : 'Minimum 2 Photos Required'),
+                  child: Text(canComplete ? 'register.complete_registration'.tr() : 'register.min_photos_required'.tr()),
                 ),
               ),
               const SizedBox(height: 40),
@@ -233,7 +234,7 @@ class _RegisterPhotosScreenState extends ConsumerState<RegisterPhotosScreen> {
               Positioned(
                 top: 10,
                 left: 10,
-                child: _badge("PRIMARY"),
+                child: _badge("register.primary_badge".tr()),
               ),
               Positioned(
                 top: -5,
@@ -274,7 +275,7 @@ class _RegisterPhotosScreenState extends ConsumerState<RegisterPhotosScreen> {
             alignment: Alignment.bottomCenter,
             child: Padding(
               padding: const EdgeInsets.only(bottom: 4),
-              child: _badge("#$index"),
+              child: _badge('register.photo_index'.tr(args: [index.toString()])),
             ),
           )
         ],
@@ -298,8 +299,11 @@ class _RegisterPhotosScreenState extends ConsumerState<RegisterPhotosScreen> {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white10, style: BorderStyle.solid),
       ),
-      child: const Center(
-        child: Text("Drag additional photos here", style: TextStyle(color: Colors.white24)),
+      child: Center(
+        child: Text(
+          'register.drag_placeholder'.tr(),
+          style: const TextStyle(color: Colors.white24),
+        ),
       ),
     );
   }

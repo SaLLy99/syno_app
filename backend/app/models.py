@@ -1,15 +1,12 @@
 import json
-from sqlalchemy import Column, Integer, String, Date, Text, TIMESTAMP, ForeignKey, Table, LargeBinary, Boolean
+from sqlalchemy import Column, Integer, String, Date, Text, TIMESTAMP, ForeignKey, Table, LargeBinary, Boolean, func
 from sqlalchemy.dialects import postgresql
-from sqlalchemy.types import TypeDecorator, TEXT, String
 from sqlalchemy.types import TypeDecorator, TEXT
-from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from .database import Base
 
 # Custom type for handling ARRAY in both PostgreSQL and SQLite
 class ArrayAsJSON(TypeDecorator):
-    """ Emulates ARRAY for SQLite by storing the value as a JSON string. """
     """
     Platform-independent ARRAY type.
 
@@ -193,6 +190,18 @@ class Profile(Base):
     orientation = relationship("Orientation", uselist=False)
     photos = relationship("UserPhoto", back_populates="profile", cascade="all, delete-orphan")
     location = relationship("Location")
+
+class OTP(Base):
+    __tablename__ = "otps"
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, index=True, nullable=False)
+    code = Column(String, nullable=False)
+    otp_hash = Column(String, nullable=False)
+    expires_at = Column(TIMESTAMP, nullable=False)
+    used_flag = Column(Boolean, default=False)
+    attempts = Column(Integer, default=0)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+
 
 
 class UserPhoto(Base):

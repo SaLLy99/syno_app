@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 from sqlalchemy.sql import func
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
@@ -264,3 +265,55 @@ def get_blocked_users(db: Session, blocker_id: int) -> List[models.Profile]:
 
 def get_profile_by_name(db: Session, name: str) -> Optional[models.Profile]:
     return db.query(models.Profile).filter(models.Profile.name.ilike(name)).first()
+
+def create_otp(db: Session, email: str, code: str, expires_in_minutes: int = 10):
+    """Store a new OTP in the database."""
+    # Securely hash the OTP before storing
+    otp_hash = hash_password(code)
+    expires_at = datetime.utcnow() + timedelta(minutes=expires_in_minutes)
+    db_otp = models.OTP(email=email.lower(), code=code, otp_hash=otp_hash, expires_at=expires_at)
+    db.add(db_otp)
+    db.commit()
+    db.refresh(db_otp)
+    return db_otp
+
+def cleanup_otps(db: Session):
+    """
+    Removes expired or already used OTP records from the database.
+    """
+    now = datetime.utcnow()
+    db.query(models.OTP).filter(
+        (models.OTP.expires_at < now) | (models.OTP.used_flag == True)
+    ).delete(synchronize_session=False)
+    db.commit()
+
+def verify_otp_logic(db: Session, email: str, provided_code: str):
+    """
+    Business logic for OTP verification.
+    Returns (success_bool, translation_key)
+    """
+    otp_record = db.query(models.OTP).filter(
+        models.OTP.email == email.lower(),
+        models.OTP.used_flag == False
+    ).order_by(models.OTP.created_at.desc()).first()
+
+    if not otp_record:
+        return False, "otp.invalid_code"
+    
+    if otp_record.expires_at < datetime.utcnow():
+        return False, "otp.expired_code"
+
+    if otp_record.attempts >= 3:
+        return False, "otp.rate_limit_error"
+
+    # Increment attempts even if password fails
+    otp_record.attempts += 1
+    
+    if not pwd_context.verify(provided_code, otp_record.otp_hash):
+        db.commit()
+        return False, "otp.invalid_code"
+
+    # Success
+    otp_record.used_flag = True
+    db.commit()
+    return True, "otp.success"

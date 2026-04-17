@@ -1,9 +1,18 @@
 from datetime import timedelta
+from functools import lru_cache
 import json
+import os
+import functools
+import secrets
+import logging
+import re
+import smtplib
+from email.mime.text import MIMEText
 from typing import List, Optional
-from pydantic import BaseModel, EmailStr
-from datetime import date
-from fastapi import FastAPI, Depends, Form, HTTPException, Response, status, File, UploadFile
+from pydantic import BaseModel, EmailStr, Field
+from datetime import date, datetime
+from passlib.context import CryptContext
+from fastapi import FastAPI, Depends, Form, HTTPException, Response, status, File, UploadFile, BackgroundTasks
 from sqlalchemy.orm import Session
 
 from . import models, schemas, crud
@@ -20,54 +29,94 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Define a schema for the complete registration form data
-class RegisterCompleteForm(BaseModel):
-    email: EmailStr
-    password: str
-    name: str
-    last_name: str
-    birth_date: date
-    birth_time: Optional[str] = None
-    location_id: Optional[int] = None
-    sex_id: int
-    orientation_id: int
-    height: Optional[int] = None
-    bio: Optional[str] = None
-    # These will be JSON strings from the frontend
-    intention_ids: Optional[str] = None
-    core_value_ids: Optional[str] = None
-    hobby_ids: Optional[str] = None
-    profession_ids: Optional[str] = None
-    education_ids: Optional[str] = None
+# Password hashing context
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-    @classmethod
-    def as_form(
-        cls,
-        email: EmailStr = Form(...),
-        password: str = Form(...),
-        name: str = Form(...),
-        last_name: str = Form(...),
-        birth_date: date = Form(...),
-        birth_time: Optional[str] = Form(None),
-        location_id: Optional[int] = Form(None),
-        sex_id: int = Form(...),
-        orientation_id: int = Form(...),
-        height: Optional[int] = Form(None),
-        bio: Optional[str] = Form(None),
-        intention_ids: Optional[str] = Form(None),
-        core_value_ids: Optional[str] = Form(None),
-        hobby_ids: Optional[str] = Form(None),
-        profession_ids: Optional[str] = Form(None),
-        education_ids: Optional[str] = Form(None),
-    ):
-        return cls(
-            email=email, password=password, name=name, last_name=last_name, birth_date=birth_date, birth_time=birth_time,
-            location_id=location_id, sex_id=sex_id, orientation_id=orientation_id, height=height, bio=bio,
-            intention_ids=intention_ids, core_value_ids=core_value_ids, hobby_ids=hobby_ids,
-            profession_ids=profession_ids, education_ids=education_ids,
-        )
+logger = logging.getLogger("syno.auth")
+
+# Define TRANSLATIONS_DIR relative to the current file
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+TRANSLATIONS_DIR = os.path.join(BASE_DIR, "translations")
+
+# Ensure the directory exists so the app doesn't crash, and log the path for debugging
+if not os.path.exists(TRANSLATIONS_DIR):
+    os.makedirs(TRANSLATIONS_DIR, exist_ok=True)
+    logger.info(f"Created translations directory at: {TRANSLATIONS_DIR}")
+else:
+    logger.info(f"Translations directory identified at: {TRANSLATIONS_DIR}")
+
+@lru_cache(maxsize=128)
+def _load_translations(lang: str) -> dict:
+    """Loads translation data for a given language from a JSON file."""
+    filepath = os.path.join(TRANSLATIONS_DIR, f"{lang}.json")
+    if not os.path.exists(filepath):
+        logger.warning(f"Translation file not found: {filepath}")
+        return {}
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except Exception as e:
+        logger.error(f"Error loading translation file {filepath}: {e}")
+        return {}
+
+def send_otp_email(to_email: str, subject: str, html_content: str) -> bool:
+    """Sends an OTP email to the specified recipient."""
+    try:
+        msg = MIMEText(html_content, "html")
+        msg["Subject"] = subject
+        msg["From"] = settings.smtp_user
+        msg["To"] = to_email
+
+        if settings.smtp_port == 465:
+            with smtplib.SMTP_SSL(settings.smtp_server, settings.smtp_port) as server:
+                server.login(settings.smtp_user, settings.smtp_password)
+                server.send_message(msg)
+        else:
+            with smtplib.SMTP(settings.smtp_server, settings.smtp_port) as server:
+                server.starttls()  # Secure the connection
+                server.login(settings.smtp_user, settings.smtp_password)
+                server.send_message(msg)
+
+        logger.info(f"Email sent successfully to {to_email}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send email: {e}")
+        return False
+
+# Define a schema for the complete registration form data
 
 # ----------------- AUTH -----------------
+
+def tr(key: str, lang: str = "en", **kwargs) -> str:
+    """
+    Helper to translate keys using the JSON files, supporting dot notation
+    and string formatting. Falls back to English if the translation is missing.
+    """
+    # 1. Try requested language
+    val = _get_value_from_json(key, lang)
+
+    # 2. Fallback to English if not found
+    if not val and lang != "en":
+        val = _get_value_from_json(key, "en")
+
+    if not val:
+        return key
+
+    if isinstance(val, str):
+        try: return val.format(**kwargs).strip()
+        except (KeyError, ValueError, IndexError): return val
+    return str(val)
+
+def _get_value_from_json(key: str, lang: str) -> Optional[str]:
+    """Internal helper to traverse the JSON dictionary."""
+    translations = _load_translations(lang)
+    val = translations
+    for part in key.split('.'):
+        if isinstance(val, dict):
+            val = val.get(part)
+        else:
+            return None
+    return val if isinstance(val, str) else None
 
 @app.post("/api/auth/login", response_model=schemas.Token)
 def login_for_access_token(user_credentials: schemas.UserLogin, db: Session = Depends(get_db)):
@@ -111,82 +160,118 @@ def check_email_availability(user_data: schemas.UserBase, db: Session = Depends(
     return {"message": "Email is available"}
 
 @app.post("/api/auth/request-otp", status_code=status.HTTP_200_OK)
-def request_otp(user_data: schemas.UserBase, db: Session = Depends(get_db)):
+async def request_otp(otp_data: schemas.OTPRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     """
-    Endpoint to request a One-Time Password (OTP) for login/registration.
-    In a production environment, this would integrate with an email/SMS provider.
+    REST API endpoint to receive email submission, generate 6-digit secure OTP,
+    store in PostgreSQL, and send localized email.
     """
-    # For now, we just simulate the process. 
-    # In the future, logic to generate and store/send a code goes here.
-    return {"message": f"OTP successfully requested for {user_data.email}"}
+    # Periodic cleanup trigger (could also be a cron job)
+    if secrets.randbelow(10) == 0: # 10% chance to run cleanup on request to keep table slim
+        crud.cleanup_otps(db)
 
+    # 0. Validate email format
+    email_regex = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
+    if not re.match(email_regex, otp_data.email):
+        raise HTTPException(status_code=400, detail="Invalid email format")
 
-@app.post("/api/auth/register-complete", response_model=schemas.Token, status_code=status.HTTP_201_CREATED)
-async def register_complete_user(
-    form_data: RegisterCompleteForm = Depends(RegisterCompleteForm.as_form),
-    photos: List[UploadFile] = File(...), # Expect at least one photo
-    db: Session = Depends(get_db)
-):
-    # 1. Check if email already registered
-    db_user = crud.get_user_by_email(db, email=form_data.email)
+    email = otp_data.email.lower()
+    lang = otp_data.lang if otp_data.lang in ["en", "ru", "ka"] else "en"
+    
+    # 0. Basic Rate Limiting: Prevent more than 1 request per minute per email
+    last_otp = db.query(models.OTP).filter(
+        models.OTP.email == email,
+        models.OTP.created_at > datetime.utcnow() - timedelta(minutes=1)
+    ).first()
+    
+    if last_otp:
+        logger.warning(f"Rate limit hit for {email}")
+        raise HTTPException(status_code=429, detail="otp.rate_limit_error")
+
+    logger.info(f"OTP request received for email: {email} (lang: {lang})")
+
+    try:
+        # 1. Generate Secure 6-digit OTP inside the try block
+        otp_code = "".join([str(secrets.randbelow(10)) for _ in range(6)])
+        # 2. Prepare localized email content and HTML template
+        subject = tr("otp.otp_subject", lang)
+        message_text = tr("otp.otp_message", lang, code=otp_code, minutes=10)
+        
+        html_template = f"""
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>{subject}</title>
+        </head>
+        <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; padding: 20px;">
+            <div style="max-width: 500px; margin: auto; background: #ffffff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                <h1 style="color: #6200ee; text-align: center; margin-bottom: 30px;">SYNO</h1>
+                <div style="font-size: 18px; line-height: 1.6; color: #333; text-align: center;">
+                    {message_text}
+                </div>
+                <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 12px; color: #888; text-align: center;">
+                    &copy; {datetime.now().year} SYNO. All rights reserved.
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+
+        # 3. Store the OTP in the database. crud handles hashing internally.
+        crud.create_otp(db, email=email, code=otp_code)
+
+        # 4. Send the HTML email in the background
+        background_tasks.add_task(send_otp_email, email, subject, html_template)
+
+        if getattr(settings, "debug", False):
+            logger.info(f"DEBUG: OTP for {email} is {otp_code}")
+
+    except Exception as e:
+        logger.error(f"OTP Email Error: {e}")
+        if isinstance(e, HTTPException):
+            raise e
+        raise HTTPException(status_code=500, detail="An error occurred while processing your request")
+    
+    return {"message": "OTP requested successfully"}
+
+@app.post("/api/auth/verify-otp", response_model=schemas.OTPVerifyResponse)
+async def verify_otp(otp_data: schemas.OTPVerify, db: Session = Depends(get_db)):
+    logger.info(f"OTP verification attempt for: {otp_data.email}")
+    email = otp_data.email.lower()
+    
+    # 1. Verification Logic via CRUD
+    is_valid, msg_key = crud.verify_otp_logic(db, email, otp_data.code)
+    
+    if not is_valid:
+        logger.warning(f"OTP failed for {email}: {msg_key}")
+        raise HTTPException(status_code=400, detail=msg_key)
+
+    # 2. Check if user is registered
+    db_user = crud.get_user_by_email(db, email)
+    
     if db_user:
-        raise HTTPException(status_code=400, detail="Email already registered")
+        # Existing User - Issue login token
+        access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+        access_token = create_access_token(
+            data={"sub": db_user.email}, expires_delta=access_token_expires
+        )
+        return {
+            "message": "otp.success",
+            "is_registered": True,
+            "access_token": access_token,
+            "token_type": "bearer"
+        }
+    else:
+        # New User - Redirect to Step 2
+        # We still return a message key so the frontend can show a success popup before navigating
+        return {
+            "message": "otp.success",
+            "is_registered": False,
+            "access_token": None,
+            "token_type": None
+        }
 
-    # 2. Create the user
-    user_create_schema = schemas.UserCreate(email=form_data.email, password=form_data.password)
-    new_user = crud.create_user(db=db, user=user_create_schema)
-
-    # 3. Prepare profile data for crud.create_profile
-    profile_data_dict = form_data.dict(exclude={'email', 'password'})
-
-    # Parse JSON string fields back into lists of integers
-    list_fields_to_parse = ['intention_ids', 'core_value_ids', 'hobby_ids', 'profession_ids', 'education_ids']
-    for field in list_fields_to_parse:
-        if profile_data_dict.get(field) and isinstance(profile_data_dict[field], str):
-            try:
-                parsed_value = json.loads(profile_data_dict[field])
-                if isinstance(parsed_value, list):
-                    profile_data_dict[field] = parsed_value
-                elif isinstance(parsed_value, int):
-                    # If a single integer is provided for a list field, wrap it in a list
-                    profile_data_dict[field] = [parsed_value]
-                else:
-                    # If it's neither a list nor an int after JSON parsing,
-                    # it's likely an invalid JSON string for a list, so keep the original string
-                    # to potentially try comma-separated parsing or let Pydantic validate.
-                    pass
-            except (json.JSONDecodeError, TypeError):
-                # If JSON parsing fails, it might be a plain comma-separated string, e.g., "1,2,3"
-                value_str = profile_data_dict[field]
-                if value_str:
-                    try:
-                        profile_data_dict[field] = [int(i.strip()) for i in value_str.split(',') if i.strip()]
-                    except (ValueError, TypeError):
-                        pass # Let Pydantic handle the original string if conversion fails
-                else:
-                    profile_data_dict[field] = [] # Treat empty string as an empty list
-
-    # Create a ProfileUpdate schema instance from the parsed data
-    profile_create_schema = schemas.ProfileUpdate(**profile_data_dict)
-
-    # 4. Create the profile with photos
-    await crud.create_profile(db=db, profile_in=profile_create_schema, user_id=new_user.id, photos=photos)
-
-    # 5. Generate and return access token
-    access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
-    access_token = create_access_token(data={"sub": new_user.email}, expires_delta=access_token_expires)
-    return {"access_token": access_token, "token_type": "bearer"}
-
-@app.post("/api/post/core-values", response_model=List[schemas.CoreValue], status_code=status.HTTP_200_OK)
-def update_core_values_for_profile(core_values_update: schemas.CoreValuAddition, db: Session = Depends(get_db)):
-    """Updates (replaces) the core values for a profile."""
-    updated_values = crud.update_core_values(update_data=core_values_update, db=db)
-    if updated_values is None:
-        raise HTTPException(status_code=404, detail="Profile not found")
-    return updated_values
-
-
-# ----------------- STATIC DATA -----------------
 
 @app.get("/api/sexes/", response_model=List[schemas.Sex])
 def read_sexes(db: Session = Depends(get_db)):
@@ -237,6 +322,8 @@ async def create_or_update_user_profile_patch(
     Handles both creation and partial updates for a user's profile.
     """
     update_data_dict = profile_in.dict(exclude_unset=True)
+    # profile_in is already parsed and validated by ProfileUpdateForm.as_form_patch
+    update_data = profile_in.dict(exclude_unset=True)
 
     # Parse JSON string fields back into lists of integers for relationship fields
     list_fields_to_parse = ['intention_ids', 'core_value_ids', 'hobby_ids', 'profession_ids', 'education_ids']
@@ -278,12 +365,10 @@ async def create_or_update_user_profile_patch(
         # Filter out theme-related fields to ensure independence. 
         # Profile updates should not modify theme settings.
         theme_keys = {'theme_id', 'background_color', 'accent_color', 'layout', 'theme_preferences'}
-        filtered_data = {k: v for k, v in update_data_dict.items() if k not in theme_keys}
-
-        update_data = schemas.ProfileUpdate(**filtered_data) # Use the filtered and parsed data
+        filtered_data = {k: v for k, v in update_data.items() if k not in theme_keys}
+        profile_update_schema = schemas.ProfileUpdate(**filtered_data)
         
-        # 1. Update profile fields and relationships (like intentions, core_values)
-        await crud.update_profile(db=db, db_profile=db_profile, profile_in=update_data)
+        await crud.update_profile(db=db, db_profile=db_profile, profile_in=profile_update_schema)
 
         # 2. Handle Primary Photo Update (if provided)
         if primary_photo and primary_photo.filename:
@@ -301,13 +386,13 @@ async def create_or_update_user_profile_patch(
         # Construct the response manually to ensure theme_preferences are included.
         # This prevents the frontend from losing theme state after a profile update.
         profile_dict = schemas.Profile.model_validate(db_profile).model_dump()
-        settings = db.query(models.Settings).filter(models.Settings.user_id == db_profile.id).first()
-        if settings:
+        user_theme_settings = db.query(models.Settings).filter(models.Settings.user_id == db_profile.id).first()
+        if user_theme_settings:
             profile_dict['theme_preferences'] = {
-                'theme_id': settings.theme_id,
-                'background_color': settings.background_color,
-                'accent_color': settings.accent_color,
-                'layout': settings.layout
+                'theme_id': user_theme_settings.theme_id,
+                'background_color': user_theme_settings.background_color,
+                'accent_color': user_theme_settings.accent_color,
+                'layout': user_theme_settings.layout
             }
         return profile_dict
     else:
@@ -322,7 +407,7 @@ async def create_or_update_user_profile_patch(
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="A primary photo is required to create a profile.")
         
         # For creation, use the parsed data.
-        create_data = schemas.ProfileUpdate(**update_data_dict) # Use the parsed data
+        create_data = schemas.ProfileUpdate(**update_data) # Use the parsed data
 
         
         # Ensure 'name' is present and not None
@@ -355,14 +440,13 @@ def read_users_me(
     # the relationships (intentions, core_values) from the `profile` ORM object.
     # Pydantic's `model_validate` with `from_attributes=True` on the schema handles this.
     profile_dict = schemas.Profile.model_validate(profile).model_dump()
-
-    settings = db.query(models.Settings).filter(models.Settings.user_id == profile.id).first()
-    if settings:
+    user_theme_settings = db.query(models.Settings).filter(models.Settings.user_id == profile.id).first()
+    if user_theme_settings:
         profile_dict['theme_preferences'] = {
-            'theme_id': settings.theme_id,
-            'background_color': settings.background_color,
-            'accent_color': settings.accent_color,
-            'layout': settings.layout
+            'theme_id': user_theme_settings.theme_id,
+            'background_color': user_theme_settings.background_color,
+            'accent_color': user_theme_settings.accent_color,
+            'layout': user_theme_settings.layout
         }
     return profile_dict
 

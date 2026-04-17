@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:go_router/go_router.dart';
 import 'package:syno_app/presentation/providers/auth_providers.dart';
 import 'package:syno_app/presentation/providers/theme_provider.dart';
 import 'package:syno_app/theme.dart';
@@ -55,7 +56,7 @@ class _LoginMethodScreenState extends ConsumerState<LoginMethodScreen> {
         shrinkWrap: true,
         itemCount: _countries.length,
         itemBuilder: (context, index) => ListTile(
-          leading: Text(_countries[index]['flag']!, style: const TextStyle(fontSize: 28)),
+          leading: _buildGeometricFlag(_countries[index]['flag']!, size: 28),
           title: Text(_countries[index]['name']!, style: const TextStyle(color: Colors.white)),
           trailing: Text(_countries[index]['code']!, style: const TextStyle(color: Colors.cyanAccent)),
           onTap: () {
@@ -73,14 +74,15 @@ class _LoginMethodScreenState extends ConsumerState<LoginMethodScreen> {
     setState(() => _isLoading = true);
     try {
       final authService = ref.read(authServiceProvider);
+      final lang = context.locale.languageCode;
+      final email = _emailController.text.trim();
+
       if (_isEmailSelected) {
-        await authService.requestOtp(_emailController.text.trim());
+        await authService.requestOtp(email, lang: lang);
       }
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('login.success_message'.tr())),
-        );
+        context.push('/otp-verification', extra: email);
       }
     } catch (e) {
       if (mounted) {
@@ -108,7 +110,13 @@ class _LoginMethodScreenState extends ConsumerState<LoginMethodScreen> {
                   alignment: Alignment.topLeft,
                   child: IconButton(
                     icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 22),
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () {
+                      if (context.canPop()) {
+                        context.pop();
+                      } else {
+                        context.go('/landing');
+                      }
+                    },
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -164,8 +172,8 @@ class _LoginMethodScreenState extends ConsumerState<LoginMethodScreen> {
                       ),
                       Row(
                         children: [
-                          _toggleItem('Email', _isEmailSelected, () => setState(() => _isEmailSelected = true)),
-                          _toggleItem('Mobile', !_isEmailSelected, () => setState(() => _isEmailSelected = false)),
+                          _toggleItem('login.email_toggle'.tr(), _isEmailSelected, () => setState(() => _isEmailSelected = true)),
+                          _toggleItem('login.mobile_toggle'.tr(), !_isEmailSelected, () => setState(() => _isEmailSelected = false)),
                         ],
                       ),
                     ],
@@ -254,35 +262,40 @@ class _LoginMethodScreenState extends ConsumerState<LoginMethodScreen> {
   Widget _buildPhoneField(AppThemeData appTheme) {
     return Container(
       key: const ValueKey('phone'),
+      height: 60, // Matches the approximate height of the email field
       decoration: BoxDecoration(
         color: Colors.white.withOpacity(0.08),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white12),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           GestureDetector(
             onTap: () => _showCountryPicker(appTheme),
-            child: Row(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(left: 16),
-                  child: Text(_selectedCountry['flag']!, style: const TextStyle(fontSize: 20)),
-                ),
-                const SizedBox(width: 4),
-                Text(_selectedCountry['code']!, style: TextStyle(color: appTheme.primaryTextColor, fontWeight: FontWeight.bold)),
-                Icon(Icons.arrow_drop_down, color: appTheme.secondaryTextColor),
-              ],
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildGeometricFlag(_selectedCountry['flag']!, size: 22),
+                  const SizedBox(width: 8),
+                  Text(_selectedCountry['code']!, style: TextStyle(color: appTheme.primaryTextColor, fontWeight: FontWeight.bold, fontSize: 16)),
+                  Icon(Icons.keyboard_arrow_down_rounded, color: appTheme.secondaryTextColor, size: 20),
+                  const SizedBox(width: 8),
+                  Container(width: 1, height: 24, color: Colors.white12), // Vertical divider
+                ],
+              ),
             ),
           ),
           Expanded(
             child: TextFormField(
               controller: _phoneController,
               onChanged: (v) => setState(() {}),
-              style: TextStyle(color: appTheme.primaryTextColor),
+              style: TextStyle(color: appTheme.primaryTextColor, fontSize: 16),
               keyboardType: TextInputType.phone,
               decoration: InputDecoration(
-                hintText: '000 000 000',
+                hintText: 'login.phone_hint'.tr(),
                 hintStyle: TextStyle(color: appTheme.secondaryTextColor.withOpacity(0.5)),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16),
@@ -291,6 +304,13 @@ class _LoginMethodScreenState extends ConsumerState<LoginMethodScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildGeometricFlag(String flag, {double size = 22}) {
+    return Text(
+      flag,
+      style: TextStyle(fontSize: size),
     );
   }
 }

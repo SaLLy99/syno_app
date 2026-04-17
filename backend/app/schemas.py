@@ -73,6 +73,20 @@ class Intention(OrmBaseModel):
 class UserBase(BaseModel):
     email: EmailStr
 
+class OTPRequest(BaseModel):
+    email: EmailStr
+    lang: Optional[str] = "en"
+
+class OTPVerify(BaseModel):
+    email: EmailStr
+    code: str
+
+class OTPVerifyResponse(BaseModel):
+    message: str
+    is_registered: bool
+    access_token: Optional[str] = None
+    token_type: Optional[str] = None
+
 class UserCreate(UserBase):
     password: str
     full_name: Optional[str] = None
@@ -208,3 +222,6 @@ class ThemeSettingsUpdate(BaseModel):
 
 class BlockByNameRequest(BaseModel):
     name: str
+
+class UserByEmailRequest(BaseModel):
+    email: EmailStr

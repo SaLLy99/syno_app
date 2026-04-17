@@ -190,7 +190,7 @@ class AuthService {
   }
   
   /// Requests a One-Time Password (OTP) for the given email.
-  Future<void> requestOtp(String email) async {
+  Future<void> requestOtp(String email, {String lang = 'en'}) async {
     debugPrint("[AuthService] Requesting OTP for: $email");
     final url = Uri.parse('$_backendUrl/api/auth/request-otp');
 
@@ -198,13 +198,57 @@ class AuthService {
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({'email': email}),
+        body: json.encode({'email': email, 'lang': lang}),
       );
 
       if (response.statusCode != 200) {
-        throw Exception('Failed to request OTP: ${response.body}');
+        final errorData = jsonDecode(response.body);
+        // Return the translation key from 'detail'
+        throw Exception(errorData['detail'] is String ? errorData['detail'] : 'dialog.error_title');
       }
     } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Verifies the One-Time Password (OTP) for the given email.
+  ///
+  /// Returns a map containing 'is_registered' (bool) and optionally 'access_token' (String).
+  Future<Map<String, dynamic>> verifyOtp(String email, String otpCode) async {
+    debugPrint("[AuthService] Verifying OTP for: $email with code: $otpCode");
+    final url = Uri.parse('$_backendUrl/api/auth/verify-otp');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'email': email,
+          'code': otpCode,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final bool isRegistered = data['is_registered'] ?? false;
+        final String? accessToken = data['access_token'];
+
+        if (accessToken != null) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('auth_token', accessToken);
+        }
+        return {
+          'is_registered': isRegistered, 
+          'access_token': accessToken,
+          'message': data['message'] ?? 'otp.success'
+        };
+      } else {
+        final errorData = jsonDecode(response.body);
+        // Return the translation key from 'detail' to the UI
+        throw Exception(errorData['detail'] is String ? errorData['detail'] : 'otp.invalid_code');
+      }
+    } catch (e) {
+      debugPrint("[AuthService] An error occurred during OTP verification: $e");
       rethrow;
     }
   }

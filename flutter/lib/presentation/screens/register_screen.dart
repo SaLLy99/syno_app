@@ -211,7 +211,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       Text("register.already_have_account".tr(), style: const TextStyle(color: Colors.white70)),
                       GestureDetector(
                         onTap: () {
-                          context.go('/login');
+                          context.go('/login-method');
                         },
                         child: Text(
                           'register.login'.tr(),

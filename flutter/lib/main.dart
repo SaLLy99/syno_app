@@ -37,6 +37,7 @@ import 'package:syno_app/presentation/screens/theme.dart';
 import 'package:syno_app/presentation/providers/theme_provider.dart';
 import 'package:syno_app/presentation/providers/registration_provider.dart';
 import 'package:syno_app/presentation/screens/blocked_users_screen.dart' hide Consumer;
+import 'package:syno_app/presentation/screens/otp_verification_screen.dart';
 
 
 void main() async {
@@ -99,7 +100,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (isLoading) {
         // If we are in the middle of the registration flow, don't redirect to splash.
         // The registration screen will handle its own loading indicator, preventing a race condition.
-        if (isRegistrationInProgress && (location == '/register-step2' || location == '/register-photos')) {
+        if ((isRegistrationInProgress && (location == '/register-step2' || location == '/register-photos')) || 
+            location == '/otp-verification') {
           return null;
         }
         return location == '/' ? null : '/';
@@ -112,6 +114,9 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // 2. Auth Guard: Not Logged In
       if (!isLoggedIn) {
+        // If we are currently verifying OTP, stay on the screen.
+        if (location == '/otp-verification') return null;
+
         final publicRoutes = [
           '/login', 
           '/register', 
@@ -121,6 +126,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           '/landing',
           '/login-method',
           '/terms',
+          '/otp-verification',
           '/privacy'
         ];
 
@@ -134,7 +140,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       // 3. Setup Guard: Logged In but Profile Incomplete
-      // This is the part that was likely failing
       if (!isProfileComplete) {
         final setupRoutes = [
           '/register-step2', 
@@ -151,7 +156,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       // 4. Fully Authenticated: Prevent going back to Login/Register/Splash
-      final restrictedRoutes = ['/login', '/register', '/', '/onboarding'];
+      final restrictedRoutes = [
+        '/login', 
+        '/register', 
+        '/', 
+        '/onboarding', 
+        '/otp-verification', 
+        '/landing', 
+        '/login-method'
+      ];
       if (restrictedRoutes.contains(location)) {
         return '/profile';
       }
@@ -180,9 +193,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
+        path: '/otp-verification',
+        name: 'otp-verification',
+        builder: (context, state) => OtpVerificationScreen(
+          email: state.extra as String? ?? '',
+        ),
+      ),
+      GoRoute(
         path: '/register',
         name: 'register',
-        builder: (context, state) => const RegisterScreen(),
+        builder: (context, state) => const LoginMethodScreen(),
       ),
       GoRoute(
         path: '/terms',

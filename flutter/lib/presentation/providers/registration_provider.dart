@@ -180,6 +180,14 @@ class RegistrationNotifier extends StateNotifier<RegistrationState> {
   void reset() {
     state = const RegistrationState();
   }
+
+  void updateStep1Data(Map<String, String> map) {
+    state = state.copyWith(email: map['email'] ?? '', password: map['password'] ?? '');
+    }
+
+  void updateStep2Data(Map<String, dynamic> map) {
+    state = state.copyWith(profileData: ProfileData.fromMap(map));
+  }
 }
 
 final registrationProvider = StateNotifierProvider<RegistrationNotifier, RegistrationState>((ref) {
