@@ -93,18 +93,24 @@ class ProfileData {
 class RegistrationState {
   final String email;
   final String password;
+  final String phoneNumber;
   final ProfileData profileData;
   final List<XFile> photos;
 
   const RegistrationState({
     this.email = '',
     this.password = '',
+    this.phoneNumber = '',
     this.profileData = const ProfileData(),
     this.photos = const [],
   });
 
   // Used in main.dart to check if registration flow has started (Step 1 complete)
-  Map<String, dynamic> get step1Data => email.isNotEmpty ? {'email': email, 'password': password} : {};
+  Map<String, dynamic> get step1Data => {
+    if (email.isNotEmpty) 'email': email,
+    if (password.isNotEmpty) 'password': password,
+    if (phoneNumber.isNotEmpty) 'phone_number': phoneNumber,
+  };
 
   // Used in AuthService to get profile details (excluding core values/intentions which are handled separately)
   Map<String, dynamic> get step2Data => profileData.toMap();
@@ -114,12 +120,14 @@ class RegistrationState {
   RegistrationState copyWith({
     String? email,
     String? password,
+    String? phoneNumber,
     ProfileData? profileData,
     List<XFile>? photos,
   }) {
     return RegistrationState(
       email: email ?? this.email,
       password: password ?? this.password,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
       profileData: profileData ?? this.profileData,
       photos: photos ?? this.photos,
     );
@@ -160,9 +168,9 @@ class RegistrationNotifier extends StateNotifier<RegistrationState> {
   if (index >= 0 && index < state.photos.length) {
    final newPhotos = List<XFile>.from(state.photos);
    newPhotos.removeAt(index);
-      state = state.copyWith(photos: newPhotos);
-    }
+   state = state.copyWith(photos: newPhotos);
   }
+ }
 
   void reorderPhotos(int oldIndex, int newIndex) {
     if (oldIndex < 0 || oldIndex >= state.photos.length) return;
@@ -182,8 +190,12 @@ class RegistrationNotifier extends StateNotifier<RegistrationState> {
   }
 
   void updateStep1Data(Map<String, String> map) {
-    state = state.copyWith(email: map['email'] ?? '', password: map['password'] ?? '');
-    }
+    state = state.copyWith(
+      email: map['email'] ?? '',
+      password: map['password'] ?? '',
+      phoneNumber: map['phone_number'] ?? '',
+    );
+  }
 
   void updateStep2Data(Map<String, dynamic> map) {
     state = state.copyWith(profileData: ProfileData.fromMap(map));

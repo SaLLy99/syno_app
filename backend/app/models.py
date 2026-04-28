@@ -165,6 +165,7 @@ class Profile(Base):
     orientation_id = Column(Integer, ForeignKey("orientations.id", ondelete="RESTRICT"), nullable=False)
     theme_id = Column(String(50))
     height = Column(Integer, nullable=True)
+    phone_number = Column(String(20), unique=True, nullable=True)
     bio = Column(Text)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
@@ -194,7 +195,8 @@ class Profile(Base):
 class OTP(Base):
     __tablename__ = "otps"
     id = Column(Integer, primary_key=True, index=True)
-    email = Column(String, index=True, nullable=False)
+    email = Column(String, index=True, nullable=True)
+    phone_number = Column(String(20), index=True, nullable=True)
     code = Column(String, nullable=False)
     otp_hash = Column(String, nullable=False)
     expires_at = Column(TIMESTAMP, nullable=False)

@@ -9,12 +9,13 @@ import 'package:syno_app/presentation/providers/auth_service_provider.dart';
 import 'package:syno_app/presentation/providers/user_provider.dart';
 import 'package:syno_app/presentation/screens/theme.dart';
 import 'package:syno_app/presentation/providers/registration_provider.dart';
+import 'package:syno_app/data/services/otp_verification_args.dart';
 import 'package:syno_app/theme.dart';
 
 class OtpVerificationScreen extends ConsumerStatefulWidget {
-  final String email;
+  final OtpVerificationArgs args;
 
-  const OtpVerificationScreen({super.key, required this.email});
+  const OtpVerificationScreen({super.key, required this.args});
 
   @override
   ConsumerState<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
@@ -85,12 +86,16 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
 
     try {
       final authService = ref.read(authServiceProvider);
-      final response = await authService.verifyOtp(widget.email, _otpCode);
+      final response = await authService.verifyOtp(
+        email: widget.args.isEmail ? widget.args.identifier : null,
+        phoneNumber: widget.args.isEmail ? null : widget.args.identifier, otpCode: _otpCode);
 
       if (response['is_registered']) {
-        // Manually trigger a refresh of the user provider to ensure
-        // the router sees the authenticated state immediately.
-        ref.invalidate(currentUserProvider);
+        // User is fully registered. Store token and refresh profile.
+        if (response['access_token'] != null) {
+          await ref.read(currentUserProvider.notifier).setUser(null, token: response['access_token']);
+          ref.invalidate(currentUserProvider);
+        }
 
         await _showStatusDialog(
           title: 'login.success_title'.tr(),
@@ -98,10 +103,20 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
         );
         if (mounted) context.go('/profile');
       } else {
+        // User exists but has no profile, or is a brand new user.
+        if (response['access_token'] != null) {
+           // Store token so the router recognizes the authenticated session
+           await ref.read(currentUserProvider.notifier).setUser(null, token: response['access_token']);
+        }
+
         // Seed registration provider so the router guard allows entry to Step 2
+        final key = widget.args.isEmail ? 'email' : 'phone_number';
         ref.read(registrationProvider.notifier).updateStep1Data({
-          'email': widget.email,
+          key: widget.args.identifier
         });
+        
+        // Invalidate registration provider to trigger router update
+        ref.invalidate(registrationProvider);
         
         await _showStatusDialog(
           title: 'otp.verify_title'.tr(),
@@ -128,7 +143,9 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
     try {
       final authService = ref.read(authServiceProvider);
       final lang = context.locale.languageCode;
-      await authService.requestOtp(widget.email, lang: lang);
+      await authService.requestOtp(
+        email: widget.args.isEmail ? widget.args.identifier : null,
+        phoneNumber: widget.args.isEmail ? null : widget.args.identifier, lang: lang);
       await _showStatusDialog(
         title: 'otp.otp_subject'.tr(),
         message: 'otp.otp_message'.tr(namedArgs: {'code': '...', 'minutes': '10'}),
@@ -157,7 +174,9 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'otp.verify_message'.tr(args: [widget.email]),
+              widget.args.isEmail
+                  ? 'otp.verify_message'.tr(args: [widget.args.identifier])
+                  : 'otp.verify_message_phone'.tr(namedArgs: {'phone_number': widget.args.identifier}),
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleMedium,
             ),

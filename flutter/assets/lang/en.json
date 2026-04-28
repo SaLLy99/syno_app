@@ -182,7 +182,6 @@
         "login_button": "Log In",
         "or_divider": "OR",
         "continue_with_facebook": "Continue with Facebook",
-        "continue_with_mobile": "Continue with Mobile Number",
         "signup_prompt": "Don't have an account? Sign up",
         "logging_in": "Logging in...",
         "redirecting_to_facebook": "Redirecting to Facebook...",
@@ -449,15 +448,18 @@
     "otp": {
         "otp_subject": "Your SYNO Verification Code",
         "otp_message": "Your verification code is {code}. It expires in {minutes} minutes.",
-        "verify_title": "Verify Email",
-        "verify_subtitle": "We sent a 6-digit code to {email}",
+        "verify_title": "Verify Your Identity",
+        "verify_subtitle": "We sent a 6-digit code to {email}", 
+        "verify_subtitle_phone": "We've sent a 6-digit code to {phone_number}",
         "verify_message": "Enter the code we sent to {}",
+        "verify_message_phone": "Enter the code we sent to your phone number {phone_number}",
         "paste_tip": "Tip: You can paste the code directly",
         "verify_button": "Verify Code",
         "resend_code": "Resend Code",
         "invalid_code": "The code you entered is incorrect.",
         "expired_code": "This code has expired. Please request a new one.",
-        "rate_limit_error": "Please wait a moment before requesting another code."
+        "rate_limit_error": "Please wait a moment before requesting another code.",
+        "success": "Code sent successfully"
     }
   }
 

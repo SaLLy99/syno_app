@@ -1,6 +1,7 @@
 from datetime import timedelta
 from functools import lru_cache
 import json
+from twilio.rest import Client
 import os
 import functools
 import secrets
@@ -82,6 +83,50 @@ def send_otp_email(to_email: str, subject: str, html_content: str) -> bool:
     except Exception as e:
         logger.error(f"Failed to send email: {e}")
         return False
+
+def send_sms_otp(phone_number: str, message: str) -> bool:
+    try:
+        # These values must be in your .env / settings.py
+        if not settings.twilio_sid or not settings.twilio_auth_token:
+            logger.error("Twilio credentials are missing in settings. Skipping SMS.")
+            return False
+            
+        client = Client(settings.twilio_sid, settings.twilio_auth_token)
+        
+        client.messages.create(
+            body=message,
+            from_=settings.twilio_phone, # Your purchased Twilio number
+            to=phone_number
+        )
+        
+        logger.info(f"Actual SMS sent to {phone_number}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to send SMS: {e}")
+        return False
+
+def validate_phone_number(phone: str):
+    """Validates European and Georgian phone numbers."""
+    # Basic sanitization
+    clean_phone = re.sub(r'[^\d+]', '', phone)
+    
+    # European Country Codes and typical lengths (min, max)
+    # +995 (GE), +49 (DE), +33 (FR), +44 (GB), etc.
+    country_codes = {
+        "995": (9, 9),   # Georgia
+        "49": (10, 11),  # Germany
+        "33": (9, 9),    # France
+        "44": (10, 10),  # UK
+    }
+    
+    for code, (min_l, max_l) in country_codes.items():
+        pattern = rf"^\+?{code}\d{{{min_l},{max_l}}}$"
+        if re.match(pattern, clean_phone):
+            # Remove + for uniform storage if preferred, 
+            # but usually keeping + is better for internationalization
+            return True, clean_phone
+            
+    return False, None
 
 # Define a schema for the complete registration form data
 
@@ -165,18 +210,22 @@ async def request_otp(otp_data: schemas.OTPRequest, background_tasks: Background
     REST API endpoint to receive email submission, generate 6-digit secure OTP,
     store in PostgreSQL, and send localized email.
     """
+    # Branch to phone logic if phone number is provided instead of email
+    if otp_data.phone_number and not otp_data.email:
+        return await request_otp_phone(
+            schemas.SMSOTPRequest(phone_number=otp_data.phone_number, lang=otp_data.lang), 
+            background_tasks, 
+            db
+        )
+
     # Periodic cleanup trigger (could also be a cron job)
     if secrets.randbelow(10) == 0: # 10% chance to run cleanup on request to keep table slim
         crud.cleanup_otps(db)
 
-    # 0. Validate email format
-    email_regex = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
-    if not re.match(email_regex, otp_data.email):
-        raise HTTPException(status_code=400, detail="Invalid email format")
+    if not otp_data.email:
+        raise HTTPException(status_code=400, detail="Email or Phone Number is required")
 
     email = otp_data.email.lower()
-    lang = otp_data.lang if otp_data.lang in ["en", "ru", "ka"] else "en"
-    
     # 0. Basic Rate Limiting: Prevent more than 1 request per minute per email
     last_otp = db.query(models.OTP).filter(
         models.OTP.email == email,
@@ -187,6 +236,7 @@ async def request_otp(otp_data: schemas.OTPRequest, background_tasks: Background
         logger.warning(f"Rate limit hit for {email}")
         raise HTTPException(status_code=429, detail="otp.rate_limit_error")
 
+    lang = otp_data.lang if otp_data.lang in ["en", "ru", "ka"] else "en"
     logger.info(f"OTP request received for email: {email} (lang: {lang})")
 
     try:
@@ -235,11 +285,101 @@ async def request_otp(otp_data: schemas.OTPRequest, background_tasks: Background
     
     return {"message": "OTP requested successfully"}
 
+@app.post("/api/auth/request-otp-phone", status_code=status.HTTP_200_OK)
+async def request_otp_phone(otp_data: schemas.SMSOTPRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    """Sends a 6-digit OTP via SMS to the provided phone number."""
+    is_valid, formatted_phone = validate_phone_number(otp_data.phone_number)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail="otp.invalid_phone_format")
+
+    # Rate limiting: 1 request per minute
+    last_otp = db.query(models.OTP).filter(
+        models.OTP.phone_number == formatted_phone,
+        models.OTP.created_at > datetime.utcnow() - timedelta(minutes=1)
+    ).first()
+    
+    if last_otp:
+        raise HTTPException(status_code=429, detail="otp.rate_limit_error")
+
+    lang = otp_data.lang if otp_data.lang in ["en", "ru", "ka"] else "en"
+    otp_code = "".join([str(secrets.randbelow(10)) for _ in range(6)])
+    
+    # Format as XXX-XXX for the SMS
+    display_code = f"{otp_code[:3]}-{otp_code[3:]}"
+    logger.info(f"Generated SMS OTP for {formatted_phone}: {otp_code}")
+
+    sms_message = tr("otp.sms_message", lang, code=display_code)
+    
+    crud.create_otp_phone(db, phone=formatted_phone, code=otp_code)
+    background_tasks.add_task(send_sms_otp, formatted_phone, sms_message)
+    
+    return {"message": "otp.success"}
+
+@app.post("/api/auth/verify-otp-phone", response_model=schemas.OTPVerifyResponse)
+async def verify_otp_phone(otp_data: schemas.SMSOTPVerify, db: Session = Depends(get_db)):
+    """Verifies phone OTP and links it to user/profile."""
+    is_valid, formatted_phone = validate_phone_number(otp_data.phone_number)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail="otp.invalid_phone_format")
+    
+    success, msg_key = crud.verify_otp_phone_logic(db, formatted_phone, otp_data.code)
+    if not success:
+        raise HTTPException(status_code=400, detail=msg_key)
+
+    # Check if a profile already uses this phone
+    existing_profile = db.query(models.Profile).filter(models.Profile.phone_number == formatted_phone).first()
+    
+    if existing_profile and existing_profile.user_id:
+        # If profile exists, find the associated user to issue a token
+        db_user = db.query(models.SynoUser).filter(models.SynoUser.id == existing_profile.user_id).first()
+        
+        if db_user:
+            access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+            access_token = create_access_token(
+                data={"sub": db_user.email}, expires_delta=access_token_expires
+            )
+            return {
+                "message": "otp.verified_success",
+                "is_registered": True,
+                "access_token": access_token,
+                "token_type": "bearer"
+            }
+
+    # New Phone User: Create a placeholder user account to allow token issuance
+    temp_email = f"phone_{formatted_phone.replace('+', '')}@syno.app".lower()
+    db_user = crud.get_user_by_email(db, temp_email)
+    if not db_user:
+        db_user = crud.create_user(
+            db, 
+            schemas.UserCreate(email=temp_email, password=secrets.token_urlsafe(16))
+        )
+
+    access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+    access_token = create_access_token(
+        data={"sub": db_user.email}, expires_delta=access_token_expires
+    )
+    return {
+        "message": "otp.verified_success",
+        "is_registered": False,
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
+
 @app.post("/api/auth/verify-otp", response_model=schemas.OTPVerifyResponse)
 async def verify_otp(otp_data: schemas.OTPVerify, db: Session = Depends(get_db)):
-    logger.info(f"OTP verification attempt for: {otp_data.email}")
+    # Branch to phone verification if phone number is provided
+    if otp_data.phone_number and not otp_data.email:
+        return await verify_otp_phone(
+            schemas.SMSOTPVerify(phone_number=otp_data.phone_number, code=otp_data.code), 
+            db
+        )
+
+    if not otp_data.email:
+        raise HTTPException(status_code=400, detail="Email or Phone Number is required")
+
     email = otp_data.email.lower()
-    
+    logger.info(f"OTP verification attempt for: {email}")
+
     # 1. Verification Logic via CRUD
     is_valid, msg_key = crud.verify_otp_logic(db, email, otp_data.code)
     
@@ -248,28 +388,48 @@ async def verify_otp(otp_data: schemas.OTPVerify, db: Session = Depends(get_db))
         raise HTTPException(status_code=400, detail=msg_key)
 
     # 2. Check if user is registered
-    db_user = crud.get_user_by_email(db, email)
+    db_user = crud.get_user_by_email(db, email.lower())
+    db_profile = crud.get_profile_by_user_id(db, db_user.id) if db_user else None
     
-    if db_user:
-        # Existing User - Issue login token
+    if db_user and db_profile:
+        # Existing User with Profile - Issue login token
         access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
         access_token = create_access_token(
             data={"sub": db_user.email}, expires_delta=access_token_expires
         )
         return {
-            "message": "otp.success",
+            "message": "otp.verified_success",
             "is_registered": True,
             "access_token": access_token,
             "token_type": "bearer"
         }
-    else:
-        # New User - Redirect to Step 2
-        # We still return a message key so the frontend can show a success popup before navigating
+    elif db_user:
+        # User exists but no profile - Issue token so they can create a profile in Step 2
+        access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+        access_token = create_access_token(
+            data={"sub": db_user.email}, expires_delta=access_token_expires
+        )
         return {
-            "message": "otp.success",
+            "message": "otp.verified_success",
             "is_registered": False,
-            "access_token": None,
-            "token_type": None
+            "access_token": access_token,
+            "token_type": "bearer"
+        }
+    else:
+        # New User - Create user record and return token for Step 2
+        new_user = crud.create_user(
+            db, 
+            schemas.UserCreate(email=email, password=secrets.token_urlsafe(16))
+        )
+        access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+        access_token = create_access_token(
+            data={"sub": new_user.email}, expires_delta=access_token_expires
+        )
+        return {
+            "message": "otp.verified_success",
+            "is_registered": False,
+            "access_token": access_token,
+            "token_type": "bearer"
         }
 
 
@@ -321,40 +481,8 @@ async def create_or_update_user_profile_patch(
     """
     Handles both creation and partial updates for a user's profile.
     """
-    update_data_dict = profile_in.dict(exclude_unset=True)
     # profile_in is already parsed and validated by ProfileUpdateForm.as_form_patch
     update_data = profile_in.dict(exclude_unset=True)
-
-    # Parse JSON string fields back into lists of integers for relationship fields
-    list_fields_to_parse = ['intention_ids', 'core_value_ids', 'hobby_ids', 'profession_ids', 'education_ids']
-    for field in list_fields_to_parse:
-        if update_data_dict.get(field) and isinstance(update_data_dict[field], str):
-            try:
-                parsed_value = json.loads(update_data_dict[field])
-                if isinstance(parsed_value, list):
-                    update_data_dict[field] = parsed_value
-                elif isinstance(parsed_value, int):
-                    # If a single integer is provided for a list field, wrap it in a list
-                    update_data_dict[field] = [parsed_value]
-                else:
-                    # If it's neither a list nor an int after JSON parsing,
-                    # it's likely an invalid JSON string for a list, so keep the original string
-                    # to potentially try comma-separated parsing or let Pydantic validate.
-                    pass
-            except (json.JSONDecodeError, TypeError):
-                # If JSON parsing fails, it might be a plain comma-separated string, e.g., "1,2,3"
-                value_str = update_data_dict[field]
-                if value_str:
-                    try:
-                        update_data_dict[field] = [int(i.strip()) for i in value_str.split(',') if i.strip()]
-                    except (ValueError, TypeError):
-                        pass # Let Pydantic handle the original string if conversion fails
-                else:
-                    update_data_dict[field] = [] # Treat empty string as an empty list
-
-    # Re-create ProfileUpdate with parsed lists
-    profile_in_parsed = schemas.ProfileUpdate(**update_data_dict)
-    update_data = profile_in_parsed.dict(exclude_unset=True)
 
     db_profile = crud.get_profile_by_user_id(db, user_id=current_user.id)
     

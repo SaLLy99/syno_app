@@ -102,7 +102,7 @@ class _RegisterPhotosScreenState extends ConsumerState<RegisterPhotosScreen> {
       ref.read(loadingStateProvider.notifier).hide();
 
       if (freshUser != null) {
-        ref.read(currentUserProvider.notifier).setUser(freshUser);
+        await ref.read(currentUserProvider.notifier).setUser(freshUser);
       } else {
         // This case should not happen if registration was successful and the
         // backend endpoint is working correctly.

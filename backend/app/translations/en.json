@@ -449,7 +449,7 @@
     "otp": {
         "otp_subject": "Your SYNO Verification Code",
         "otp_message": "Your verification code is {code}. It expires in {minutes} minutes.",
-        "verify_title": "Verify Email",
+        "verify_title": "Verify Your Identity",
         "verify_subtitle": "We sent a 6-digit code to {email}",
         "verify_message": "Enter the code we sent to {}",
         "paste_tip": "Tip: You can paste the code directly",
@@ -457,7 +457,11 @@
         "resend_code": "Resend Code",
         "invalid_code": "The code you entered is incorrect.",
         "expired_code": "This code has expired. Please request a new one.",
-        "rate_limit_error": "Please wait a moment before requesting another code."
+        "rate_limit_error": "Please wait a moment before requesting another code.",
+        "sms_message": "Syno's one-time code is: {code}. Don’t share it with anyone! <3",
+        "invalid_phone_format": "Please enter a valid phone number with country code.",
+        "verification_success": "Verification successful! Let's get you started.",
+        "success": "Code sent successfully"
     }
   }
 

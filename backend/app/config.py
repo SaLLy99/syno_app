@@ -22,6 +22,11 @@ class Settings(BaseSettings):
     smtp_user: str
     smtp_password: str
 
+    # Twilio SMS Gateway Settings
+    twilio_sid: str = ""
+    twilio_auth_token: str = ""
+    twilio_phone: str = ""
+
     model_config = SettingsConfigDict(
         env_file=str(ENV_FILE_PATH),
         env_file_encoding="utf-8",
