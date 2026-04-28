@@ -53,7 +53,7 @@ class ThemeUpdateNotifier extends StateNotifier<AsyncValue<void>> {
       }
 
       // 3. Update the global user provider with the new user data.
-      _ref.read(currentUserProvider.notifier).setUser(updatedUser);
+      await _ref.read(currentUserProvider.notifier).setUser(updatedUser);
 
       state = const AsyncValue.data(null);
     } catch (e, st) {

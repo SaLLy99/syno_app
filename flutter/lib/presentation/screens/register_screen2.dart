@@ -208,6 +208,7 @@ class _RegisterScreen2State extends ConsumerState<RegisterScreen2> {
     final AsyncValue<List<Hobby>> hobbiesAsync = ref.watch(hobbiesProvider);
     final coreValuesAsync = ref.watch(coreValuesProvider);
     final intentionsAsync = ref.watch(intentionsProvider);
+    final bool isFinalizing = ref.watch(registrationProvider).step2Data['phone_number'] != null;
 
     return Container(
       decoration: const BoxDecoration(gradient: CosmicColors.deepSpaceGradient),
@@ -221,7 +222,7 @@ class _RegisterScreen2State extends ConsumerState<RegisterScreen2> {
             tooltip: MaterialLocalizations.of(context).backButtonTooltip,
           ),
           title: Text(
-            'register.step2_title'.tr(),
+            isFinalizing ? 'register.finalize_registration'.tr() : 'register.step2_title'.tr(),
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
@@ -235,6 +236,15 @@ class _RegisterScreen2State extends ConsumerState<RegisterScreen2> {
           child: ListView(
             padding: const EdgeInsets.all(24.0),
             children: <Widget>[
+              if (isFinalizing)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 24.0),
+                  child: Text(
+                    'register.finalize_subtitle'.tr(),
+                    style: const TextStyle(color: Colors.white70, fontSize: 16),
+                  ),
+                ),
+
               // Name
               TextFormField(
                 controller: _nameController,

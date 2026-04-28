@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
+import 'package:syno_app/data/services/otp_verification_args.dart';
 import 'package:syno_app/presentation/providers/auth_providers.dart';
 import 'package:syno_app/presentation/providers/theme_provider.dart';
 import 'package:syno_app/theme.dart';
+import 'package:syno_app/data/services/auth_service.dart';
+import 'package:syno_app/presentation/providers/registration_provider.dart';
 import 'package:syno_app/presentation/widgets/app_dialogs.dart';
 
 class LoginMethodScreen extends ConsumerStatefulWidget {
@@ -19,6 +22,8 @@ class _LoginMethodScreenState extends ConsumerState<LoginMethodScreen> {
   final TextEditingController _phoneController = TextEditingController();
   bool _isEmailSelected = true;
   bool _isEmailValid = false;
+  bool _isPhoneNumberSelected = false;
+  bool _isPhoneNumberValid = false;
   bool _isLoading = false;
   
   Map<String, String> _selectedCountry = {'name': 'Georgia', 'code': '+995', 'flag': '🇬🇪'};
@@ -45,6 +50,16 @@ class _LoginMethodScreenState extends ConsumerState<LoginMethodScreen> {
     });
   }
 
+  void _validatePhoneNumber(String value) {
+      final trimmedValue = value.trim();
+      
+      final phoneRegex = RegExp(r'^\+?[0-9]{7,15}$');
+
+      setState(() {
+        _isPhoneNumberValid = phoneRegex.hasMatch(trimmedValue);
+  });
+}
+
   void _showCountryPicker(AppThemeData appTheme) {
     showModalBottomSheet(
       context: context,
@@ -68,30 +83,56 @@ class _LoginMethodScreenState extends ConsumerState<LoginMethodScreen> {
     );
   }
 
-  Future<void> _handleContinue() async {
-    if (_isEmailSelected && !_isEmailValid) return;
+ Future<void> _handleContinue() async {
+  // 1. Validation Check
+  if ((_isEmailSelected && !_isEmailValid) || (_isPhoneNumberSelected && !_isPhoneNumberValid)) return;
 
-    setState(() => _isLoading = true);
-    try {
-      final authService = ref.read(authServiceProvider);
-      final lang = context.locale.languageCode;
-      final email = _emailController.text.trim();
+  setState(() => _isLoading = true);
+  
+  try {
+    final authService = ref.read(authServiceProvider);
+    final lang = context.locale.languageCode;
+    
+    // Determine the identifier and mode
+    final String identifier = _isEmailSelected 
+        ? _emailController.text.trim() 
+        : '${_selectedCountry['code']}${_phoneController.text.trim()}';
 
-      if (_isEmailSelected) {
-        await authService.requestOtp(email, lang: lang);
-      }
+    // 2. Call the API
+    if (_isEmailSelected) {
+      // Save identifier to mark registration in progress for the router
+      ref.read(registrationProvider.notifier).updateStep1Data({'email': identifier});
       
-      if (mounted) {
-        context.push('/otp-verification', extra: email);
-      }
-    } catch (e) {
-      if (mounted) {
-        AppDialogs.showErrorDialog(context, 'dialog.error_title'.tr(), e.toString());
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+      await authService.requestOtp(email: identifier, lang: lang);
+    } else {
+      // For phone registration flow, set the phone number in the provider 
+      // to mark registration as 'in progress' for the router.
+      final notifier = ref.read(registrationProvider.notifier);
+      notifier.updateStep2Data({'phone_number': identifier});
+      // Also clear any old email data to ensure phone flow takes precedence
+      notifier.updateStep1Data({'email': ''});
+      
+      await authService.requestOtp(phoneNumber: identifier, lang: lang);
     }
+    
+    // 3. Navigate with the correct object type
+    if (mounted) {
+      context.push(
+        '/otp-verification', 
+        extra: OtpVerificationArgs(
+          identifier: identifier,
+          isEmail: _isEmailSelected,
+        ),
+      );
+    }
+  } catch (e) {
+    if (mounted) {
+      AppDialogs.showErrorDialog(context, 'dialog.error_title'.tr(), e.toString());
+    }
+  } finally {
+    if (mounted) setState(() => _isLoading = false);
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -172,8 +213,24 @@ class _LoginMethodScreenState extends ConsumerState<LoginMethodScreen> {
                       ),
                       Row(
                         children: [
-                          _toggleItem('login.email_toggle'.tr(), _isEmailSelected, () => setState(() => _isEmailSelected = true)),
-                          _toggleItem('login.mobile_toggle'.tr(), !_isEmailSelected, () => setState(() => _isEmailSelected = false)),
+                          _toggleItem(
+                            'login.email_toggle'.tr(), 
+                            _isEmailSelected, 
+                            () => setState(() {
+                              _isEmailSelected = true;
+                              _isPhoneNumberSelected = false; 
+                            }),
+                          ),
+
+                          // Mobile Toggle
+                          _toggleItem(
+                            'login.mobile_toggle'.tr(), 
+                            _isPhoneNumberSelected, 
+                            () => setState(() {
+                              _isEmailSelected = false; 
+                              _isPhoneNumberSelected = true; 
+                            }),
+                          ),
                         ],
                       ),
                     ],
@@ -291,7 +348,7 @@ class _LoginMethodScreenState extends ConsumerState<LoginMethodScreen> {
           Expanded(
             child: TextFormField(
               controller: _phoneController,
-              onChanged: (v) => setState(() {}),
+              onChanged: _validatePhoneNumber,
               style: TextStyle(color: appTheme.primaryTextColor, fontSize: 16),
               keyboardType: TextInputType.phone,
               decoration: InputDecoration(

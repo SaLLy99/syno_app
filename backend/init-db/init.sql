@@ -4,6 +4,24 @@
 -- Updated to include cities, countries, hobbies, orientations, and sexes
 -- ===============================================
 
+-- 0️⃣ Setup helper functions first
+CREATE OR REPLACE FUNCTION cleanup_expired_otps()
+RETURNS void AS $$
+BEGIN
+    DELETE FROM otps
+    WHERE expires_at < NOW()
+       OR used_flag = TRUE;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION trigger_cleanup_otps_handler()
+RETURNS TRIGGER AS $$
+BEGIN
+    PERFORM cleanup_expired_otps();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 -- 1️⃣ Create locations table
 CREATE TABLE IF NOT EXISTS locations (
     id SERIAL PRIMARY KEY,
@@ -334,3 +352,17 @@ CREATE TRIGGER cleanup_on_insert
 AFTER INSERT ON otps
 FOR EACH STATEMENT
 EXECUTE FUNCTION trigger_cleanup_otps_handler();
+
+-- 1. Update Profiles table to include unique phone numbers
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS phone_number VARCHAR(20);
+ALTER TABLE profiles ADD CONSTRAINT uq_profiles_phone_number UNIQUE (phone_number);
+
+-- 2. Update OTPs table to support SMS and rate limiting
+-- Make email nullable as we now support phone-based OTP
+ALTER TABLE otps ALTER COLUMN email DROP NOT NULL;
+
+-- Add phone_number and tracking columns
+ALTER TABLE otps ADD COLUMN IF NOT EXISTS phone_number VARCHAR(20);
+
+-- Create index for phone_number lookups in OTP table
+CREATE INDEX IF NOT EXISTS ix_otps_phone_number ON otps (phone_number);

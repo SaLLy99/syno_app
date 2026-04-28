@@ -3,6 +3,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:syno_app/presentation/providers/auth_service_provider.dart';
+import 'package:syno_app/data/services/otp_verification_args.dart';
 import 'package:syno_app/theme.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -14,29 +15,45 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   bool _isEmailActive = true;
   bool _isButtonEnabled = false;
   bool _isLoading = false;
 
   final _emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
+  // Simple regex for international phone numbers (e.g., +995555123456)
+  final _phoneRegex = RegExp(r'^\+?[1-9]\d{1,14}$');
 
   void _validateInput(String value) {
     setState(() {
-      // Trim and validate against strict regex: ^[^\s@]+@[^\s@]+\.[^\s@]+$
       final trimmedValue = value.trim();
-      _isButtonEnabled = _emailRegex.hasMatch(trimmedValue);
+      if (_isEmailActive) {
+        _isButtonEnabled = _emailRegex.hasMatch(trimmedValue);
+      } else {
+        _isButtonEnabled = _phoneRegex.hasMatch(trimmedValue);
+      }
     });
   }
 
   Future<void> _handleContinue() async {
     setState(() => _isLoading = true);
     try {
-      final email = _emailController.text.trim();
+      final identifier = _isEmailActive 
+          ? _emailController.text.trim() 
+          : _phoneController.text.trim();
+          
+      final args = OtpVerificationArgs(identifier: identifier, isEmail: _isEmailActive);
+      
       // Pass the current locale to the backend for localized email
       final lang = context.locale.languageCode;
-      await ref.read(authServiceProvider).requestOtp(email, lang: lang);
+      await ref.read(authServiceProvider).requestOtp(
+        email: _isEmailActive ? identifier : null,
+        phoneNumber: !_isEmailActive ? identifier : null,
+        lang: lang,
+      );
+      
       if (mounted) {
-        context.push('/otp-verification', extra: email);
+        context.push('/otp-verification', extra: args);
       }
     } catch (e) {
       final errorKey = e.toString().replaceFirst('Exception: ', '').trim();
@@ -94,14 +111,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   decoration: InputDecoration(
                     hintText: "login.email_hint".tr(),
                     hintStyle: const TextStyle(color: Colors.white54),
-                    prefixIcon: const Icon(Icons.email_outlined, color: Colors.cyanAccent),
+                    prefixIcon: const Icon(Icons.alternate_email, color: Colors.cyanAccent),
                     enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
                     focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.cyanAccent)),
                   ),
                 ),
               ] else ...[
-                // Phone Placeholder
-                Text("login.phone_hint".tr(), style: const TextStyle(color: Colors.white70)),
+                TextField(
+                  controller: _phoneController,
+                  onChanged: _validateInput,
+                  style: const TextStyle(color: Colors.white),
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    hintText: "login.phone_hint".tr(),
+                    hintStyle: const TextStyle(color: Colors.white54),
+                    prefixIcon: const Icon(Icons.phone_android, color: Colors.cyanAccent),
+                    enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
+                    focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.cyanAccent)),
+                  ),
+                ),
               ],
               
               const SizedBox(height: 48),

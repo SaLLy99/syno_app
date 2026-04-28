@@ -42,10 +42,12 @@ class UserStateNotifier extends StateNotifier<AsyncValue<User?>> {
   }
 
   /// Allows manually setting the user state and optionally the auth token, e.g., after a profile update or login.
-  AsyncValue<User?> setUser(User? user, {String? token}) {
+  Future<AsyncValue<User?>> setUser(User? user, {String? token}) async {
     if (token != null) {
       _authToken = token;
-      SharedPreferences.getInstance().then((prefs) => prefs.setString('auth_token', token));
+      // Save token synchronously to avoid race conditions
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('auth_token', token);
     }
     return state = AsyncValue.data(user);
   }

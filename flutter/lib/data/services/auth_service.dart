@@ -190,15 +190,23 @@ class AuthService {
   }
   
   /// Requests a One-Time Password (OTP) for the given email.
-  Future<void> requestOtp(String email, {String lang = 'en'}) async {
-    debugPrint("[AuthService] Requesting OTP for: $email");
+  Future<void> requestOtp({String? email, String? phoneNumber, String lang = 'en'}) async {
     final url = Uri.parse('$_backendUrl/api/auth/request-otp');
+
+    Map<String, dynamic> body = {'lang': lang};
+    if (email != null) {
+      body['email'] = email;
+    } else if (phoneNumber != null) {
+      body['phone_number'] = phoneNumber;
+    } else {
+      throw Exception('Either email or phone number must be provided for OTP request.');
+    }
 
     try {
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({'email': email, 'lang': lang}),
+        body: json.encode(body),
       );
 
       if (response.statusCode != 200) {
@@ -214,18 +222,24 @@ class AuthService {
   /// Verifies the One-Time Password (OTP) for the given email.
   ///
   /// Returns a map containing 'is_registered' (bool) and optionally 'access_token' (String).
-  Future<Map<String, dynamic>> verifyOtp(String email, String otpCode) async {
-    debugPrint("[AuthService] Verifying OTP for: $email with code: $otpCode");
+  Future<Map<String, dynamic>> verifyOtp({String? email, String? phoneNumber, required String otpCode}) async {
+    debugPrint("[AuthService] Verifying OTP for: ${email ?? phoneNumber} with code: $otpCode");
     final url = Uri.parse('$_backendUrl/api/auth/verify-otp');
+
+    Map<String, dynamic> body = {'code': otpCode};
+    if (email != null) {
+      body['email'] = email;
+    } else if (phoneNumber != null) {
+      body['phone_number'] = phoneNumber;
+    } else {
+      throw Exception('Either email or phone number must be provided for OTP verification.');
+    }
 
     try {
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'email': email,
-          'code': otpCode,
-        }),
+        body: json.encode(body),
       );
 
       if (response.statusCode == 200) {

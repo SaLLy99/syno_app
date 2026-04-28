@@ -277,6 +277,16 @@ def create_otp(db: Session, email: str, code: str, expires_in_minutes: int = 10)
     db.refresh(db_otp)
     return db_otp
 
+def create_otp_phone(db: Session, phone: str, code: str, expires_in_minutes: int = 10):
+    """Store a new phone OTP in the database."""
+    otp_hash = hash_password(code)
+    expires_at = datetime.utcnow() + timedelta(minutes=expires_in_minutes)
+    db_otp = models.OTP(phone_number=phone, code=code, otp_hash=otp_hash, expires_at=expires_at)
+    db.add(db_otp)
+    db.commit()
+    db.refresh(db_otp)
+    return db_otp
+
 def cleanup_otps(db: Session):
     """
     Removes expired or already used OTP records from the database.
@@ -310,6 +320,37 @@ def verify_otp_logic(db: Session, email: str, provided_code: str):
     otp_record.attempts += 1
     
     if not pwd_context.verify(provided_code, otp_record.otp_hash):
+        db.commit()
+        return False, "otp.invalid_code"
+
+    # Success
+    otp_record.used_flag = True
+    db.commit()
+    return True, "otp.success"
+
+def verify_otp_phone_logic(db: Session, phone: str, provided_code: str):
+    """
+    Business logic for Phone OTP verification.
+    """
+    otp_record = db.query(models.OTP).filter(
+        models.OTP.phone_number == phone,
+        models.OTP.used_flag == False
+    ).order_by(models.OTP.created_at.desc()).first()
+
+    if not otp_record:
+        return False, "otp.invalid_code"
+    
+    if otp_record.expires_at < datetime.utcnow():
+        return False, "otp.expired_code"
+
+    if otp_record.attempts >= 3:
+        return False, "otp.rate_limit_error"
+
+    otp_record.attempts += 1
+    
+    # Clean code comparison (ignoring dashes if frontend sends XXX-XXX)
+    clean_provided = provided_code.replace("-", "")
+    if not pwd_context.verify(clean_provided, otp_record.otp_hash):
         db.commit()
         return False, "otp.invalid_code"
 

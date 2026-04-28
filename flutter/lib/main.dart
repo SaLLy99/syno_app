@@ -4,11 +4,11 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:syno_app/data/services/otp_verification_args.dart';
 import 'package:syno_app/domain/entities/user.dart';
 import 'package:syno_app/domain/entities/match.dart';
 import 'package:syno_app/presentation/screens/chat_screen.dart';
 import 'package:syno_app/presentation/screens/chats_list_screen.dart';
-import 'package:syno_app/presentation/screens/matches_details_screen.dart';
 import 'package:syno_app/presentation/screens/matches_list_screen.dart';
 import 'package:syno_app/presentation/providers/user_provider.dart';
 import 'package:syno_app/presentation/screens/edit_profile_screen.dart';
@@ -17,20 +17,16 @@ import 'package:syno_app/presentation/screens/onboarding_screen.dart';
 import 'package:syno_app/presentation/screens/discover_screen.dart';
 import 'package:syno_app/presentation/screens/profile_screen.dart';
 import 'package:syno_app/presentation/screens/register_photos_screen.dart';
-import 'package:syno_app/presentation/screens/register_screen.dart';
 import 'package:syno_app/presentation/screens/register_screen2.dart';
 import 'package:syno_app/presentation/screens/theme_selection_screen.dart';
-import 'package:syno_app/presentation/screens/theme_customization_screen.dart';
 import 'package:syno_app/presentation/screens/settings_screen.dart';
 import 'package:syno_app/presentation/screens/profile_confirmation_screen.dart';
 import 'package:syno_app/presentation/screens/landing_screen.dart';
-import 'package:syno_app/presentation/screens/legal_screen.dart';
 import 'package:syno_app/presentation/screens/privacy_screen.dart';
 import 'package:syno_app/presentation/screens/terms_screen.dart';
 import 'package:syno_app/presentation/screens/splash_screen.dart';
 import 'package:syno_app/presentation/providers/loading_provider.dart';
 import 'package:syno_app/presentation/screens/main_shell.dart';
-import 'package:syno_app/presentation/screens/synastry_report_screen.dart';
 import 'package:syno_app/presentation/screens/login_screen.dart';
 import 'package:syno_app/presentation/screens/login_method_screen.dart';
 import 'package:syno_app/presentation/screens/theme.dart';
@@ -38,7 +34,6 @@ import 'package:syno_app/presentation/providers/theme_provider.dart';
 import 'package:syno_app/presentation/providers/registration_provider.dart';
 import 'package:syno_app/presentation/screens/blocked_users_screen.dart' hide Consumer;
 import 'package:syno_app/presentation/screens/otp_verification_screen.dart';
-
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -65,104 +60,66 @@ void main() async {
   );
 }
 
-/// Helper to convert hex strings to Flutter Color objects
-Color? _hexToColor(String? hexString) {
-  if (hexString == null) return null;
-  final buffer = StringBuffer();
-  if (hexString.length == 6 || hexString.length == 7) buffer.write('ff');
-  buffer.write(hexString.replaceFirst('#', ''));
-  try {
-    return Color(int.parse(buffer.toString(), radix: 16));
-  } catch (e) {
-    return null;
-  }
-}
-
 /// Router provider that watches auth state to trigger redirects
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/',
-    // This allows GoRouter to rebuild/redirect whenever the auth state changes
-    refreshListenable: NavigatorRefreshListenable(ref), 
+    refreshListenable: NavigatorRefreshListenable(ref),
     redirect: (context, state) {
-      // By reading the state within the redirect, we ensure we always have the latest values.
-      // The NavigatorRefreshListenable is responsible for triggering this redirect when the state changes.
-      final authState = ref.read(currentUserProvider);
-      final isRegistrationInProgress = ref.read(registrationProvider).step1Data.isNotEmpty;
+      final authState = ref.watch(currentUserProvider);
+      final regData = ref.read(registrationProvider);
+      final notifier = ref.read(currentUserProvider.notifier);
+
+      // Registration is "started" if we have identifying contact info (email or phone)
+      final bool hasStartedRegistration = regData.email.isNotEmpty || regData.phoneNumber.isNotEmpty;
 
       final user = authState.value;
-      final bool isLoading = authState.isLoading;
-      
-      // Use .path to get the clean route string (e.g., '/register-step2')
-      final String location = state.uri.path; 
+      final authToken = notifier.authToken;
+      final String location = state.uri.path;
 
-      // 1. While app is initializing
-      if (isLoading) {
-        // If we are in the middle of the registration flow, don't redirect to splash.
-        // The registration screen will handle its own loading indicator, preventing a race condition.
-        if ((isRegistrationInProgress && (location == '/register-step2' || location == '/register-photos')) || 
-            location == '/otp-verification') {
-          return null;
-        }
+      final bool isLoggedIn = user != null;
+      final bool hasToken = authToken != null;
+      final bool isProfileIncomplete = isLoggedIn && user.birthDate == null;
+      
+      // Needs registration if: started flow, or authenticated but fetchUser returned null (no profile), or data is missing
+      final bool needsRegistration = hasStartedRegistration || (hasToken && !isLoggedIn && !authState.isLoading) || isProfileIncomplete;
+
+      // 1. App Initialization Guard
+      if (authState.isLoading) {
+        final allowedLoadingRoutes = ['/register-step2', '/register-photos', '/otp-verification', '/theme-selection', '/profile-confirmation'];
+        if (allowedLoadingRoutes.contains(location)) return null;
         return location == '/' ? null : '/';
       }
 
-      final bool isLoggedIn = user != null;
-      
-      // IMPORTANT: Ensure your User entity birthDate is actually null before Step 2
-      final bool isProfileComplete = isLoggedIn && user.birthDate != null;
-
-      // 2. Auth Guard: Not Logged In
+      // 2 & 3. Authentication & Registration Flow Guard
       if (!isLoggedIn) {
-        // If we are currently verifying OTP, stay on the screen.
-        if (location == '/otp-verification') return null;
+        // Routes allowed during the entry/auth/registration process
+        final authFlowRoutes = ['/landing', '/login-method', '/otp-verification', '/login', '/register', '/onboarding', '/terms', '/privacy'];
+        final registrationRoutes = ['/register-step2', '/register-photos', '/theme-selection', '/profile-confirmation'];
 
-        final publicRoutes = [
-          '/login', 
-          '/register', 
-          '/register-step2',
-          '/register-photos',
-          '/onboarding',
-          '/landing',
-          '/login-method',
-          '/terms',
-          '/otp-verification',
-          '/privacy'
-        ];
+        if (authFlowRoutes.contains(location)) return null;
 
-        // Guard: If on registration steps 2 or 3 but missing step 1 data, restart registration.
-        if ((location == '/register-step2' || location == '/register-photos') && !isRegistrationInProgress) {
-          return '/register';
-        }
-
-        if (publicRoutes.contains(location)) return null;
+        if (needsRegistration && registrationRoutes.contains(location)) return null;
+        
+        if (needsRegistration) return '/register-step2';
         return '/landing';
       }
 
-      // 3. Setup Guard: Logged In but Profile Incomplete
-      if (!isProfileComplete) {
-        final setupRoutes = [
-          '/register-step2', 
-          '/register-photos', 
-          '/theme-selection', 
-          '/profile-confirmation'
-        ];
-        
-        // If they are already on one of these setup screens, let them stay
+      // 4. In-App Setup Guard (For logged-in users with incomplete data)
+      if (isProfileIncomplete) {
+        final setupRoutes = ['/register-step2', '/register-photos', '/theme-selection', '/profile-confirmation'];
         if (setupRoutes.contains(location)) return null;
-        
-        // Otherwise, force them to Step 2
         return '/register-step2';
       }
 
-      // 4. Fully Authenticated: Prevent going back to Login/Register/Splash
+      // 5. Fully Authenticated: Prevent going back to Auth screens
       final restrictedRoutes = [
-        '/login', 
-        '/register', 
-        '/', 
-        '/onboarding', 
-        '/otp-verification', 
-        '/landing', 
+        '/login',
+        '/register',
+        '/',
+        '/onboarding',
+        '/otp-verification',
+        '/landing',
         '/login-method'
       ];
       if (restrictedRoutes.contains(location)) {
@@ -195,9 +152,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/otp-verification',
         name: 'otp-verification',
-        builder: (context, state) => OtpVerificationScreen(
-          email: state.extra as String? ?? '',
-        ),
+        builder: (context, state) {
+          final args = state.extra is OtpVerificationArgs ? state.extra as OtpVerificationArgs : null;
+          if (args == null) return const LoginMethodScreen();
+          return OtpVerificationScreen(args: args);
+        },
       ),
       GoRoute(
         path: '/register',
@@ -205,33 +164,19 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const LoginMethodScreen(),
       ),
       GoRoute(
-        path: '/terms',
-        name: 'terms',
-        builder: (context, state) => const TermsScreen(),
-      ),
-      GoRoute(
-        path: '/privacy',
-        name: 'privacy',
-        builder: (context, state) => const PrivacyScreen(),
-      ),
-      GoRoute(
         path: '/register-step2',
         name: 'register-step2',
-        builder: (context, state) {
-          return const RegisterScreen2();
-        },
+        builder: (context, state) => const RegisterScreen2(),
+      ),
+      GoRoute(
+        path: '/register-photos',
+        name: 'register-photos',
+        builder: (context, state) => const RegisterPhotosScreen(),
       ),
       GoRoute(
         path: '/onboarding',
         name: 'onboarding',
         builder: (context, state) => const OnboardingScreen(),
-      ),
-      GoRoute(
-        path: '/register-photos',
-        name: 'register-photos',
-        builder: (context, state) {
-          return const RegisterPhotosScreen();
-        },
       ),
       GoRoute(
         path: '/theme-selection',
@@ -243,7 +188,16 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'profile-confirmation',
         builder: (context, state) => const ProfileConfirmationScreen(),
       ),
-      // App Shell (Navigation Bar)
+      GoRoute(
+        path: '/terms',
+        name: 'terms',
+        builder: (context, state) => const TermsScreen(),
+      ),
+      GoRoute(
+        path: '/privacy',
+        name: 'privacy',
+        builder: (context, state) => const PrivacyScreen(),
+      ),
       ShellRoute(
         builder: (context, state, child) => MainShell(child: child),
         routes: [
@@ -283,7 +237,6 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
-      // Standalone screens (No Bottom Bar)
       GoRoute(
         path: '/chat',
         builder: (context, state) => ChatScreen(match: state.extra as Match),
@@ -292,7 +245,6 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
 });
 
-/// Custom Listenable to bridge Riverpod to GoRouter
 class NavigatorRefreshListenable extends ChangeNotifier {
   NavigatorRefreshListenable(Ref ref) {
     ref.listen(currentUserProvider, (_, __) => notifyListeners());
@@ -306,38 +258,25 @@ class MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
-    // Watch the theme provider for global theme changes
     final appTheme = ref.watch(themeProvider);
 
-    // Determine brightness based on text color (light text implies dark background)
     final isDark = appTheme.primaryTextColor.computeLuminance() > 0.5;
     final brightness = isDark ? Brightness.dark : Brightness.light;
-
-    // Use existing base themes if available, otherwise fallback
     final baseTheme = isDark ? purpleTheme : lightTheme;
 
     final effectiveTheme = baseTheme.copyWith(
-      // Apply colors from AppThemeData
       scaffoldBackgroundColor: Colors.transparent,
       primaryColor: appTheme.accentColor,
-      
-      // Text Theme
       textTheme: baseTheme.textTheme.apply(
         bodyColor: appTheme.primaryTextColor,
         displayColor: appTheme.primaryTextColor,
       ),
-      
-      // Icon Theme
       iconTheme: baseTheme.iconTheme.copyWith(color: appTheme.primaryTextColor),
-      
-      // AppBar Theme
       appBarTheme: baseTheme.appBarTheme.copyWith(
         backgroundColor: Colors.transparent,
         iconTheme: IconThemeData(color: appTheme.primaryTextColor),
         titleTextStyle: TextStyle(color: appTheme.primaryTextColor, fontSize: 20, fontWeight: FontWeight.bold),
       ),
-      
-      // Color Scheme
       colorScheme: ColorScheme.fromSeed(
         seedColor: appTheme.accentColor,
         brightness: brightness,
@@ -362,7 +301,6 @@ class MyApp extends ConsumerWidget {
         child: Stack(
           children: [
             if (child != null) child,
-            // Global Loading Overlay
             Consumer(builder: (context, ref, _) {
               if (!ref.watch(loadingStateProvider)) return const SizedBox.shrink();
               return Container(

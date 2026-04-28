@@ -9,3 +9,4 @@ pydantic[email]
 pydantic-settings
 alembic
 python-multipart
+twilio

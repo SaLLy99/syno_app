@@ -74,15 +74,25 @@ class UserBase(BaseModel):
     email: EmailStr
 
 class OTPRequest(BaseModel):
-    email: EmailStr
+    email: Optional[EmailStr] = None
+    phone_number: Optional[str] = None
     lang: Optional[str] = "en"
 
+class SMSOTPRequest(BaseModel):
+    phone_number: str
+    lang: Optional[str] = "en"
+
+class SMSOTPVerify(BaseModel):
+    phone_number: str
+    code: str
+
 class OTPVerify(BaseModel):
-    email: EmailStr
+    email: Optional[EmailStr] = None
+    phone_number: Optional[str] = None
     code: str
 
 class OTPVerifyResponse(BaseModel):
-    message: str
+    message: Optional[str] = None
     is_registered: bool
     access_token: Optional[str] = None
     token_type: Optional[str] = None
@@ -112,6 +122,7 @@ class ProfileBase(BaseModel):
     sex_id: int
     orientation_id: int
     height: Optional[int] = None
+    phone_number: Optional[str] = None
     bio: Optional[str] = None
 
 class ProfileUpdate(BaseModel):
@@ -124,6 +135,7 @@ class ProfileUpdate(BaseModel):
     sex_id: Optional[int] = None
     orientation_id: Optional[int] = None
     height: Optional[int] = None
+    phone_number: Optional[str] = None
     bio: Optional[str] = None
     intention_ids: Optional[List[int]] = None
     core_value_ids: Optional[List[int]] = None
@@ -147,6 +159,7 @@ class ProfileUpdateForm(ProfileUpdate):
         sex_id: Optional[int] = Form(None),
         orientation_id: Optional[int] = Form(None),
         height: Optional[int] = Form(None),
+        phone_number: Optional[str] = Form(None),
         bio: Optional[str] = Form(None),
         intention_ids: Optional[str] = Form(None),
         core_value_ids: Optional[str] = Form(None),
