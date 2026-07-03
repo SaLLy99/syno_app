@@ -1,14 +1,60 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:syno_app/presentation/providers/registration_provider.dart';
 import 'package:syno_app/presentation/providers/theme_provider.dart';
+import 'package:syno_app/presentation/providers/theme_update_provider.dart';
+import 'package:syno_app/presentation/providers/user_provider.dart';
+import 'package:syno_app/presentation/providers/loading_provider.dart';
+import 'package:syno_app/presentation/widgets/app_dialogs.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 class ProfileConfirmationScreen extends ConsumerWidget {
   const ProfileConfirmationScreen({super.key});
 
+  Future<void> _onConfirm(BuildContext context, WidgetRef ref) async {
+    final loadingNotifier = ref.read(loadingStateProvider.notifier);
+    final registrationState = ref.read(registrationProvider);
+    final userService = ref.read(userServiceProvider);
+    final currentUserNotifier = ref.read(currentUserProvider.notifier);
+
+    loadingNotifier.show();
+    try {
+      final photoPaths = registrationState.photos.map((e) => e.path).toList();
+
+      final Map<String, dynamic> themeData = {};
+      if (registrationState.profileData.themeId != null) {
+        themeData['theme_id'] = registrationState.profileData.themeId;
+        themeData['background_color'] = registrationState.profileData.backgroundColor;
+        themeData['accent_color'] = registrationState.profileData.accentColor;
+        themeData['layout'] = registrationState.profileData.layout ?? 'default';
+      }
+
+      await userService.createProfileWithPhotos(
+        registrationState.profileData.toJson(),
+        photoPaths,
+        firstIsPrimary: true,
+      );
+
+      if (themeData.isNotEmpty) {
+        final newTheme = AppThemeData.fromJson(themeData);
+        await ref.read(themeUpdateProvider.notifier).updateTheme(newTheme);
+      } else {
+        await currentUserNotifier.refreshUser();
+      }
+
+      if (context.mounted) context.goNamed('discover');
+    } catch (e) {
+      if (context.mounted) AppDialogs.showErrorDialog(context, 'register.error_title'.tr(), e.toString());
+    } finally {
+      loadingNotifier.hide();
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = ref.watch(themeProvider);
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -33,21 +79,18 @@ class ProfileConfirmationScreen extends ConsumerWidget {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
-                Text('You are all set to start exploring.',
+                Text('register.welcome_message'.tr(),
                     textAlign: TextAlign.center,
                     style: TextStyle(color: theme.secondaryTextColor)),
                 const SizedBox(height: 40),
                 ElevatedButton(
-                  onPressed: () {
-                    // Finalize flow and go to the main app (Discover)
-                    context.goNamed('discover');
-                  },
+                  onPressed: () => _onConfirm(context, ref),
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 50),
                     backgroundColor: theme.accentColor,
                     foregroundColor: theme.accentColor.computeLuminance() > 0.5 ? Colors.black : Colors.white,
                   ),
-                  child: const Text('Confirm & Start'),
+                  child: Text('register.complete_registration'.tr()),
                 ),
               ],
             ),

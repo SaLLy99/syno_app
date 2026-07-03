@@ -405,7 +405,7 @@ class _RegisterScreen2State extends ConsumerState<RegisterScreen2> {
                   items: sexes
                       .map((Sex sex) => DropdownMenuItem<int>(
                             value: sex.id,
-                            child: Text(sex.name),
+                            child: Text(sex.name.tr()),
                           ))
                       .toList(),
                   onChanged: (int? val) => setState(() => _selectedGenderId = val),
@@ -425,7 +425,7 @@ class _RegisterScreen2State extends ConsumerState<RegisterScreen2> {
                   items: orientations
                       .map((Orientations o) => DropdownMenuItem<int>(
                             value: o.id,
-                            child: Text(o.name),
+                            child: Text(o.translationKey.tr()),
                           ))
                       .toList(),
                   onChanged: (int? val) => setState(() => _selectedOrientationId = val),

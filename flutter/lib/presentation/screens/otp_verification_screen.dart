@@ -90,40 +90,37 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
         email: widget.args.isEmail ? widget.args.identifier : null,
         phoneNumber: widget.args.isEmail ? null : widget.args.identifier, otpCode: _otpCode);
 
-      if (response['is_registered']) {
-        // User is fully registered. Store token and refresh profile.
-        if (response['access_token'] != null) {
-          await ref.read(currentUserProvider.notifier).setUser(null, token: response['access_token']);
-          ref.invalidate(currentUserProvider);
-        }
+      final String? token = response['access_token'];
+      final bool isRegistered = response['is_registered'] ?? false;
 
-        await _showStatusDialog(
-          title: 'login.success_title'.tr(),
-          message: 'login.success_message'.tr(),
-        );
-        if (mounted) context.go('/profile');
-      } else {
-        // User exists but has no profile, or is a brand new user.
-        if (response['access_token'] != null) {
-           // Store token so the router recognizes the authenticated session
-           await ref.read(currentUserProvider.notifier).setUser(null, token: response['access_token']);
-        }
-
-        // Seed registration provider so the router guard allows entry to Step 2
+      // 1. Seed registration data if the user is new
+      if (!isRegistered) {
         final key = widget.args.isEmail ? 'email' : 'phone_number';
         ref.read(registrationProvider.notifier).updateStep1Data({
           key: widget.args.identifier
         });
-        
-        // Invalidate registration provider to trigger router update
-        ref.invalidate(registrationProvider);
-        
-        await _showStatusDialog(
-          title: 'otp.verify_title'.tr(),
-          message: 'register.welcome_message'.tr(),
-        );
+      }
 
-        if (mounted) context.go('/register-step2');
+      // 2. Show success dialog and wait for user acknowledgment
+      await _showStatusDialog(
+        title: isRegistered ? 'login.success_title'.tr() : 'otp.verify_title'.tr(),
+        message: isRegistered ? 'login.success_message'.tr() : 'register.welcome_message'.tr(),
+      );
+
+      if (!mounted) return;
+
+      // 3. Update auth state and fetch profile. 
+      // Using refreshUser(token) ensures the state stays in 'loading' until the fetch is complete,
+      // preventing the router from jumping to the wrong screen prematurely.
+      if (token != null) {
+        await ref.read(currentUserProvider.notifier).refreshUser(token: token);
+      }
+
+      if (!mounted) return;
+      if (isRegistered) {
+        context.go('/discover');
+      } else {
+        context.go('/register-name');
       }
     } catch (e) {
       // Extract translation key and localize it

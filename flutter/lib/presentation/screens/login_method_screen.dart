@@ -101,16 +101,19 @@ class _LoginMethodScreenState extends ConsumerState<LoginMethodScreen> {
     // 2. Call the API
     if (_isEmailSelected) {
       // Save identifier to mark registration in progress for the router
-      ref.read(registrationProvider.notifier).updateStep1Data({'email': identifier});
+      ref.read(registrationProvider.notifier).updateStep1Data({
+        'email': identifier,
+        'phone_number': '',
+      });
       
       await authService.requestOtp(email: identifier, lang: lang);
     } else {
-      // For phone registration flow, set the phone number in the provider 
-      // to mark registration as 'in progress' for the router.
-      final notifier = ref.read(registrationProvider.notifier);
-      notifier.updateStep2Data({'phone_number': identifier});
-      // Also clear any old email data to ensure phone flow takes precedence
-      notifier.updateStep1Data({'email': ''});
+      // For phone registration flow, save the phone number as the primary
+      // registration identifier so the router knows this flow is active.
+      ref.read(registrationProvider.notifier).updateStep1Data({
+        'phone_number': identifier,
+        'email': '',
+      });
       
       await authService.requestOtp(phoneNumber: identifier, lang: lang);
     }

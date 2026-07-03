@@ -30,11 +30,12 @@ class Hobby {
 class Sex {
   final int id;
   final String name;
-  Sex({required this.id, required this.name});
+  Sex({required this.id, required this.name, required String translationKey});
 
   factory Sex.fromJson(Map<String, dynamic> json) {
     return Sex(
       id: json['id'] as int,
+      translationKey: 'sex',
       name: json['name'] as String,
     );
   }
@@ -101,7 +102,7 @@ class OrientationModel {
   factory OrientationModel.fromJson(Map<String, dynamic> json) {
     return OrientationModel(
       id: json['id'] as int,
-      name: json['name'] as String,
+      name: json['name'] as String
     );
   }
 

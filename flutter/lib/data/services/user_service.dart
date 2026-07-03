@@ -28,13 +28,21 @@ class UserService {
     );
   }
 
+  String _normalizeToken(String? token) {
+    if (token == null) return '';
+    return token.trim().replaceAll('"', '');
+  }
+
 
   Future<User?> fetchCurrentUser() async {
     debugPrint("[UserService] Attempting to fetch current user...");
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
+    final tokenRaw = prefs.getString('auth_token');
+    final token = _normalizeToken(tokenRaw);
 
-    if (token == null) {
+    debugPrint('[UserService] fetchCurrentUser using token: ${token.isEmpty ? '<empty>' : '${token.substring(0, token.length > 8 ? 8 : token.length)}...'}');
+
+    if (token.isEmpty) {
       debugPrint("[UserService] No auth token found. Returning null.");
       return null;
     }
@@ -64,9 +72,10 @@ class UserService {
 
   Future<User> createProfileWithPhotos(Map<String, dynamic> profileData, List<String> photoPaths, {bool firstIsPrimary = false}) async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
+    final tokenRaw = prefs.getString('auth_token');
+    final token = _normalizeToken(tokenRaw);
 
-    if (token == null) {
+    if (token.isEmpty) {
       throw Exception('Authentication token not found. User must be logged in.');
     }
 
@@ -123,6 +132,7 @@ class UserService {
 
     final url = '$backendUrl/api/users/me';
     try {
+      debugPrint('[UserService] createProfileWithPhotos sending to $url with token present');
       final response = await _dio.patch(
         url,
         data: formData,
@@ -141,9 +151,10 @@ class UserService {
 
   Future<void> deletePhoto(int photoId) async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
+    final tokenRaw = prefs.getString('auth_token');
+    final token = _normalizeToken(tokenRaw);
 
-    if (token == null) {
+    if (token.isEmpty) {
       throw Exception('Authentication token not found.');
     }
 
@@ -165,9 +176,10 @@ class UserService {
 
   Future<User> updateTheme(Map<String, dynamic> themeData) async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
+    final tokenRaw = prefs.getString('auth_token');
+    final token = _normalizeToken(tokenRaw);
 
-    if (token == null) {
+    if (token.isEmpty) {
       throw Exception('Authentication token not found.');
     }
 
@@ -198,9 +210,10 @@ class UserService {
 
   Future<void> updateCoreValues(int profileId, List<int> coreValueIds) async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
+    final tokenRaw = prefs.getString('auth_token');
+    final token = _normalizeToken(tokenRaw);
 
-    if (token == null) {
+    if (token.isEmpty) {
       throw Exception('Authentication token not found.');
     }
 
@@ -227,9 +240,10 @@ class UserService {
 
   Future<void> updateIntentions(int profileId, List<int> intentionIds) async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
+    final tokenRaw = prefs.getString('auth_token');
+    final token = _normalizeToken(tokenRaw);
 
-    if (token == null) {
+    if (token.isEmpty) {
       throw Exception('Authentication token not found.');
     }
 
@@ -256,9 +270,10 @@ class UserService {
 
   Future<void> unblockUser(int userId) async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
+    final tokenRaw = prefs.getString('auth_token');
+    final token = _normalizeToken(tokenRaw);
 
-    if (token == null) throw Exception('Authentication token not found.');
+    if (token.isEmpty) throw Exception('Authentication token not found.');
 
     final url = '$backendUrl/api/users/$userId/unblock';
     try {
@@ -277,9 +292,10 @@ class UserService {
 
   Future<void> deleteAccount() async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
+    final tokenRaw = prefs.getString('auth_token');
+    final token = _normalizeToken(tokenRaw);
 
-    if (token == null) throw Exception('Authentication token not found.');
+    if (token.isEmpty) throw Exception('Authentication token not found.');
 
     final url = '$backendUrl/api/users/me';
     try {
@@ -298,9 +314,10 @@ class UserService {
 
   Future<void> blockUserByName(String name) async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
+    final tokenRaw = prefs.getString('auth_token');
+    final token = _normalizeToken(tokenRaw);
 
-    if (token == null) throw Exception('Authentication token not found.');
+    if (token.isEmpty) throw Exception('Authentication token not found.');
 
     final url = '$backendUrl/api/users/block-by-name';
     try {
@@ -320,9 +337,10 @@ class UserService {
 
   Future<List<User>> fetchBlockedUsers() async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
+    final tokenRaw = prefs.getString('auth_token');
+    final token = _normalizeToken(tokenRaw);
 
-    if (token == null) throw Exception('Authentication token not found.');
+    if (token.isEmpty) throw Exception('Authentication token not found.');
 
     final url = '$backendUrl/api/users/me/blocked';
     try {
@@ -346,9 +364,10 @@ class UserService {
   /// Throws an exception for other errors.
   Future<User?> searchUserByName(String name) async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
+    final tokenRaw = prefs.getString('auth_token');
+    final token = _normalizeToken(tokenRaw);
 
-    if (token == null) {
+    if (token.isEmpty) {
       throw Exception('Authentication token not found.');
     }
 

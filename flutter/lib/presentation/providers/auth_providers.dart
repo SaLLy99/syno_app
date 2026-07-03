@@ -15,7 +15,15 @@ final authServiceProvider = Provider<AuthService>((ref) {
 
 
 final userServiceProvider = Provider<UserService>((ref) {
-  return UserService(ref.watch(backendUrlProvider));
+  return UserService(
+    ref.watch(backendUrlProvider),
+    onUnauthorized: () {
+      // Trigger a logout via the AuthNotifier when a 401 occurs
+      try {
+        ref.read(authProvider.notifier).logOut();
+      } catch (_) {}
+    },
+  );
 });
 
 
@@ -43,6 +51,7 @@ class AuthNotifier extends AsyncNotifier<User?> {
     try {
       final authService = ref.read(authServiceProvider);
       await authService.logOut();
+      ref.read(registrationProvider.notifier).reset();
       ref.invalidate(currentUserProvider); 
       state = const AsyncData(null);
     } catch (e, st) {

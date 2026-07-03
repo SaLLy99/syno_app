@@ -91,8 +91,18 @@
         }
     },
     "register": {
+        "error_title": "Registration Error",
+        "profession_label": "Your Profession",
+        "education_label": "Your Education",
+        "identity_label": "Your Identity",
+        "identity_subtitle": "This helps us understand who you are and what you're seeking.",
+        "birth_subtitle": "This is required to calculate your natal chart.",
         "continue": "Let's Go",
-        "title": "Set Up Your Account",
+        "name_title": "Set Up Your Account",
+        "name": "Your Name",
+        "last_name": "Your Last Name",
+        "height": "Your Height",
+        "done": "Done",
         "subtitle": "Enter your email and password",
         "already_have_account":"Already have an account? ",
         "login":"login",
@@ -107,7 +117,11 @@
         "birth_location_hint": "City, Country",
         "identity_title": "Your Identity & Intentions",
         "gender_label": "Gender",
+        "orientation_label": "Orientation",
         "gender_hint": "How do you identify?",
+        "orientation_hint": "How do you identify romantically?",
+        "intentions_title": "Your Intentions",
+        "intentions_subtitle": "Pick what you are seeking.",
         "looking_for": "I'm looking for...",
         "intention_label": "Relationship Intention",
         "intention_hint": "What are you seeking?",
@@ -117,6 +131,12 @@
         "bio_hint": "A glimpse of your soul...",
         "finish_button": "Finish Registration",
         "success_message": "Registration Successful! ✨",
+        "hobbies_title": "Your Hobbies",
+        "hobbies_subtitle": "Choose activities that make you feel alive.",
+        "career_title": "Career & Education",
+        "career_subtitle": "Share your work and learning history.",
+        "bio_title": "Your Bio",
+        "bio_subtitle": "Tell others who you are in a few sentences.",
         "photos_title": "Gallery",
         "photos_subtitle": "Upload at least 2 photos to continue.",
         "additional_photos": "Additional Photos",
@@ -128,6 +148,7 @@
         "drag_placeholder": "Drag additional photos here",
         "limit_reached": "Limit Reached",
         "limit_message": "You can only upload up to {max} photos.",
+        "no_cities_found": "No cities found.",
         "missing_data": "Missing Data",
         "missing_name_error": "Profile name is missing. Please restart the registration process.",
         "missing_creds_error": "Registration credentials missing. Please restart.",
@@ -169,7 +190,10 @@
             "birth_location_required": "Birth location is required.",
             "gender_required": "Please select your gender.",
             "intention_required": "Please state your intention.",
-            "bio_required": "A bio is required to introduce yourself."
+            "bio_required": "A bio is required to introduce yourself.",
+            "orientation_required": "Please select your orientation.",
+            "name_required": "Please enter your name.",
+            "height_required": "Please select your height."
         }
     },
     "login": {
@@ -314,7 +338,9 @@
                 "theme_selection_subtitle":"Choose from predefined themes",
                 "theme_customization_title":"Theme Customization",
                 "theme_customization_subtitle":"Create your own unique theme",
-                "save_button":"Save"
+                "save_button": "Save Changes",
+                "save_error_generic": "Failed to update your theme settings. Please try again later.",
+                "save_error_unauthorized": "Your session has expired. Please log back in."
             },
             "title": "Settings",
             "account": "Account",
@@ -460,6 +486,19 @@
         "expired_code": "This code has expired. Please request a new one.",
         "rate_limit_error": "Please wait a moment before requesting another code.",
         "success": "Code sent successfully"
+    },
+    "orientation":{
+        "straight":"Straight",
+        "gay":"Gay",
+        "bisexual":"Bisexual",
+        "asexual":"Asexual",
+        "pansexual":"Pansexual",
+        "lesbian":"Lesbian"
+    },
+    "sex":{
+        "male":"Male",
+        "female":"Female",
+        "non_binary":"Non-binary"
     }
   }
 
