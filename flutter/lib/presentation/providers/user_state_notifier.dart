@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart' show StateNotifier;
 import 'package:syno_app/domain/entities/user.dart';
+import 'package:syno_app/presentation/providers/registration_provider.dart';
 import 'package:syno_app/presentation/providers/theme_provider.dart';
 import 'package:syno_app/presentation/providers/user_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -22,7 +23,39 @@ class UserStateNotifier extends StateNotifier<AsyncValue<User?>> {
     try {
       final prefs = await SharedPreferences.getInstance();
       _authToken = prefs.getString('auth_token'); // Load token on init
+      if (_authToken != null) {
+        await refreshUser();
+      } else {
+        state = const AsyncValue.data(null);
+      }
+    } catch (e, st) {
+      debugPrint("[UserStateNotifier] Error fetching user: $e");
+      if (e.toString().contains('401') || e.toString().contains('Unauthorized') || e.toString().contains('Could not validate credentials')) {
+        await _clearAuthToken();
+      }
+      // Treat errors as "Logged Out" so the app doesn't get stuck in an error state.
+      if (mounted) {
+        state = const AsyncValue.data(null);
+      }
+    }
+  }
 
+  Future<void> _clearAuthToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('auth_token');
+    _authToken = null;
+  }
+
+  /// Re-fetches the user profile from the backend.
+  Future<void> refreshUser({String? token}) async {
+    state = const AsyncValue.loading();
+    if (token != null) {
+      _authToken = token;
+      // Save token to persistence synchronously before fetching user
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('auth_token', token);
+    }
+    try {
       final User? user = await _ref.read(userServiceProvider).fetchUser();
       if (mounted) {
         // If the fetched user has theme preferences from the API, apply them.
@@ -33,11 +66,11 @@ class UserStateNotifier extends StateNotifier<AsyncValue<User?>> {
         state = AsyncValue.data(user);
       }
     } catch (e, st) {
-      debugPrint("[UserStateNotifier] Error fetching user: $e");
-      // Treat errors (like 401 Unauthorized) as "Logged Out" so the app doesn't get stuck in an error state.
-      if (mounted) {
-        state = const AsyncValue.data(null);
+      debugPrint("[UserStateNotifier] Error in refreshUser: $e");
+      if (e.toString().contains('401') || e.toString().contains('Unauthorized') || e.toString().contains('Could not validate credentials')) {
+        await _clearAuthToken();
       }
+      if (mounted) state = const AsyncValue.data(null);
     }
   }
 
@@ -49,7 +82,10 @@ class UserStateNotifier extends StateNotifier<AsyncValue<User?>> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('auth_token', token);
     }
-    return state = AsyncValue.data(user);
+    // Force a state transition to ensure listeners (like the Router) re-evaluate
+    state = const AsyncValue.loading();
+    state = AsyncValue.data(user);
+    return state;
   }
 
   Future<void> createProfileWithPhotos(Map<String, dynamic> combinedData, List<String> paths, {bool firstIsPrimary = false}) async {
@@ -123,8 +159,8 @@ class UserStateNotifier extends StateNotifier<AsyncValue<User?>> {
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
-    _authToken = null; // Clear token on logout
-    // Setting state to null will trigger the router to redirect to the login screen.
+    _authToken = null;
+    _ref.read(registrationProvider.notifier).reset();
     state = const AsyncValue.data(null);
   }
 

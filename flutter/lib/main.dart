@@ -17,7 +17,14 @@ import 'package:syno_app/presentation/screens/onboarding_screen.dart';
 import 'package:syno_app/presentation/screens/discover_screen.dart';
 import 'package:syno_app/presentation/screens/profile_screen.dart';
 import 'package:syno_app/presentation/screens/register_photos_screen.dart';
-import 'package:syno_app/presentation/screens/register_screen2.dart';
+import 'package:syno_app/presentation/screens/register_intentions_screen.dart';
+import 'package:syno_app/presentation/screens/register_values_screen.dart';
+import 'package:syno_app/presentation/screens/register_hobbies_screen.dart';
+import 'package:syno_app/presentation/screens/register_career_screen.dart';
+import 'package:syno_app/presentation/screens/register_bio_screen.dart';
+import 'package:syno_app/presentation/screens/register_name_screen.dart';
+import 'package:syno_app/presentation/screens/register_identity_screen.dart';
+import 'package:syno_app/presentation/screens/register_birth_screen.dart';
 import 'package:syno_app/presentation/screens/theme_selection_screen.dart';
 import 'package:syno_app/presentation/screens/settings_screen.dart';
 import 'package:syno_app/presentation/screens/profile_confirmation_screen.dart';
@@ -32,8 +39,21 @@ import 'package:syno_app/presentation/screens/login_method_screen.dart';
 import 'package:syno_app/presentation/screens/theme.dart';
 import 'package:syno_app/presentation/providers/theme_provider.dart';
 import 'package:syno_app/presentation/providers/registration_provider.dart';
-import 'package:syno_app/presentation/screens/blocked_users_screen.dart' hide Consumer;
+import 'package:syno_app/presentation/screens/blocked_users_screen.dart';
 import 'package:syno_app/presentation/screens/otp_verification_screen.dart';
+
+Locale _resolveStartLocale() {
+  final deviceLocale = WidgetsBinding.instance.platformDispatcher.locale;
+  const supportedLocales = [Locale('en'), Locale('ru'), Locale('ka')];
+
+  for (final locale in supportedLocales) {
+    if (locale.languageCode == deviceLocale.languageCode) {
+      return locale;
+    }
+  }
+
+  return const Locale('en');
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -53,7 +73,9 @@ void main() async {
         supportedLocales: const [Locale('en'), Locale('ru'), Locale('ka')],
         path: 'assets/lang',
         fallbackLocale: const Locale('en'),
-        saveLocale: true,
+        saveLocale: false,
+        useOnlyLangCode: true,
+        startLocale: _resolveStartLocale(),
         child: const MyApp(),
       ),
     ),
@@ -61,71 +83,103 @@ void main() async {
 }
 
 /// Router provider that watches auth state to trigger redirects
-final routerProvider = Provider<GoRouter>((ref) {
+Page<void> _slideTransitionPage(GoRouterState state, Widget child) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 250),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final offsetAnimation =
+          Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero)
+              .chain(CurveTween(curve: Curves.easeInOut))
+              .animate(animation);
+      return SlideTransition(position: offsetAnimation, child: child);
+    },
+  );
+}
+
+/// Route collections for efficient lookup in redirects
+const _authFlowRoutes = {
+  '/landing',
+  '/login-method',
+  '/otp-verification',
+  '/login',
+  '/register',
+  '/onboarding',
+  '/terms',
+  '/privacy',
+};
+
+const _registrationRoutes = {
+  '/register-name',
+  '/register-photos',
+  '/register-identity',
+  '/register-birth',
+  '/register-intentions',
+  '/register-values',
+  '/register-hobbies',
+  '/register-career',
+  '/register-bio',
+  '/theme-selection',
+  '/profile-confirmation',
+};
+
+final routerProvider =Provider<GoRouter>((ref) {
+  // Use WATCH here so the router reacts to user state changes
+  final authState = ref.watch(currentUserProvider);
+  
   return GoRouter(
     initialLocation: '/',
     refreshListenable: NavigatorRefreshListenable(ref),
     redirect: (context, state) {
-      final authState = ref.watch(currentUserProvider);
       final regData = ref.read(registrationProvider);
-      final notifier = ref.read(currentUserProvider.notifier);
 
       // Registration is "started" if we have identifying contact info (email or phone)
       final bool hasStartedRegistration = regData.email.isNotEmpty || regData.phoneNumber.isNotEmpty;
 
+      final notifier = ref.read(currentUserProvider.notifier);
       final user = authState.value;
-      final authToken = notifier.authToken;
       final String location = state.uri.path;
+      final bool hasToken = notifier.authToken?.trim().isNotEmpty ?? false;
 
       final bool isLoggedIn = user != null;
-      final bool hasToken = authToken != null;
-      final bool isProfileIncomplete = isLoggedIn && user.birthDate == null;
-      
-      // Needs registration if: started flow, or authenticated but fetchUser returned null (no profile), or data is missing
-      final bool needsRegistration = hasStartedRegistration || (hasToken && !isLoggedIn && !authState.isLoading) || isProfileIncomplete;
+      final bool isProfileIncomplete = isLoggedIn && (user.name == null || user.birthDate == null);
+      final bool needsRegistration = hasStartedRegistration || (hasToken && !isLoggedIn) || isProfileIncomplete;
 
       // 1. App Initialization Guard
       if (authState.isLoading) {
-        final allowedLoadingRoutes = ['/register-step2', '/register-photos', '/otp-verification', '/theme-selection', '/profile-confirmation'];
+        final allowedLoadingRoutes = ['/register-photos', '/otp-verification', '/theme-selection', '/profile-confirmation', '/register-name', '/register-identity', '/register-birth', '/register-intentions', '/register-values', '/register-hobbies', '/register-career', '/register-bio'];
         if (allowedLoadingRoutes.contains(location)) return null;
         return location == '/' ? null : '/';
       }
 
-      // 2 & 3. Authentication & Registration Flow Guard
+      // 2. Logged-in users with a completed profile should not stay on auth/registration entry routes.
+      if (isLoggedIn && !isProfileIncomplete) {
+        final authEntryRoutes = {'/', '/landing', '/login-method', '/otp-verification', '/login', '/register'};
+        final registrationRoutes = {'/register-name', '/register-photos', '/register-identity', '/register-birth', '/register-intentions', '/register-values', '/register-hobbies', '/register-career', '/register-bio', '/theme-selection', '/profile-confirmation'};
+        if (authEntryRoutes.contains(location) || registrationRoutes.contains(location)) {
+          return '/discover';
+        }
+      }
+
+      // 3. Authentication & Registration Flow Guard
       if (!isLoggedIn) {
         // Routes allowed during the entry/auth/registration process
-        final authFlowRoutes = ['/landing', '/login-method', '/otp-verification', '/login', '/register', '/onboarding', '/terms', '/privacy'];
-        final registrationRoutes = ['/register-step2', '/register-photos', '/theme-selection', '/profile-confirmation'];
+        final authFlowRoutes = {'/landing', '/login-method', '/otp-verification', '/login', '/register', '/onboarding', '/terms', '/privacy'};
+        final registrationRoutes = {'/register-name', '/register-photos', '/register-identity', '/register-birth', '/register-intentions', '/register-values', '/register-hobbies', '/register-career', '/register-bio', '/theme-selection', '/profile-confirmation'};
 
         if (authFlowRoutes.contains(location)) return null;
-
         if (needsRegistration && registrationRoutes.contains(location)) return null;
-        
-        if (needsRegistration) return '/register-step2';
+        if (needsRegistration) return '/register-name';
         return '/landing';
       }
 
       // 4. In-App Setup Guard (For logged-in users with incomplete data)
       if (isProfileIncomplete) {
-        final setupRoutes = ['/register-step2', '/register-photos', '/theme-selection', '/profile-confirmation'];
+        final setupRoutes = {'/register-name', '/register-photos', '/register-identity', '/register-birth', '/register-intentions', '/register-values', '/register-hobbies', '/register-career', '/register-bio', '/theme-selection', '/profile-confirmation'};
         if (setupRoutes.contains(location)) return null;
-        return '/register-step2';
+        return '/register-name';
       }
-
-      // 5. Fully Authenticated: Prevent going back to Auth screens
-      final restrictedRoutes = [
-        '/login',
-        '/register',
-        '/',
-        '/onboarding',
-        '/otp-verification',
-        '/landing',
-        '/login-method'
-      ];
-      if (restrictedRoutes.contains(location)) {
-        return '/profile';
-      }
-
       return null;
     },
     routes: [
@@ -134,76 +188,187 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'splash',
         builder: (context, state) => const SplashScreen(),
       ),
+
       GoRoute(
         path: '/landing',
         name: 'landing',
         builder: (context, state) => const LandingScreen(),
       ),
+
       GoRoute(
         path: '/login-method',
         name: 'login-method',
         builder: (context, state) => const LoginMethodScreen(),
       ),
+
       GoRoute(
         path: '/login',
         name: 'login',
         builder: (context, state) => const LoginScreen(),
       ),
+
       GoRoute(
         path: '/otp-verification',
         name: 'otp-verification',
         builder: (context, state) {
-          final args = state.extra is OtpVerificationArgs ? state.extra as OtpVerificationArgs : null;
-          if (args == null) return const LoginMethodScreen();
+          final args = state.extra is OtpVerificationArgs
+              ? state.extra as OtpVerificationArgs
+              : null;
+
+          if (args == null) {
+            return const LoginMethodScreen();
+          }
+
           return OtpVerificationScreen(args: args);
         },
       ),
+
       GoRoute(
         path: '/register',
         name: 'register',
         builder: (context, state) => const LoginMethodScreen(),
       ),
-      GoRoute(
-        path: '/register-step2',
-        name: 'register-step2',
-        builder: (context, state) => const RegisterScreen2(),
-      ),
+
       GoRoute(
         path: '/register-photos',
         name: 'register-photos',
-        builder: (context, state) => const RegisterPhotosScreen(),
+        pageBuilder: (context, state) => _slideTransitionPage(
+          state,
+          const RegisterPhotosScreen(),
+        ),
       ),
+
+      GoRoute(
+        path: '/register-name',
+        name: 'register-name',
+        pageBuilder: (context, state) => _slideTransitionPage(
+          state,
+          const RegisterNameScreen(),
+        ),
+      ),
+
+      GoRoute(
+        path: '/register-identity',
+        name: 'register-identity',
+        pageBuilder: (context, state) => _slideTransitionPage(
+          state,
+          const RegisterIdentityScreen(),
+        ),
+      ),
+
+      GoRoute(
+        path: '/register-birth',
+        name: 'register-birth',
+        pageBuilder: (context, state) => _slideTransitionPage(
+          state,
+          const RegisterBirthScreen(),
+        ),
+      ),
+
+      GoRoute(
+        path: '/register-intentions',
+        name: 'register-intentions',
+        pageBuilder: (context, state) => _slideTransitionPage(
+          state,
+          const RegisterIntentionsScreen(),
+        ),
+      ),
+
+      GoRoute(
+        path: '/register-values',
+        name: 'register-values',
+        pageBuilder: (context, state) => _slideTransitionPage(
+          state,
+          const RegisterValuesScreen(),
+        ),
+      ),
+
+      GoRoute(
+        path: '/register-hobbies',
+        name: 'register-hobbies',
+        pageBuilder: (context, state) => _slideTransitionPage(
+          state,
+          const RegisterHobbiesScreen(),
+        ),
+      ),
+
+      GoRoute(
+        path: '/register-career',
+        name: 'register-career',
+        pageBuilder: (context, state) => _slideTransitionPage(
+          state,
+          const RegisterCareerScreen(),
+        ),
+      ),
+
+      GoRoute(
+        path: '/register-bio',
+        name: 'register-bio',
+        pageBuilder: (context, state) => _slideTransitionPage(
+          state,
+          const RegisterBioScreen(),
+        ),
+      ),
+
       GoRoute(
         path: '/onboarding',
         name: 'onboarding',
-        builder: (context, state) => const OnboardingScreen(),
+        pageBuilder: (context, state) => _slideTransitionPage(
+          state,
+          const OnboardingScreen(),
+        ),
       ),
+
       GoRoute(
         path: '/theme-selection',
         name: 'theme-selection',
-        builder: (context, state) => const ThemeSelectionScreen(),
+        pageBuilder: (context, state) => _slideTransitionPage(
+          state,
+          const ThemeSelectionScreen(),
+        ),
       ),
+
       GoRoute(
         path: '/profile-confirmation',
         name: 'profile-confirmation',
-        builder: (context, state) => const ProfileConfirmationScreen(),
+        pageBuilder: (context, state) => _slideTransitionPage(
+          state,
+          const ProfileConfirmationScreen(),
+        ),
       ),
+
       GoRoute(
         path: '/terms',
         name: 'terms',
         builder: (context, state) => const TermsScreen(),
       ),
+
       GoRoute(
         path: '/privacy',
         name: 'privacy',
         builder: (context, state) => const PrivacyScreen(),
       ),
+
       ShellRoute(
-        builder: (context, state, child) => MainShell(child: child),
+        builder: (context, state, child) {
+          return MainShell(child: child);
+        },
         routes: [
-          GoRoute(path: '/discover', builder: (context, state) => const DiscoverScreen()),
-          GoRoute(path: '/matches', builder: (context, state) => const MatchesListScreen()),
-          GoRoute(path: '/chats', builder: (context, state) => const ChatsListScreen()),
+          GoRoute(
+            path: '/discover',
+            builder: (context, state) => const DiscoverScreen(),
+          ),
+
+          GoRoute(
+            path: '/matches',
+            builder: (context, state) => const MatchesListScreen(),
+          ),
+
+          GoRoute(
+            path: '/chats',
+            builder: (context, state) => const ChatsListScreen(),
+          ),
+
           GoRoute(
             path: '/profile',
             builder: (context, state) => const ProfileScreen(),
@@ -213,33 +378,47 @@ final routerProvider = Provider<GoRouter>((ref) {
                 name: 'edit-profile',
                 builder: (context, state) => const EditProfileScreen(),
               ),
+
               GoRoute(
                 path: 'preview',
                 name: 'profile-preview',
-                builder: (context, state) => const ProfileScreen(isReadOnly: true),
+                builder: (context, state) {
+                  return const ProfileScreen(isReadOnly: true);
+                },
               ),
+
               GoRoute(
                 path: 'settings',
                 name: 'settings',
                 builder: (context, state) => const SettingsScreen(),
                 routes: [
                   GoRoute(
-                      path: 'blocked-users',
-                      name: 'blocked-users',
-                      builder: (context, state) => const BlockedUsersScreen()),
+                    path: 'blocked-users',
+                    name: 'blocked-users',
+                    builder: (context, state) {
+                      return const BlockedUsersScreen();
+                    },
+                  ),
+
                   GoRoute(
-                      path: 'theme-selection',
-                      name: 'settings-theme-selection',
-                      builder: (context, state) => const ThemeSelectionScreen()),
+                    path: 'theme-selection',
+                    name: 'settings-theme-selection',
+                    builder: (context, state) {
+                      return const ThemeSelectionScreen();
+                    },
+                  ),
                 ],
               ),
             ],
           ),
         ],
       ),
+
       GoRoute(
         path: '/chat',
-        builder: (context, state) => ChatScreen(match: state.extra as Match),
+        builder: (context, state) {
+          return ChatScreen(match: state.extra as Match);
+        },
       ),
     ],
   );
@@ -248,7 +427,6 @@ final routerProvider = Provider<GoRouter>((ref) {
 class NavigatorRefreshListenable extends ChangeNotifier {
   NavigatorRefreshListenable(Ref ref) {
     ref.listen(currentUserProvider, (_, __) => notifyListeners());
-    ref.listen(registrationProvider, (_, __) => notifyListeners());
   }
 }
 

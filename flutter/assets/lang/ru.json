@@ -1,139 +1,200 @@
 {
-    "synastry": {
-        "moon": {
-            "high": "Ваши эмоциональные миры прекрасно сочетаются. Глубокое понимание и интуитивная связь.",
-            "good": "Сильный эмоциональный резонанс. Вы понимаете потребности друг друга естественным образом.",
-            "medium": "Умеренная эмоциональная совместимость. Требуются некоторые усилия для более глубокой связи.",
-            "low": "Эмоциональные паттерны различаются. Необходим рост через понимание."
-        },
-        "mercury": {
-            "high": "Исключительный ментальный контакт. Общение протекает легко, а идеи идеально синхронизируются.",
-            "good": "Отличная коммуникативная совместимость. Вам нравится общаться и думать вместе.",
-            "medium": "Хорошая интеллектуальная связь с небольшими различиями в стилях общения.",
-            "low": "Подходы к общению различаются. Терпение и ясность укрепят связь."
-        },
-        "venus_mars": {
-            "high": "Магнетическое влечение и романтическая гармония. Химия неоспорима.",
-            "good": "Сильное романтическое и физическое влечение. Естественная химия между вами.",
-            "medium": "Умеренное влечение с потенциалом роста. Связь углубляется со временем.",
-            "low": "Разные языки любви. Понимание желаний друг друга — ключ к успеху."
-        },
-        "nodes": {
-            "high": "Глубокая кармическая связь. Вы предназначены друг для друга.",
-            "good": "Сильная душевная связь. Эти отношения служат высшей цели.",
-            "medium": "Значимая кармическая связь. Есть причина, по которой ваши пути пересеклись.",
-            "low": "Индивидуальные пути с потенциалом взаимного роста через сознательные усилия."
-        },
-        "saturn": {
-            "high": "Исключительный долгосрочный потенциал. Преданность и стабильность приходят естественно.",
-            "good": "Прочный фундамент для длительной связи. Вы можете построить что-то долговечное.",
-            "medium": "Хороший потенциал стабильности при работе над собой. Обязательства требуют взаимных усилий.",
-            "low": "Разные подходы к обязательствам. Нужны четкие ожидания."
-        },
-        "interpretation": {
-            "high": "Это редкое и необычайное космическое выравнивание. Ваши карты показывают исключительную совместимость во всех основных областях.",
-            "good": "Ваша космическая связь сильна и многообещающа. Наблюдается естественная гармония во многих измерениях.",
-            "medium": "У вас сбалансированная космическая связь. Это создает возможности для роста и понимания.",
-            "low": "Ваши карты показывают контрастные энергии. Трудности предлагают возможности для осознанной эволюции."
-        }
+  "synastry": {
+    "moon": {
+      "high": "Ваши эмоциональные миры прекрасно сочетаются. Глубокое понимание и интуитивная связь.",
+      "good": "Сильный эмоциональный резонанс. Вы понимаете потребности друг друга естественным образом.",
+      "medium": "Умеренная эмоциональная совместимость. Требуются некоторые усилия для более глубокой связи.",
+      "low": "Эмоциональные паттерны различаются. Необходим рост через понимание."
     },
-    "register_main": {
-        "continue": "Поехали",
-        "title": "Создать аккаунт",
-        "subtitle": "Введите ваш email и пароль",
-        "already_have_account": "Уже есть аккаунт? ",
-        "login": "Войти",
-        "step2_title": "Регистрация (Шаг 2)",
-        "natal_chart_title": "Ваша натальная карта",
-        "natal_chart_subtitle": "Это жизненно важно для расчета вашего космического чертежа.",
-        "dob_label": "Дата рождения",
-        "dob_hint": "ГГГГ-ММ-ДД",
-        "tob_label": "Время рождения",
-        "tob_hint": "ЧЧ:ММ (24-часовой формат)",
-        "birth_location_label": "Место рождения",
-        "birth_location_hint": "Город, Страна",
-        "identity_title": "Личность и намерения",
-        "gender_label": "Пол",
-        "looking_for": "Я ищу...",
-        "intention_label": "Намерения в отношениях",
-        "core_values_title": "Ваши ценности",
-        "core_values_subtitle": "Выберите до 5 ценностей.",
-        "bio_label": "Краткое био",
-        "bio_hint": "Проблеск вашей души...",
-        "finish_button": "Завершить регистрацию",
-        "success_message": "Регистрация прошла успешно! ✨",
-        "photos_title": "Галерея",
-        "photos_subtitle": "Загрузите минимум 2 фотографии, чтобы продолжить.",
-        "additional_photos": "Дополнительные фотографии",
-        "add_more": "Добавить еще ({current}/{max})",
-        "complete_registration": "Завершить регистрацию",
-        "min_photos_required": "Требуется минимум 2 фотографии",
-        "primary_badge": "ОСНОВНОЕ",
-        "drag_placeholder": "Перетащите дополнительные фото сюда",
-        "limit_reached": "Лимит достигнут",
-        "limit_message": "Вы можете загрузить не более {max} фотографий.",
-        "missing_data": "Данные отсутствуют",
-        "missing_name_error": "Имя профиля отсутствует. Пожалуйста, перезапустите процесс регистрации.",
-        "missing_creds_error": "Регистрационные данные отсутствуют. Пожалуйста, перезапустите.",
-        "welcome_title": "Добро пожаловать!",
-        "welcome_message": "Регистрация завершена.",
-        "failed_title": "Ошибка регистрации",
-        "email": "Email",
-        "password": "Пароль",
-        "email_required": "Email обязателен.",
-        "email_invalid": "Введите корректный email.",
-        "password_length": "Пароль должен быть не менее 8 символов.",
-        "confirm_password": "Подтвердите пароль",
-        "passwords_no_match": "Пароли не совпадают."
+    "mercury": {
+      "high": "Исключительный ментальный контакт. Общение протекает легко, а идеи идеально синхронизируются.",
+      "good": "Отличная коммуникативная совместимость. Вам нравится общаться и думать вместе.",
+      "medium": "Хорошая интеллектуальная связь с небольшими различиями в стилях общения.",
+      "low": "Подходы к общению различаются. Терпение и ясность укрепят связь."
     },
-    "login": {
-        "title": "Найдем вашу родственную душу",
-        "email_hint": "Email",
-        "email_required": "Email обязателен.",
-        "password_hint": "Пароль",
-        "password_required": "Пароль обязателен.",
-        "forgot_password": "Забыли пароль?",
-        "login_button": "Войти",
-        "or_divider": "ИЛИ",
-        "continue_with_facebook": "Продолжить через Facebook",
-        "continue_with_mobile": "Продолжить по номеру телефона",
-        "signup_prompt": "Нет аккаунта? Зарегистрируйтесь",
-        "logging_in": "Вход...",
-        "redirecting_to_facebook": "Перенаправление в Facebook...",
-        "redirecting_to_mobile": "Перенаправление на вход по номеру...",
-        "success_title": "Вход выполнен!",
-        "success_message": "С возвращением! Вы успешно вошли в систему.",
-        "email_toggle": "Email",
-        "mobile_toggle": "Мобильный",
-        "phone_hint": "000 000 000",
-        "no_account_prompt": "Нет аккаунта? ",
-        "signup_link": "Зарегистрироваться"
+    "venus_mars": {
+      "high": "Магнетическое влечение и романтическая гармония. Химия неоспорима.",
+      "good": "Сильное романтическое и физическое влечение. Естественная химия между вами.",
+      "medium": "Умеренное влечение с потенциалом роста. Связь углубляется со временем.",
+      "low": "Разные языки любви. Понимание желаний друг друга — ключ к успеху."
     },
-    "landing": {
-        "slogan": "Найди своего человека сегодня.",
-        "cta": "Поехали!",
-        "legal_full": "Продолжая, вы соглашаетесь с {terms} и {privacy} Syno.",
-        "terms": "Условиями использования",
-        "privacy": "Политикой конфиденциальности"
+    "nodes": {
+      "high": "Глубокая кармическая связь. Вы предназначены друг для друга.",
+      "good": "Сильная душевная связь. Эти отношения служат высшей цели.",
+      "medium": "Значимая кармическая связь. Есть причина, по которой ваши пути пересеклись.",
+      "low": "Индивидуальные пути с потенциалом взаимного роста через сознательные усилия."
     },
-    "languages": {
-        "english": "English",
-        "russian": "Русский",
-        "georgian": "ქართული"
+    "saturn": {
+      "high": "Исключительный долгосрочный потенциал. Преданность и стабильность приходят естественно.",
+      "good": "Прочный фундамент для длительной связи. Вы можете построить что-то долговечное.",
+      "medium": "Хороший потенциал стабильности при работе над собой. Обязательства требуют взаимных усилий.",
+      "low": "Разные подходы к обязательствам. Нужны четкие ожидания."
     },
-    "otp": {
-        "otp_subject": "Ваш код подтверждения SYNO",
-        "otp_message": "Здравствуйте! Ваш код подтверждения: {code}. Он истекает через {minutes} минут.",
-        "verify_title": "Требуется код подтверждения",
-        "verify_subtitle": "Мы отправили 6-значный код на {email}",
-        "verify_message": "Введите код, который мы отправили на {email}",
-        "verify_message_phone": "Введите код, который мы отправили на ваш телефон {phone_number}",
-        "verify_button": "Подтвердить",
-        "invalid_code": "Введенный код неверный.",
-        "expired_code": "Срок действия кода истек. Пожалуйста, запросите новый.",
-        "rate_limit_error": "Пожалуйста, подождите немного перед повторным запросом кода."
+    "interpretation": {
+      "high": "Это редкое и необычайное космическое выравнивание. Ваши карты показывают исключительную совместимость во всех основных областях.",
+      "good": "Ваша космическая связь сильна и многообещающа. Наблюдается естественная гармония во многих измерениях.",
+      "medium": "У вас сбалансированная космическая связь. Это создает возможности для роста и понимания.",
+      "low": "Ваши карты показывают контрастные энергии. Трудности предлагают возможности для осознанной эволюции."
+    }
+  },
+  "register": {
+    "error_title": "Ошибка регистрации",
+    "profession_label": "Ваша профессия",
+    "education_label": "Ваше образование",
+    "identity_label": "Ваша личность",
+    "identity_subtitle": "Это помогает нам понять, кто вы и что вы ищете.",
+    "birth_subtitle": "Это необходимо для расчета вашей натальной карты.",
+    "continue": "Продолжить",
+    "name_title": "Настройка профиля",
+    "name": "Имя",
+    "last_name": "Фамилия",
+    "height": "Рост",
+    "done": "Готово",
+    "subtitle": "Введите ваш email и пароль",
+    "already_have_account": "Уже есть аккаунт? ",
+    "login": "Войти",
+    "step2_title": "Регистрация (шаг 2)",
+    "natal_chart_title": "Ваша натальная карта",
+    "natal_chart_subtitle": "Это необходимо для расчета вашего космического чертежа.",
+    "dob_label": "Дата рождения",
+    "dob_hint": "ГГГГ-ММ-ДД",
+    "tob_label": "Время рождения",
+    "tob_hint": "ЧЧ:ММ (24-часовой формат)",
+    "birth_location_label": "Место рождения",
+    "birth_location_hint": "Город, страна",
+    "identity_title": "Ваша личность и намерения",
+    "gender_label": "Пол",
+    "orientation_label": "Ориентация",
+    "gender_hint": "Как вы себя идентифицируете?",
+    "orientation_hint": "Как вы себя идентифицируете романтически?",
+    "intentions_title": "Ваши намерения",
+    "intentions_subtitle": "Выберите то, что вы ищете.",
+    "looking_for": "Я ищу...",
+    "intention_label": "Цель отношений",
+    "intention_hint": "Что вы ищете?",
+    "core_values_title": "Ваши ценности",
+    "core_values_subtitle": "Выберите до 5 ценностей, которые вам близки.",
+    "bio_label": "О себе",
+    "bio_hint": "Загляните в свою душу...",
+    "finish_button": "Завершить регистрацию",
+    "success_message": "Регистрация прошла успешно! ✨",
+    "hobbies_title": "Ваши хобби",
+    "hobbies_subtitle": "Выберите занятия, которые вам нравятся.",
+    "career_title": "Карьера и образование",
+    "career_subtitle": "Расскажите о работе и учебе.",
+    "bio_title": "Ваше био",
+    "bio_subtitle": "Расскажите о себе несколькими предложениями.",
+    "photos_title": "Галерея",
+    "photos_subtitle": "Загрузите минимум 2 фото, чтобы продолжить.",
+    "additional_photos": "Дополнительные фото",
+    "add_more": "Добавить ({current}/{max})",
+    "complete_registration": "Завершить регистрацию",
+    "min_photos_required": "Требуется минимум 2 фотографии",
+    "primary_badge": "ГЛАВНОЕ",
+    "photo_index": "Фото №{0}",
+    "drag_placeholder": "Перетащите дополнительные фото сюда",
+    "limit_reached": "Лимит достигнут",
+    "limit_message": "Вы можете загрузить не более {max} фотографий.",
+    "no_cities_found": "Города не найдены.",
+    "missing_data": "Недостаточно данных",
+    "missing_name_error": "Имя профиля отсутствует. Пожалуйста, начните процесс регистрации заново.",
+    "missing_creds_error": "Данные для регистрации отсутствуют. Пожалуйста, попробуйте еще раз.",
+    "welcome_title": "Добро пожаловать!",
+    "welcome_message": "Регистрация завершена.",
+    "failed_title": "Ошибка регистрации",
+    "email": "Электронная почта",
+    "password": "Пароль",
+    "email_required": "Email обязателен для заполнения.",
+    "email_invalid": "Пожалуйста, введите корректный email.",
+    "password_length": "Пароль должен содержать не менее 8 символов.",
+    "confirm_password": "Подтвердите пароль",
+    "passwords_no_match": "Пароли не совпадают.",
+    "options": {
+      "genders": {
+        "man": "Мужчина",
+        "woman": "Женщина",
+        "non_binary": "Небинарная личность"
+      },
+      "intentions": {
+        "soulmate": "Родственная душа",
+        "casual_relationship": "Ни к чему не обязывающие отношения",
+        "exploring": "В поиске",
+        "friendship": "Дружба"
+      },
+      "core_values": {
+        "spirituality": "Духовность",
+        "kindness": "Доброта",
+        "creativity": "Творчество",
+        "authenticity": "Искренность",
+        "growth": "Развитие",
+        "adventure": "Приключения"
+      }
     },
-    "dialog": {
+    "errors": {
+      "fill_preferences": "Пожалуйста, заполните все поля предпочтений.",
+      "dob_required": "Дата рождения обязательна.",
+      "tob_required": "Время рождения обязательно.",
+      "birth_location_required": "Место рождения обязательно.",
+      "gender_required": "Пожалуйста, выберите ваш пол.",
+      "intention_required": "Пожалуйста, укажите ваши намерения.",
+      "bio_required": "Расскажите немного о себе в описании.",
+      "orientation_required": "Пожалуйста, выберите вашу ориентацию.",
+      "name_required": "Пожалуйста, введите ваше имя.",
+      "height_required": "Пожалуйста, укажите ваш рост."
+    }
+  },
+  "login": {
+    "title": "Найдем вашу родственную душу",
+    "email_hint": "Email",
+    "email_required": "Email обязателен.",
+    "password_hint": "Пароль",
+    "password_required": "Пароль обязателен.",
+    "forgot_password": "Забыли пароль?",
+    "login_button": "Войти",
+    "or_divider": "ИЛИ",
+    "continue_with_facebook": "Продолжить через Facebook",
+    "continue_with_mobile": "Продолжить по номеру телефона",
+    "signup_prompt": "Нет аккаунта? Зарегистрируйтесь",
+    "logging_in": "Вход...",
+    "redirecting_to_facebook": "Перенаправление в Facebook...",
+    "redirecting_to_mobile": "Перенаправление на вход по номеру телефона...",
+    "success_title": "Вход выполнен!",
+    "success_message": "С возвращением! Вы успешно вошли в систему.",
+    "email_toggle": "Email",
+    "mobile_toggle": "Мобильный",
+    "phone_hint": "000 000 000",
+    "no_account_prompt": "Нет аккаунта? ",
+    "signup_link": "Зарегистрироваться"
+  },
+  "landing": {
+    "slogan": "Найди своего человека сегодня.",
+    "cta": "Поехали!",
+    "legal_full": "Продолжая, вы соглашаетесь с {terms} и {privacy} Syno.",
+    "terms": "Условиями использования",
+    "privacy": "Политикой конфиденциальности"
+  },
+  "languages": {
+    "english": "English",
+    "russian": "Русский",
+    "georgian": "Грузинский"
+  },
+  "otp": {
+    "otp_subject": "Ваш код подтверждения SYNO",
+    "otp_message": "Здравствуйте! Ваш код подтверждения: {code}. Он истекает через {minutes} минут.",
+    "verify_title": "Требуется код подтверждения",
+    "verify_subtitle": "Мы отправили 6-значный код на {email}",
+    "verify_message": "Введите код, который мы отправили на {email}",
+    "verify_message_phone": "Введите код, который мы отправили на ваш телефон {phone_number}",
+    "verify_button": "Подтвердить",
+    "invalid_code": "Введенный код неверный.",
+    "expired_code": "Срок действия кода истек. Пожалуйста, запросите новый.",
+    "rate_limit_error": "Пожалуйста, подождите немного перед повторным запросом кода.",
+    "verify_subtitle_phone": "Мы отправили 6-значный код на {phone_number}",
+    "paste_tip": "Подсказка: вы можете вставить код прямо сюда",
+    "resend_code": "Отправить код повторно",
+    "success": "Код успешно отправлен"
+  },
+  "dialog": {
     "user_not_found": "Пользователь не найден!",
     "error_title": "Ошибка",
     "ok": "ОК",
@@ -141,6 +202,301 @@
     "close": "Закрыть",
     "login_failed": "Ошибка аутентификации",
     "detail": "Неверный e-mail или пароль!"
-}
-
+  },
+  "orientation": {
+    "straight": "Гетеросексуал",
+    "gay": "Гей",
+    "bisexual": "Бисексуал",
+    "asexual": "Асексуал",
+    "pansexual": "Пансексуал",
+    "lesbian": "Лесбиянка"
+  },
+  "sex": {
+    "male": "Мужчина",
+    "female": "Женщина",
+    "non_binary": "Небинарный"
+  },
+  "profile": {
+    "settings": {
+      "theme": {
+        "theme_selection_title": "Выбор темы",
+        "save_button": "Сохранить изменения",
+        "save_error_generic": "Не удалось обновить настройки темы. Пожалуйста, попробуйте позже.",
+        "save_error_unauthorized": "Ваша сессия истекла. Пожалуйста, войдите снова.",
+        "title": "Theme",
+        "subtitle": "Customize your app theme",
+        "theme_selection_subtitle": "Choose from predefined themes",
+        "theme_customization_title": "Theme Customization",
+        "theme_customization_subtitle": "Create your own unique theme"
+      },
+      "general": "General",
+      "title": "Настройки",
+      "account": "Аккаунт",
+      "blocked_users": {
+        "title": "Block/Unblock User",
+        "subtitle": "Manage users you have blocked",
+        "input_placeholder": "Enter profile name to block...",
+        "success_blocked": "User {} blocked",
+        "success_title": "Updated",
+        "success_unblocked": "User {} unblocked",
+        "error_not_found": "We couldn't find that user. Please check the spelling and try again.",
+        "error_already_blocked": "This user is already in your blocked list.",
+        "error_self_block": "The stars say you should be your own best friend! You cannot block yourself.",
+        "unblock_confirm_title": "Unblock User",
+        "unblock_confirm_message": "Are you sure you want to unblock {}?",
+        "unblock_button": "Unblock",
+        "empty_list": "You haven't blocked any users yet."
+      },
+      "deactivate": {
+        "title": "Deactivate Account",
+        "subtitle": "Deactivate your account permanently",
+        "confirm_title": "Deactivate Account?",
+        "confirm_subtitle": "Are you sure you want to deactivate your account? This action cannot be undone.",
+        "cancel": "Cancel",
+        "deactivate": "Deactivate",
+        "confirm_message": "Your account will be deactivated immediately. You can reactivate within a month.",
+        "action": "Deactivate"
+      },
+      "cancel": "Cancel"
+    },
+    "title": "Profile",
+    "name": "Name",
+    "edit_profile": "Edit Profile",
+    "preview_profile": "Profile Preview",
+    "edit_limited_message": "You can edit your profile in {days} days.",
+    "logout": "Log Out",
+    "logout_confirm_title": "Log Out?",
+    "logout_confirm_subtitle": "Are you sure you want to log out?",
+    "cancel": "Cancel",
+    "about": "About",
+    "gallery": "Gallery",
+    "no_bio": "No bio provided.",
+    "no_hobbies": "No hobbies provided.",
+    "no_core_values": "No core values provided.",
+    "no_intentions": "No intentions provided.",
+    "birth_info": "Birth Info",
+    "preferences": "Preferences",
+    "profession": "Profession",
+    "education": "Education",
+    "careerandeducation": "Career & Education",
+    "error": "Error",
+    "blocked_users": "Block/Unblock User",
+    "bio": "Bio",
+    "no_blocked_users": "No blocked users",
+    "log_out": "Log Out",
+    "birth_location": "Birth Location",
+    "zodiac_sign": "Zodiac Sign",
+    "intention": "Intention",
+    "sex": "Sex",
+    "orientation": "Orientation",
+    "hobbies": "Hobbies",
+    "update_success_title": "Profile Updated",
+    "update_success_message": "Your changes have been saved successfully.",
+    "save": "Save",
+    "photo_dialog_title": "Update Your Profile Photo",
+    "photo_dialog_body": "Tap below to choose a new photo for your profile. You can take a new picture or select one from your gallery.",
+    "photo_dialog_gallery": "Choose from Gallery",
+    "core_values": {
+      "title": "Core Values",
+      "subtitle": "Select up to 5 values that guide you",
+      "spirituality": "Духовность",
+      "kindness": "Доброта",
+      "creativity": "Творчество",
+      "authenticity": "Authenticity",
+      "growth": "Рост",
+      "adventure": "Приключение",
+      "commitment": "Преданность"
+    },
+    "updated": "Профиль обновлен",
+    "changes_saved": "Изменения сохранены"
+  },
+  "explanation": {
+    "top_reasons": {
+      "moon_high": "🌙 Глубокое эмоциональное понимание и интуитивная связь",
+      "moon_good": "🌙 Сильно эмоциональное согласие и гармония",
+      "mercury_high": "💬 Исключительное интеллектуальное взаимопонимание",
+      "mercury_good": "💬 Природное общение и поддержка идей",
+      "venus_mars_high": "💫 Магнетическая химия и страстное притяжение",
+      "venus_mars_good": "💫 Сильная романтическая и физическая гармония",
+      "nodes_high": "✨ Глубокая судьбоносная связь, простирающаяся за пределы времени",
+      "nodes_good": "✨ Сильная кармическая связь и духовное значение",
+      "saturn_high": "🔒 Исключительный долгосрочный потенциал и верность",
+      "saturn_good": "🔒 Прочный фундамент для стабильных отношений"
+    },
+    "cosmic_insight": {
+      "high": [
+        "The stars have aligned in your favor—this is destiny calling",
+        "A cosmic match written in the constellations",
+        "Your souls dance to the same celestial rhythm",
+        "The universe conspires to bring you together",
+        "A rare alignment that transcends ordinary connection"
+      ],
+      "good": [
+        "The cosmos sees great potential in your union",
+        "Your energies harmonize across multiple dimensions",
+        "A connection blessed by the celestial spheres",
+        "The planets smile upon this pairing",
+        "Your charts reveal a promising cosmic journey together"
+      ],
+      "medium": [
+        "The universe offers opportunities for beautiful growth",
+        "Your paths cross for meaningful reasons",
+        "A balanced cosmic connection awaits exploration",
+        "The stars guide you toward mutual discovery",
+        "Your energies can create something special together"
+      ],
+      "low": [
+        "Every connection teaches us something profound",
+        "The cosmos challenges you to grow beyond comfort",
+        "Different energies can spark unexpected transformation",
+        "Your journey together offers valuable lessons",
+        "The universe presents opportunities for conscious evolution"
+      ],
+      "nodes_special": "Ваш кармический узел выходит за рамки времени.",
+      "venus_mars_special": "Химия между вами вспыхивает, как космическая пыль."
+    },
+    "highlights": {
+      "emotional_connection": "Эмоциональная связь",
+      "communication": "Коммуникация",
+      "romantic_chemistry": "Романтическая химия",
+      "soul_bond": "Душевная связь",
+      "long_term_potential": "Долгосрочный потенциал"
+    }
+  },
+  "onboarding": {
+    "welcome": "Добро пожаловать в SYNO",
+    "tagline": "Встретьте того, кто предназначен вам",
+    "description": "Откройте свою космическую пару через идеальное сочетание астрологии и ИИ.",
+    "get_started": "Начать",
+    "demo_notice": "Для демонстрации используется первый доступный профиль."
+  },
+  "match_details": {
+    "match_percentage": "{score}% Совпадение",
+    "synastry_score": "Синастрия: {score}%",
+    "behavioral_score": "Поведенческий показатель: {score}%",
+    "cosmic_insight": "Космическое понимание",
+    "top_reasons": "Главные причины совместимости",
+    "synastry_breakdown": "Анализ синастрии",
+    "view_full_report": "Посмотреть полный отчет",
+    "send_message": "Отправить сообщение",
+    "block_user": "Заблокировать пользователя",
+    "unblock_user": "Разблокировать пользователя",
+    "block_sheet_title": "Заблокировать пользователя?",
+    "unblock_sheet_title": "Разблокировать пользователя?",
+    "block_sheet_subtitle": "Вы не будете видеть и получать сообщения от этого пользователя.",
+    "unblock_sheet_subtitle": "Он сможет видеть ваш профиль и писать вам снова.",
+    "cancel": "Отмена",
+    "block": "Заблокировать",
+    "unblock": "Разблокировать",
+    "highlights": {
+      "emotional": "Эмоциональность",
+      "communication": "Коммуникация",
+      "romantic": "Романтика",
+      "soul_bond": "Душевная связь",
+      "long_term": "Долгосрочность"
+    }
+  },
+  "chat": {
+    "no_user": "Пользователь не найден",
+    "error": "Ошибка: {error}",
+    "safety_options": "Параметры безопасности",
+    "unblock_user": "Разблокировать {name}",
+    "block_user": "Заблокировать {name}",
+    "unblock_subtitle": "Он снова сможет писать вам.",
+    "block_subtitle": "Вы не будете получать новые сообщения от этого чата.",
+    "close": "Закрыть",
+    "blocked_banner": "Вы заблокировали пользователя. Новые сообщения не будут приходить.",
+    "blocked_footer": "Личные сообщения отключены для этого чата",
+    "unblock_button": "Разблокировать",
+    "start_conversation": "Начать разговор!",
+    "say_hello": "Поздороваться с {name}",
+    "message_hint": "Напишите сообщение..."
+  },
+  "discover": {
+    "title": "Открытия",
+    "no_matches_title": "Нет совпадений",
+    "no_matches_subtitle": "Пока нет новых профилей, подходящих вашему запросу.",
+    "error_title": "Ошибка поиска",
+    "error_subtitle": "Произошла ошибка при поиске совпадений. Попробуйте позже.",
+    "loading": "Загрузка..."
+  },
+  "chats_list": {
+    "title": "Чаты",
+    "no_chats_title": "Нет чатов",
+    "no_chats_subtitle": "Начните разговор, чтобы открыть новые пути общения.",
+    "error_title": "Ошибка чатов",
+    "error_subtitle": "Не удалось загрузить список чатов. Попробуйте позже.",
+    "loading": "Загрузка чатов..."
+  },
+  "matches_list": {
+    "title": "Совпадения",
+    "no_matches_title": "Нет совпадений",
+    "no_matches_subtitle": "Пока нет совпадений. Попробуйте снова через некоторое время.",
+    "error_title": "Ошибка совпадений",
+    "error_subtitle": "Мы не смогли загрузить совпадения. Попробуйте позже.",
+    "loading": "Загрузка совпадений..."
+  },
+  "zodiac": {
+    "aries": "Aries",
+    "taurus": "Taurus",
+    "gemini": "Gemini",
+    "cancer": "Cancer",
+    "leo": "Leo",
+    "virgo": "Virgo",
+    "libra": "Libra",
+    "scorpio": "Scorpio",
+    "sagittarius": "Sagittarius",
+    "capricorn": "Capricorn",
+    "aquarius": "Aquarius",
+    "pisces": "Pisces",
+    "unknown": "Unknown"
+  },
+  "register_main": {
+    "title": "Регистрация",
+    "email_hint": "Email",
+    "email_required": "Email обязателен.",
+    "email_invalid": "Пожалуйста, введите корректный email.",
+    "password_hint": "Пароль",
+    "password_required": "Пароль обязателен.",
+    "password_short": "Пароль должен быть не менее 8 символов.",
+    "confirm_password_hint": "Подтвердите пароль",
+    "confirm_password_required": "Требуется подтверждение пароля.",
+    "passwords_no_match": "Пароли не совпадают.",
+    "continue_button": "Продолжить",
+    "or_divider": "ИЛИ",
+    "login_prompt": "Уже есть аккаунт?"
+  },
+  "synastry_report": {
+    "title": "Синастрия",
+    "report_for": "Отчет для",
+    "overall_interpretation": "Общая интерпретация",
+    "compatibility_areas": "Области совместимости",
+    "emotional_connection": "Эмоциональная связь",
+    "communication_style": "Стиль общения",
+    "romantic_chemistry": "Романтическая химия",
+    "karmic_bond": "Кармическая связь",
+    "long_term_potential": "Долгосрочный потенциал",
+    "loading": "Загрузка отчета...",
+    "error": "Ошибка при загрузке отчета"
+  },
+  "splash": {
+    "loading": "Загрузка..."
+  },
+  "bottom_nav": {
+    "discover": "Открытия",
+    "matches": "Совпадения",
+    "chats": "Чаты",
+    "profile": "Профиль"
+  },
+  "legal": {
+    "terms": {
+      "title": "Условия использования",
+      "content": "Наши условия использования описывают правила и обязательства при использовании платформы."
+    },
+    "privacy": {
+      "title": "Политика конфиденциальности",
+      "content": "Наша политика конфиденциальности описывает, как мы храним и защищаем ваши данные."
+    },
+    "legal_snippet": "Продолжая, вы соглашаетесь с нашими условиями и политикой конфиденциальности."
+  }
 }

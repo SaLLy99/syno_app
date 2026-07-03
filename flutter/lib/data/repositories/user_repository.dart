@@ -94,7 +94,7 @@ List<User> _getDemoUsers() {
         ),
         intentions: [Intentions(id:3,key:"exploring",translationKey:"register.options.intentions.exploring")],
         coreValues: [CoreValue(id: 1, key: "Empathy", translationKey: "profile.core_values.empathy")],
-        sex: Sex(id: 2, name: 'Female'),
+        sex: Sex(id: 2, translationKey: 'gener.female', name: 'Female'),
         orientation: OrientationModel (id: 1, name: 'Straight'),
         hobbies: [
           Hobby(id: 1, name: 'Yoga'),
@@ -122,7 +122,7 @@ List<User> _getDemoUsers() {
         location: Location(id: 1, name: 'New York', parent: LocationParent(id: 2, name: 'USA')),
         intentions: [Intentions(id:4,key:"friendship",translationKey:"register.options.intentions.exploring")],
         coreValues: [CoreValue(id:2,key:"Honesty",translationKey:"profile.core_values.honesty")],
-        sex: Sex(id: 1, name: 'Male'),
+        sex: Sex(id: 1, translationKey: 'gener.male', name: 'Male'),
         orientation: OrientationModel (id: 1, name: 'Straight'),
         hobbies: [Hobby(id: 3, name: 'Astrology')],
         personalityTraits: const {
@@ -147,7 +147,7 @@ List<User> _getDemoUsers() {
         location: Location(id: 3, name: 'London', parent: LocationParent(id: 4, name: 'UK')),
         intentions: [Intentions(id:4,key:"friendship",translationKey:"register.options.intentions.exploring")],
         coreValues: [CoreValue(id:3,key:"Spontaniety",translationKey:"profile.core_values.spontaniety")],
-        sex: Sex(id: 2, name: 'Female'),
+        sex: Sex(id: 2, translationKey: 'gener.female', name: 'Female'),
         orientation: OrientationModel (id: 3, name: 'Bisexual'),
         hobbies: [
           Hobby(id: 4, name: 'Painting'),
@@ -175,7 +175,7 @@ List<User> _getDemoUsers() {
         birthTime: '06:20',
         intentions: [Intentions(id:4,key:"casual_relationship",translationKey:"register.options.intentions.casual_relationship")],
         coreValues: [CoreValue(id: 4, key: "growth", translationKey: "profile.core_values.growth")],
-        sex: Sex(id: 1, name: 'Male'),
+        sex: Sex(id: 1, translationKey: 'gener.male', name: 'Male'),
         orientation: OrientationModel (id: 1, name: 'Straight'),
         hobbies: [
           Hobby(id: 6, name: 'Hiking'),
@@ -203,7 +203,7 @@ List<User> _getDemoUsers() {
         location: Location(id: 7, name: 'Sydney', parent: LocationParent(id: 8, name: 'Australia')),
         intentions: [Intentions(id:4,key:"friendship",translationKey:"register.options.intentions.exploring")],
         coreValues: [CoreValue(id: 5, key: "creativity", translationKey: "profile.core_values.creativity")],
-        sex: Sex(id: 2, name: 'Female'),
+        sex: Sex(id: 2, translationKey: 'gener.female', name: 'Female'),
         orientation: OrientationModel (id: 2, name: 'Gay'),
         hobbies: [
           Hobby(id: 8, name: 'Reading'),

@@ -1,145 +1,502 @@
 {
-    "synastry": {
-        "moon": {
-            "high": "თქვენი ემოციური სამყაროები სრულყოფილად ერწყმის ერთმანეთს. ღრმა გაგება და ინტუიციური კავშირი.",
-            "good": "ძლიერი ემოციური რეზონანსი. თქვენ ბუნებრივად გესმით ერთმანეთის საჭიროებები.",
-            "medium": "ზომიერი ემოციური თავსებადობა. საჭიროა გარკვეული კორექტირება უფრო ღრმა კავშირისთვის.",
-            "low": "ემოციური მოდელები განსხვავდება. საჭიროა ზრდა გაგების გზით."
-        },
-        "mercury": {
-            "high": "გამორჩეული მენტალური კავშირი. საუბარი ძალისხმევის გარეშე მიმდინარეობს და იდეები იდეალურად სინქრონიზდება.",
-            "good": "შესანიშნავი კომუნიკაციური თავსებადობა. გსიამოვნებთ ერთად საუბარი და ფიქრი.",
-            "medium": "კარგი ინტელექტუალური კავშირი კომუნიკაციის სტილის მცირე განსხვავებებით.",
-            "low": "კომუნიკაციის მიდგომები განსხვავდება. მოთმინება და სიცხადე გააძლიერებს კავშირს."
-        },
-        "venus_mars": {
-            "high": "მაგნიტური მიზიდულობა და რომანტიკული ჰარმონია. ქიმია უდავოა.",
-            "good": "ძლიერი რომანტიკული და ფიზიკური მიზიდულობა. ბუნებრივი ქიმია თქვენს შორის.",
-            "medium": "ზომიერი მიზიდულობა ზრდის პოტენციალით. კავშირი დროთა განმავლობაში ღრმავდება.",
-            "low": "სხვადასხვა სიყვარულის ენები. ერთმანეთის სურვილების გაგება მთავარია."
-        },
-        "nodes": {
-            "high": "ღრმა კარმული კავშირი. თქვენ ერთმანეთისთვის ხართ შექმნილნი.",
-            "good": "ძლიერი სულისმიერი კავშირი. ეს ურთიერთობა ემსახურება უფრო მაღალ მიზანს.",
-            "medium": "მნიშვნელოვანი კარმული კავშირი. არსებობს მიზეზი, რის გამოც თქვენი გზები გადაიკვეთა.",
-            "low": "ინდივიდუალური გზები ურთიერთზრდის პოტენციალით ცნობიერი ძალისხმევის გზით."
-        },
-        "saturn": {
-            "high": "გამორჩეული გრძელვადიანი პოტენციალი. ერთგულება და სტაბილურობა ბუნებრივად მოდის.",
-            "good": "ძლიერი საფუძველი ხანგრძლივი კავშირისთვის. თქვენ შეგიძლიათ შექმნათ რაღაც მყარი.",
-            "medium": "კარგი სტაბილურობის პოტენციალი შრომით. ერთგულება მოითხოვს ორმხრივ ძალისხმევას.",
-            "low": "განსხვავებული მიდგომები ერთგულებისადმი. საჭიროა მკაფიო მოლოდინები."
-        },
-        "interpretation": {
-            "high": "ეს არის იშვიათი და არაჩვეულებრივი კოსმოსური განლაგება. თქვენი რუკები აჩვენებს გამორჩეულ თავსებადობას ყველა ძირითად სფეროში. ამ კავშირს აქვს ტრანსფორმაციული პოტენციალი.",
-            "good": "თქვენი კოსმოსური კავშირი ძლიერი და იმედისმომცემია. არსებობს ბუნებრივი ჰარმონია, რაც მიუთითებს ღრმა თავსებადობაზე.",
-            "medium": "თქვენ გაქვთ დაბალანსებული კოსმოსური კავშირი. ეს ქმნის ზრდისა და უკეთესი გაგების შესაძლებლობას.",
-            "low": "თქვენი რუკები აჩვენებს კონტრასტულ ენერგიებს. გამოწვევები გთავაზობთ განვითარების შესაძლებლობებს."
-        }
+  "synastry": {
+    "moon": {
+      "high": "თქვენი ემოციური სამყაროები სრულყოფილად ერწყმის ერთმანეთს. ღრმა გაგება და ინტუიციური კავშირი.",
+      "good": "ძლიერი ემოციური რეზონანსი. თქვენ ბუნებრივად გესმით ერთმანეთის საჭიროებები.",
+      "medium": "ზომიერი ემოციური თავსებადობა. საჭიროა გარკვეული კორექტირება უფრო ღრმა კავშირისთვის.",
+      "low": "ემოციური მოდელები განსხვავდება. საჭიროა ზრდა გაგების გზით."
     },
-    "register_main": {
-        "continue": "გააგრძელე!",
-        "title": "ანგარიშის შექმნა",
-        "subtitle": "შეიყვანეთ ელ-ფოსტა და პაროლი",
-        "already_have_account": "უკვე გაქვთ ანგარიში? ",
-        "login": "შესვლა",
-        "step2_title": "რეგისტრაცია (ნაბიჯი 2)",
-        "natal_chart_title": "თქვენი ნატალური რუკა",
-        "natal_chart_subtitle": "ეს სასიცოცხლოდ მნიშვნელოვანია თქვენი კოსმოსური გეგმის გამოსათვლელად.",
-        "dob_label": "დაბადების თარიღი",
-        "dob_hint": "წწწწ-თთ-დდ",
-        "tob_label": "დაბადების დრო",
-        "tob_hint": "სს:წწ (24-საათიანი)",
-        "birth_location_label": "დაბადების ადგილი",
-        "birth_location_hint": "ქალაქი, ქვეყანა",
-        "identity_title": "იდენტობა და განზრახვები",
-        "gender_label": "სქესი",
-        "looking_for": "მე ვეძებ...",
-        "intention_label": "ურთიერთობის განზრახვა",
-        "core_values_title": "თქვენი ღირებულებები",
-        "core_values_subtitle": "აირჩიეთ 5-მდე ღირებულება.",
-        "bio_label": "მოკლე ბიოგრაფია",
-        "bio_hint": "თქვენი სულის ანარეკლი...",
-        "finish_button": "რეგისტრაციის დასრულება",
-        "success_message": "რეგისტრაცია წარმატებით დასრულდა! ✨",
-        "photos_title": "გალერეა",
-        "photos_subtitle": "გასაგრძელებლად ატვირთეთ მინიმუმ 2 ფოტო.",
-        "additional_photos": "დამატებითი ფოტოები",
-        "add_more": "დამატება ({current}/{max})",
-        "complete_registration": "რეგისტრაციის დასრულება",
-        "min_photos_required": "საჭიროა მინიმუმ 2 ფოტო",
-        "primary_badge": "მთავარი",
-        "drag_placeholder": "გადმოიტანეთ დამატებითი ფოტოები აქ",
-        "limit_reached": "ლიმიტი ამოიწურა",
-        "limit_message": "შეგიძლიათ ატვირთოთ მაქსიმუმ {max} ფოტო.",
-        "missing_data": "მონაცემები აკლია",
-        "missing_name_error": "პროფილის სახელი აკლია. გთხოვთ, თავიდან დაიწყოთ რეგისტრაციის პროცესი.",
-        "missing_creds_error": "რეგისტრაციის მონაცემები აკლია. გთხოვთ, თავიდან დაიწყოთ.",
-        "welcome_title": "მოგესალმებით!",
-        "welcome_message": "რეგისტრაცია დასრულდა.",
-        "failed_title": "რეგისტრაცია ვერ მოხერხდა",
-        "email": "ელ-ფოსტა",
-        "password": "პაროლი",
-        "email_required": "ელ-ფოსტა აუცილებელია.",
-        "email_invalid": "შეიყვანეთ ვალიდური ელ-ფოსტა.",
-        "password_length": "პაროლი უნდა იყოს მინიმუმ 8 სიმბოლო.",
-        "confirm_password": "დაადასტურეთ პაროლი",
-        "passwords_no_match": "პაროლები არ ემთხვევა.",
-        "continue_button": "გააგრძელე"
+    "mercury": {
+      "high": "გამორჩეული მენტალური კავშირი. საუბარი ძალისხმევის გარეშე მიმდინარეობს და იდეები იდეალურად სინქრონიზდება.",
+      "good": "შესანიშნავი კომუნიკაციური თავსებადობა. გსიამოვნებთ ერთად საუბარი და ფიქრი.",
+      "medium": "კარგი ინტელექტუალური კავშირი კომუნიკაციის სტილის მცირე განსხვავებებით.",
+      "low": "კომუნიკაციის მიდგომები განსხვავდება. მოთმინება და სიცხადე გააძლიერებს კავშირს."
     },
-    "login": {
-        "title": "ვიპოვოთ თქვენი სულისწყვილი",
-        "email_hint": "ელ-ფოსტა",
-        "email_required": "ელ-ფოსტა აუცილებელია.",
-        "password_hint": "პაროლი",
-        "password_required": "პაროლი აუცილებელია.",
-        "forgot_password": "დაგავიწყდათ პაროლი?",
-        "login_button": "შესვლა",
-        "or_divider": "ან",
-        "continue_with_facebook": "Facebook-ით გაგრძელება",
-        "continue_with_mobile": "მობილურით გაგრძელება",
-        "signup_prompt": "არ გაქვთ ანგარიში? დარეგისტრირდით",
-        "logging_in": "შესვლა...",
-        "redirecting_to_facebook": "Facebook-ზე გადამისამართება...",
-        "redirecting_to_mobile": "მობილურით შესვლაზე გადამისამართება...",
-        "success_title": "შესვლა წარმატებულია!",
-        "success_message": "მოგესალმებით! თქვენ წარმატებით შეხვედით სისტემაში.",
-        "email_toggle": "ელ-ფოსტა",
-        "mobile_toggle": "მობილური",
-        "phone_hint": "000 000 000",
-        "no_account_prompt": "არ გაქვთ ანგარიში? ",
-        "signup_link": "რეგისტრაცია"
+    "venus_mars": {
+      "high": "მაგნიტური მიზიდულობა და რომანტიკული ჰარმონია. ქიმია უდავოა.",
+      "good": "ძლიერი რომანტიკული და ფიზიკური მიზიდულობა. ბუნებრივი ქიმია თქვენს შორის.",
+      "medium": "ზომიერი მიზიდულობა ზრდის პოტენციალით. კავშირი დროთა განმავლობაში ღრმავდება.",
+      "low": "სხვადასხვა სიყვარულის ენები. ერთმანეთის სურვილების გაგება მთავარია."
     },
-    "landing": {
-        "slogan": "იპოვე შენი ადამიანი დღეს.",
-        "cta": "დავიწყოთ!",
-        "legal_full": "გაგრძელებით თქვენ ეთანხმებით Syno-ს {terms} და {privacy}-ს.",
-        "terms": "წესებსა და პირობებს",
-        "privacy": "კონფიდენციალურობის პოლიტიკას"
+    "nodes": {
+      "high": "ღრმა კარმული კავშირი. თქვენ ერთმანეთისთვის ხართ შექმნილნი.",
+      "good": "ძლიერი სულისმიერი კავშირი. ეს ურთიერთობა ემსახურება უფრო მაღალ მიზანს.",
+      "medium": "მნიშვნელოვანი კარმული კავშირი. არსებობს მიზეზი, რის გამოც თქვენი გზები გადაიკვეთა.",
+      "low": "ინდივიდუალური გზები ურთიერთზრდის პოტენციალით ცნობიერი ძალისხმევის გზით."
     },
-    "languages": {
-        "english": "ინგლისური",
-        "russian": "რუსული",
-        "georgian": "ქართული"
+    "saturn": {
+      "high": "გამორჩეული გრძელვადიანი პოტენციალი. ერთგულება და სტაბილურობა ბუნებრივად მოდის.",
+      "good": "ძლიერი საფუძველი ხანგრძლივი კავშირისთვის. თქვენ შეგიძლიათ შექმნათ რაღაც მყარი.",
+      "medium": "კარგი სტაბილურობის პოტენციალი შრომით. ერთგულება მოითხოვს ორმხრივ ძალისხმევას.",
+      "low": "განსხვავებული მიდგომები ერთგულებისადმი. საჭიროა მკაფიო მოლოდინები."
     },
-    "otp": {
-        "otp_subject": "თქვენი SYNO-ს დადასტურების კოდი",
-        "otp_message": "გამარჯობა! თქვენი დადასტურების კოდია: {code}. ის ძალაშია {minutes} წუთის განმავლობაში.",
-        "verify_title": "შეიყვანეთ დადასტურების კოდი",
-        "verify_subtitle": "ჩვენ გამოვაგზავნეთ 6-ნიშნა კოდი {email}-ზე",
-        "verify_button": "დადასტურება",
-        "invalid_code": "შეყვანილი კოდი არასწორია.",
-        "verify_message_phone": "შეიყვანეთ კოდი, რომელიც ჩვენ გამოვაგზავნეთ თქვენს ტელეფონის ნომერზე {phone_number}",
-        "expired_code": "კოდს ვადა გაუვიდა. გთხოვთ, მოითხოვოთ ახალი.",
-        "rate_limit_error": "გთხოვთ, დაელოდოთ ცოტა ხანს ახალი კოდის მოთხოვნამდე."
-    },
-      "dialog":{
-        "user_not_found":"მომხმარებელი ვერ მოიძებნა!",
-        "error_title": "შეცდომა",
-        "ok": "კარგი",
-        "cancel": "გაუქმება",
-        "close": "დახუვა",
-        "login_failed": "ვერ მოხერხდა აუტენტიფიკაცია",
-        "detail":"არასწორი ე-მეილი ან პაროლი!"
+    "interpretation": {
+      "high": "ეს არის იშვიათი და არაჩვეულებრივი კოსმოსური განლაგება. თქვენი რუკები აჩვენებს გამორჩეულ თავსებადობას ყველა ძირითად სფეროში. ამ კავშირს აქვს ტრანსფორმაციული პოტენციალი.",
+      "good": "თქვენი კოსმოსური კავშირი ძლიერი და იმედისმომცემია. არსებობს ბუნებრივი ჰარმონია, რაც მიუთითებს ღრმა თავსებადობაზე.",
+      "medium": "თქვენ გაქვთ დაბალანსებული კოსმოსური კავშირი. ეს ქმნის ზრდისა და უკეთესი გაგების შესაძლებლობას.",
+      "low": "თქვენი რუკები აჩვენებს კონტრასტულ ენერგიებს. გამოწვევები გთავაზობთ განვითარების შესაძლებლობებს."
     }
+  },
+  "register": {
+    "error_title": "რეგისტრაციის შეცდომა",
+    "profession_label": "თქვენი პროფესია",
+    "education_label": "თქვენი განათლება",
+    "identity_label": "თქვენი იდენტობა",
+    "identity_subtitle": "ეს დაგვეხმარება გაგება, თუ ვინ ხართ და რას ეძებთ.",
+    "birth_subtitle": "ეს აუცილებელია თქვენი ნატალური რუკის გამოსათვლელად.",
+    "continue": "გაგრძელება",
+    "name_title": "თქვენი ანგარიშის დაყენება",
+    "name": "სახელი",
+    "last_name": "გვარი",
+    "height": "სიმაღლე",
+    "done": "დასრულება",
+    "subtitle": "შეიყვანეთ თქვენი ელფოსტა და პაროლი",
+    "already_have_account": "უკვე გაქვთ ანგარიში? ",
+    "login": "შესვლა",
+    "step2_title": "რეგისტრაცია (მე-2 ნაბიჯი)",
+    "natal_chart_title": "თქვენი ნატალური რუკა",
+    "natal_chart_subtitle": "ეს აუცილებელია თქვენი კოსმიური გეგმის გამოსათვლელად.",
+    "dob_label": "დაბადების თარიღი",
+    "dob_hint": "yyyy-mm-dd",
+    "tob_label": "დაბადების დრო",
+    "tob_hint": "სთ:წთ (24-საათიანი)",
+    "birth_location_label": "დაბადების ადგილი",
+    "birth_location_hint": "ქალაქი, ქვეყანა",
+    "identity_title": "თქვენი იდენტობა და ზრახვები",
+    "gender_label": "სქესი",
+    "orientation_label": "ორინტაცია",
+    "gender_hint": "როგორ ახდენთ საკუთარი თავის იდენტიფიცირებას?",
+    "orientation_hint": "როგორ ახასიათებთ თავს რომანტიკულად?",
+    "intentions_title": "თქვენი ზრახვები",
+    "intentions_subtitle": "აირჩიეთ, რა გინიჭებთ მთავარი მნიშვნელობა.",
+    "looking_for": "მე ვეძებ...",
+    "intention_label": "ურთიერთობის მიზანი",
+    "intention_hint": "რას ეძებთ?",
+    "core_values_title": "თქვენი ძირითადი ღირებულებები",
+    "core_values_subtitle": "აირჩიეთ 5-მდე ღირებულება, რომელიც თქვენთვის მნიშვნელოვანია.",
+    "bio_label": "მოკლე ბიოგრაფია",
+    "bio_hint": "თქვენი სულის ანარეკლი...",
+    "finish_button": "რეგისტრაციის დასრულება",
+    "success_message": "რეგისტრაცია წარმატებით დასრულდა! ✨",
+    "hobbies_title": "თქვენი გატაცებები",
+    "hobbies_subtitle": "აირჩიეთ აქტივობები, რომლებიც თქვენთვის მნიშვნელოვანია.",
+    "career_title": "კარიერა და განათლება",
+    "career_subtitle": "გაუზიარეთ თქვენი სამუშაო და სასწავლო გამოცდილება.",
+    "bio_title": "თქვენი ბიო",
+    "bio_subtitle": "გააცანით თავი რამდენიმე წინადადებით.",
+    "photos_title": "გალერეა",
+    "photos_subtitle": "გასაგრძელებლად ატვირთეთ მინიმუმ 2 ფოტო.",
+    "additional_photos": "დამატებითი ფოტოები",
+    "add_more": "დაამატე ({current}/{max})",
+    "complete_registration": "რეგისტრაციის დასრულება",
+    "min_photos_required": "საჭიროა მინიმუმ 2 ფოტო",
+    "primary_badge": "მთავარი",
+    "photo_index": "ფოტო #{0}",
+    "drag_placeholder": "გადმოიტანეთ დამატებითი ფოტოები აქ",
+    "limit_reached": "ლიმიტი ამოიწურა",
+    "limit_message": "შეგიძლიათ ატვირთოთ მაქსიმუმ {max} ფოტო.",
+    "no_cities_found": "ქალაქი ვერ მოიძებნა.",
+    "missing_data": "მონაცემები აკლია",
+    "missing_name_error": "პროფილის სახელი არ არის მითითებული. გთხოვთ, თავიდან დაიწყოთ რეგისტრაციის პროცესი.",
+    "missing_creds_error": "სარეგისტრაციო მონაცემები აკლია. გთხოვთ, თავიდან სცადოთ.",
+    "welcome_title": "მოგესალმებით!",
+    "welcome_message": "რეგისტრაცია დასრულებულია.",
+    "failed_title": "რეგისტრაცია ვერ მოხერხდა",
+    "email": "ელფოსტა",
+    "password": "პაროლი",
+    "email_required": "ელფოსტის მითითება აუცილებელია.",
+    "email_invalid": "გთხოვთ, შეიყვანოთ ვალიდური ელფოსტა.",
+    "password_length": "პაროლი უნდა შედგებოდეს მინიმუმ 8 სიმბოლოსგან.",
+    "confirm_password": "დაადასტურეთ პაროლი",
+    "passwords_no_match": "პაროლები არ ემთხვევა.",
+    "options": {
+      "genders": {
+        "man": "მამაკაცი",
+        "woman": "ქალი",
+        "non_binary": "არაბინარული"
+      },
+      "intentions": {
+        "soulmate": "მეწყვილე",
+        "casual_relationship": "არასერიოზული ურთიერთობა",
+        "exploring": "ძიებაში",
+        "friendship": "მეგობრობა"
+      },
+      "core_values": {
+        "spirituality": "სულიერება",
+        "kindness": "კეთილშობილება",
+        "creativity": "კრეატიულობა",
+        "authenticity": "აუთენტურობა",
+        "growth": "განვითარება",
+        "adventure": "თავგადასავალი"
+      }
+    },
+    "errors": {
+      "fill_preferences": "გთხოვთ, შეავსოთ პრეფერენციების ყველა ველი.",
+      "dob_required": "დაბადების თარიღი აუცილებელია.",
+      "tob_required": "დაბადების დრო აუცილებელია.",
+      "birth_location_required": "დაბადების ადგილი აუცილებელია.",
+      "gender_required": "გთხოვთ, აირჩიოთ თქვენი სქესი.",
+      "intention_required": "გთხოვთ, მიუთითოთ თქვენი მიზანი.",
+      "bio_required": "საკუთარი თავის წარსადგენად ბიოგრაფიის შევსება აუცილებელია.",
+      "orientation_required": "გთხოვთ, აირჩიოთ თქვენი ორინტაცია.",
+      "name_required": "გთხოვთ, შეიყვანოთ თქვენი სახელი.",
+      "height_required": "გთხოვთ, მიუთითოთ თქვენი სიმაღლე."
+    }
+  },
+  "login": {
+    "title": "ვიპოვოთ თქვენი სულისწყვილი",
+    "email_hint": "ელფოსტა",
+    "email_required": "ელ-ფოსტა აუცილებელია.",
+    "password_hint": "პაროლი",
+    "password_required": "პაროლი აუცილებელია.",
+    "forgot_password": "დაგავიწყდათ პაროლი?",
+    "login_button": "შესვლა",
+    "or_divider": "ან",
+    "continue_with_facebook": "Facebook-ით გაგრძელება",
+    "continue_with_mobile": "მობილურით გაგრძელება",
+    "signup_prompt": "არ გაქვთ ანგარიში? დარეგისტრირდით",
+    "logging_in": "შესვლა...",
+    "redirecting_to_facebook": "Facebook-ზე გადამისამართება...",
+    "redirecting_to_mobile": "გადამისამართება მობილურით შესვლაზე...",
+    "success_title": "შესვლა წარმატებულია!",
+    "success_message": "მოგესალმებით! თქვენ წარმატებით შეხვედით სისტემაში.",
+    "email_toggle": "ელფოსტა",
+    "mobile_toggle": "მობილური",
+    "phone_hint": "000 000 000",
+    "no_account_prompt": "არ გაქვთ ანგარიში? ",
+    "signup_link": "რეგისტრაცია"
+  },
+  "landing": {
+    "slogan": "იპოვე შენი ადამიანი დღეს.",
+    "cta": "დავიწყოთ!",
+    "legal_full": "გაგრძელებით თქვენ ეთანხმებით Syno-ს {terms} და {privacy}-ს.",
+    "terms": "წესებსა და პირობებს",
+    "privacy": "კონფიდენციალურობის პოლიტიკას"
+  },
+  "languages": {
+    "english": "ინგლისური",
+    "russian": "რუსული",
+    "georgian": "ქართული"
+  },
+  "otp": {
+    "otp_subject": "თქვენი SYNO-ს დადასტურების კოდი",
+    "otp_message": "გამარჯობა! თქვენი დადასტურების კოდია: {code}. ის ძალაშია {minutes} წუთის განმავლობაში.",
+    "verify_title": "შეიყვანეთ დადასტურების კოდი",
+    "verify_subtitle": "ჩვენ გამოვაგზავნეთ 6-ნიშნა კოდი {email}-ზე",
+    "verify_button": "დადასტურება",
+    "invalid_code": "შეყვანილი კოდი არასწორია.",
+    "verify_message_phone": "შეიყვანეთ კოდი, რომელიც ჩვენ გამოვაგზავნეთ თქვენს ტელეფონის ნომერზე {phone_number}",
+    "expired_code": "კოდს ვადა გაუვიდა. გთხოვთ, მოითხოვოთ ახალი.",
+    "rate_limit_error": "გთხოვთ, დაელოდოთ ცოტა ხანს ახალი კოდის მოთხოვნამდე.",
+    "verify_subtitle_phone": "ჩვენ გამოგიგზავნეთ 6-ნიშნა კოდი ნომერზე {phone_number}",
+    "verify_message": "Enter the code we sent to {}",
+    "paste_tip": "შენიშვნა: კოდს პირდაპირ შეგიძლიათ ჩასვათ",
+    "resend_code": "კოდის ხელახლა გაგზავნა",
+    "success": "კოდი წარმატებით გაიგზავნა"
+  },
+  "dialog": {
+    "user_not_found": "მომხმარებელი ვერ მოიძებნა!",
+    "error_title": "შეცდომა",
+    "ok": "კარგი",
+    "cancel": "გაუქმება",
+    "close": "დახუვა",
+    "login_failed": "ვერ მოხერხდა აუტენტიფიკაცია",
+    "detail": "არასწორი ე-მეილი ან პაროლი!"
+  },
+  "orientation": {
+    "straight": "ჰეტეროსექსუალური",
+    "gay": "გეი",
+    "bisexual": "ბისექსუალური",
+    "asexual": "ასექსუალური",
+    "pansexual": "პანსექსუალი",
+    "lesbian": "ლესბოსელი"
+  },
+  "sex": {
+    "male": "მამაკაცი",
+    "female": "ქალი",
+    "non_binary": "არა-ბინარული"
+  },
+  "profile": {
+    "settings": {
+      "theme": {
+        "theme_selection_title": "თემის არჩევა",
+        "save_button": "ცვლილებების შენახვა",
+        "save_error_generic": "თქვენი თემის პარამეტრების განახლება ვერ მოხერხდა. გთხოვთ, მოგვიანებით სცადოთ.",
+        "save_error_unauthorized": "თქვენი სესიის ვადა გაუვიდა. გთხოვთ, შეხვიდეთ ხელახლა.",
+        "title": "Theme",
+        "subtitle": "Customize your app theme",
+        "theme_selection_subtitle": "Choose from predefined themes",
+        "theme_customization_title": "Theme Customization",
+        "theme_customization_subtitle": "Create your own unique theme"
+      },
+      "general": "General",
+      "title": "პარამეტრები",
+      "account": "ანგარიში",
+      "blocked_users": {
+        "title": "Block/Unblock User",
+        "subtitle": "Manage users you have blocked",
+        "input_placeholder": "Enter profile name to block...",
+        "success_blocked": "User {} blocked",
+        "success_title": "Updated",
+        "success_unblocked": "User {} unblocked",
+        "error_not_found": "We couldn't find that user. Please check the spelling and try again.",
+        "error_already_blocked": "This user is already in your blocked list.",
+        "error_self_block": "The stars say you should be your own best friend! You cannot block yourself.",
+        "unblock_confirm_title": "Unblock User",
+        "unblock_confirm_message": "Are you sure you want to unblock {}?",
+        "unblock_button": "Unblock",
+        "empty_list": "You haven't blocked any users yet."
+      },
+      "deactivate": {
+        "title": "Deactivate Account",
+        "subtitle": "Deactivate your account permanently",
+        "confirm_title": "Deactivate Account?",
+        "confirm_subtitle": "Are you sure you want to deactivate your account? This action cannot be undone.",
+        "cancel": "Cancel",
+        "deactivate": "Deactivate",
+        "confirm_message": "Your account will be deactivated immediately. You can reactivate within a month.",
+        "action": "Deactivate"
+      },
+      "cancel": "Cancel"
+    },
+    "title": "Profile",
+    "name": "Name",
+    "edit_profile": "Edit Profile",
+    "preview_profile": "Profile Preview",
+    "edit_limited_message": "You can edit your profile in {days} days.",
+    "logout": "Log Out",
+    "logout_confirm_title": "Log Out?",
+    "logout_confirm_subtitle": "Are you sure you want to log out?",
+    "cancel": "Cancel",
+    "about": "About",
+    "gallery": "Gallery",
+    "no_bio": "No bio provided.",
+    "no_hobbies": "No hobbies provided.",
+    "no_core_values": "No core values provided.",
+    "no_intentions": "No intentions provided.",
+    "birth_info": "Birth Info",
+    "preferences": "Preferences",
+    "profession": "Profession",
+    "education": "Education",
+    "careerandeducation": "Career & Education",
+    "error": "Error",
+    "blocked_users": "Block/Unblock User",
+    "bio": "Bio",
+    "no_blocked_users": "No blocked users",
+    "log_out": "Log Out",
+    "birth_location": "Birth Location",
+    "zodiac_sign": "Zodiac Sign",
+    "intention": "Intention",
+    "sex": "Sex",
+    "orientation": "Orientation",
+    "hobbies": "Hobbies",
+    "update_success_title": "Profile Updated",
+    "update_success_message": "Your changes have been saved successfully.",
+    "save": "Save",
+    "photo_dialog_title": "Update Your Profile Photo",
+    "photo_dialog_body": "Tap below to choose a new photo for your profile. You can take a new picture or select one from your gallery.",
+    "photo_dialog_gallery": "Choose from Gallery",
+    "core_values": {
+      "title": "Core Values",
+      "subtitle": "Select up to 5 values that guide you",
+      "spirituality": "სულიერება",
+      "kindness": "კეთილშობილი",
+      "creativity": "კრეატიულობა",
+      "authenticity": "Authenticity",
+      "growth": "განვითარება",
+      "adventure": "სათავგადასავლო",
+      "commitment": "წარმატება"
+    },
+    "updated": "პროფილი განახლებულია",
+    "changes_saved": "ცვლილებები შენახულია"
+  },
+  "explanation": {
+    "top_reasons": {
+      "moon_high": "🌙 ღრმა ემოციური გაგება და ინტუიციური კავშირი",
+      "moon_good": "🌙 ძლიერი ემოციური თანხმობა და ჰარმონია",
+      "mercury_high": "💬 გამორჩეული ინტელექტუალური გაგება",
+      "mercury_good": "💬 ბუნებრივი კომუნიკაცია და იდეების გაცვლა",
+      "venus_mars_high": "💫 მაგნიტური ქიმია და ძლიერი მიზიდულობა",
+      "venus_mars_good": "💫 ძლიერი რომანტიკული და ფიზიკური ჰარმონია",
+      "nodes_high": "✨ ღრმა ბედისწერითი კავშირი, რომელიც დროის ფარგლებს სცილდება",
+      "nodes_good": "✨ ძლიერი კარმული კავშირი და სულიერი მნიშვნელობა",
+      "saturn_high": "🔒 გამორჩეული გრძელვადიანი პოტენციალი და ერთგულება",
+      "saturn_good": "🔒 მტკიცე საფუძველი სტაბილური ურთიერთობებისთვის"
+    },
+    "cosmic_insight": {
+      "high": [
+        "The stars have aligned in your favor—this is destiny calling",
+        "A cosmic match written in the constellations",
+        "Your souls dance to the same celestial rhythm",
+        "The universe conspires to bring you together",
+        "A rare alignment that transcends ordinary connection"
+      ],
+      "good": [
+        "The cosmos sees great potential in your union",
+        "Your energies harmonize across multiple dimensions",
+        "A connection blessed by the celestial spheres",
+        "The planets smile upon this pairing",
+        "Your charts reveal a promising cosmic journey together"
+      ],
+      "medium": [
+        "The universe offers opportunities for beautiful growth",
+        "Your paths cross for meaningful reasons",
+        "A balanced cosmic connection awaits exploration",
+        "The stars guide you toward mutual discovery",
+        "Your energies can create something special together"
+      ],
+      "low": [
+        "Every connection teaches us something profound",
+        "The cosmos challenges you to grow beyond comfort",
+        "Different energies can spark unexpected transformation",
+        "Your journey together offers valuable lessons",
+        "The universe presents opportunities for conscious evolution"
+      ],
+      "nodes_special": "თქვენი კარმული კავშირი დროის ფარგლებს სცილდება.",
+      "venus_mars_special": "თქვენს შორის ქიმია იწვის, როგორც კოსმოსური მტვრეტი."
+    },
+    "highlights": {
+      "emotional_connection": "ემოციური კავშირი",
+      "communication": "კომუნიკაცია",
+      "romantic_chemistry": "რომანტიკული ქიმია",
+      "soul_bond": "სულის კავშირი",
+      "long_term_potential": "გრძელვადიანი პერსპექტიდა"
+    }
+  },
+  "onboarding": {
+    "welcome": "კეთილი იყოს თქვენი მობრძანება SYNO-ში",
+    "tagline": "გაიცანით იმ kişi, ვინც თქვენთვისაა განკუთვნილი",
+    "description": "აღმოაჩინეთ თქვენი კოსმური წყვილი ასტროლოგიისა და AI-ის ოსტატური შეხამებით.",
+    "get_started": "დავიწყოთ",
+    "demo_notice": "დემოსთვის გამოიყენება პირველი ხელმისაწვდომი პროფილი."
+  },
+  "match_details": {
+    "match_percentage": "{score}% შეთავსება",
+    "synastry_score": "სინასტრია: {score}%",
+    "behavioral_score": "ქცევითი მაჩვენებელი: {score}%",
+    "cosmic_insight": "კოსმოსური გაგება",
+    "top_reasons": "მთავარი მიზეზები",
+    "synastry_breakdown": "სინასტრიის ანალიზი",
+    "view_full_report": "სრული ანგარიშის ნახვა",
+    "send_message": "გაგზავნე შეტყობინება",
+    "block_user": "ბლოკირება მომხმარებლის",
+    "unblock_user": "ბლოკის მოხსნა მომხმარებლის",
+    "block_sheet_title": "მომხმარებლის ბლოკირება?",
+    "unblock_sheet_title": "ბლოკის მოხსნა?",
+    "block_sheet_subtitle": "თქვენ აღარ მიიღებთ შეტყობინებებს ამ მომხმარებლისგან.",
+    "unblock_sheet_subtitle": "ის ისევ შეძლებს თქვენი ნახვა და წერას.",
+    "cancel": "გაუქმება",
+    "block": "ბლოკირება",
+    "unblock": "ბლოკის მოხსნა",
+    "highlights": {
+      "emotional": "ემოციური",
+      "communication": "კომუნიკაცია",
+      "romantic": "რომანტიკა",
+      "soul_bond": "სულის კავშირი",
+      "long_term": "გრძელვადიანობა"
+    }
+  },
+  "chat": {
+    "no_user": "მომხმარებელი ვერ მოიძებნა",
+    "error": "შეცდომა: {error}",
+    "safety_options": "უსაფრთხოების პარამეტრები",
+    "unblock_user": "ბლოკის მოხსნა {name}",
+    "block_user": "ბლოკირება {name}",
+    "unblock_subtitle": "ის ისევ შეძლებს მოგწეროს.",
+    "block_subtitle": "ამ ჩატიდან ახალი შეტყობინებები აღარ იქნება.",
+    "close": "დახურვა",
+    "blocked_banner": "თქვენ ამ მომხმარებელს დაბლოკეთ. ახალი შეტყობინებები არ მოვა.",
+    "blocked_footer": "ამ ჩატის პირადი შეტყობინებები გათიშულია",
+    "unblock_button": "ბლოკის მოხსნა",
+    "start_conversation": "დააფრანგე საუბარი!",
+    "say_hello": "მოძებნე {name}",
+    "message_hint": "შეიყვანეთ შეტყობინება..."
+  },
+  "discover": {
+    "title": "აღმოჩენები",
+    "no_matches_title": "შეთანხმება არ არის",
+    "no_matches_subtitle": "ამჟამად არ არის ახალი პროფილი, რომელიც შეესაბამება თქვენს მოთხოვნებს.",
+    "error_title": "აღმოჩენის შეცდომა",
+    "error_subtitle": "მოიყვანა შეცდომა შეტაფ matching. მოგვიანებით სცადეთ.",
+    "loading": "იტვირთება..."
+  },
+  "chats_list": {
+    "title": "ჩატები",
+    "no_chats_title": "ჩატები არ არის",
+    "no_chats_subtitle": "დაიწყეთ საუბარი, რომ ახალი გზები გახსნათ.",
+    "error_title": "ჩატების შეცდომა",
+    "error_subtitle": "ჩატების ჩამონათვალი ვერ დაიბადა. მოგვიანებით სცადეთ.",
+    "loading": "ჩატების ჩატვირთვა..."
+  },
+  "matches_list": {
+    "title": "შეთანხმებები",
+    "no_matches_title": "შესატყვისი არ არის",
+    "no_matches_subtitle": "დღეს არ არის შესატყვისი პროფილი. მოგვიანებით დაბრუნდით.",
+    "error_title": "შეთანხმების შეცდომა",
+    "error_subtitle": "შეუსწორებელია მონაცემების მოპოვება. მოგვიანებით სცადეთ.",
+    "loading": "შეთანხმების დატვირთვა..."
+  },
+  "zodiac": {
+    "aries": "Aries",
+    "taurus": "Taurus",
+    "gemini": "Gemini",
+    "cancer": "Cancer",
+    "leo": "Leo",
+    "virgo": "Virgo",
+    "libra": "Libra",
+    "scorpio": "Scorpio",
+    "sagittarius": "Sagittarius",
+    "capricorn": "Capricorn",
+    "aquarius": "Aquarius",
+    "pisces": "Pisces",
+    "unknown": "Unknown"
+  },
+  "register_main": {
+    "title": "რეგისტრაცია",
+    "email_hint": "ელფოსტა",
+    "email_required": "ელფოსტა აუცილებელია.",
+    "email_invalid": "გთხოვთ, შეიყვანოთ სწორი ელფოსტა.",
+    "password_hint": "პაროლი",
+    "password_required": "პაროლი აუცილებელია.",
+    "password_short": "პაროლი უნდა იყოს მინიმუმ 8 სიმბოლო.",
+    "confirm_password_hint": "დაადასტურეთ პაროლი",
+    "confirm_password_required": "პაროლის დადასტურება აუცილებელია.",
+    "passwords_no_match": "პაროლები არ ემთხვევა.",
+    "continue_button": "გაგრძელება",
+    "or_divider": "ან",
+    "login_prompt": "უკვე გაქვთ ანგარიში?"
+  },
+  "synastry_report": {
+    "title": "სინასტრია",
+    "report_for": "ანგარიშითვის",
+    "overall_interpretation": "ერთიანი ინტერპრეტაცია",
+    "compatibility_areas": "თანხვედრის სფეროები",
+    "emotional_connection": "ემოციური კავშირი",
+    "communication_style": "კომუნიკაციის სტილი",
+    "romantic_chemistry": "რომანტიკული ქიმია",
+    "karmic_bond": "კარმული კავშირი",
+    "long_term_potential": "გრძელვადიანი პოტენციალი",
+    "loading": "ანგარიშის ჩატვირთვა...",
+    "error": "შეცდომა"
+  },
+  "splash": {
+    "loading": "იტვირთება..."
+  },
+  "bottom_nav": {
+    "discover": "აღმოჩენები",
+    "matches": "სავარაუდო",
+    "chats": "ჩატები",
+    "profile": "პროფილი"
+  },
+  "legal": {
+    "terms": {
+      "title": "პირების პირობები",
+      "content": "ჩვენი პირობები აღწერს წესებს და ვალდებულებებს პლატფორმის გამოყენებისას."
+    },
+    "privacy": {
+      "title": "კონფიდენციალურობის პოლიტიკა",
+      "content": "ჩვენი კონფიდენციალურობის პოლიტიკა აღწერს, როგორ ვიცავთ თქვენს მონაცემებს."
+    },
+    "legal_snippet": "გაგრძელებით თქვენ ეთანხმებით ჩვენს პირობებსა და კონფიდენციალურობის პოლიტიკას."
+  }
 }

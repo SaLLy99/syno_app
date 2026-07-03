@@ -9,8 +9,13 @@ import 'package:http/http.dart' as http;
 class Orientations {
   final int id;
   final String name;
-  Orientations({required this.id, required this.name});
-  factory Orientations.fromJson(Map<String, dynamic> json) => Orientations(id: json['id'], name: json['name']);
+  final String translationKey;
+  Orientations({required this.id, required this.name, required this.translationKey});
+  factory Orientations.fromJson(Map<String, dynamic> json) => Orientations(
+        id: json['id'],
+        translationKey: 'orientation',
+        name: json['name']
+      );
 }
 class StaticDataService {
   final String _baseUrl = 'http://10.0.2.2:8000';

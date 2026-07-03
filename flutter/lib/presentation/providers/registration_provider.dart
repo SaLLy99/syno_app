@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/legacy.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart';
 
-// Typedef to support usages of RegistrationData if it was renamed or used in other services
+
 typedef RegistrationData = RegistrationState;
 
 class ProfileData {
@@ -21,6 +21,10 @@ class ProfileData {
   final List<int> hobbyIds;
   final List<int> professionIds;
   final List<int> educationIds;
+  final String? themeId;
+  final String? backgroundColor;
+  final String? accentColor;
+  final String? layout;
 
   const ProfileData({
     this.name,
@@ -37,6 +41,11 @@ class ProfileData {
     this.hobbyIds = const [],
     this.professionIds = const [],
     this.educationIds = const [],
+    // Theme preferences
+    this.themeId,
+    this.backgroundColor,
+    this.accentColor,
+    this.layout,
   });
 
   factory ProfileData.fromMap(Map<String, dynamic> map) {
@@ -59,6 +68,9 @@ class ProfileData {
       hobbyIds: map['hobby_ids'] != null
           ? List<int>.from(map['hobby_ids'])
           : (map['hobbies'] as List?)?.map((e) => e['id'] as int).toList() ?? [],
+      themeId: map['theme_id'] as String?,
+      backgroundColor: map['background_color'] as String?,
+      accentColor: map['accent_color'] as String?,
       professionIds: map['profession_ids'] != null
           ? List<int>.from(map['profession_ids'])
           : (map['professions'] as List?)?.map((e) => e['id'] as int).toList() ?? [],
@@ -84,10 +96,18 @@ class ProfileData {
       'hobby_ids': hobbyIds,
       'profession_ids': professionIds,
       'education_ids': educationIds,
+      'theme_id': themeId,
+      'background_color': backgroundColor,
+      'accent_color': accentColor,
     }..removeWhere((key, value) => value == null || (value is List && value.isEmpty));
   }
 
   bool get isInitial => name == null || name!.isEmpty;
+  
+  toJson() {
+    return toMap();
+
+  }
 }
 
 class RegistrationState {
@@ -132,6 +152,15 @@ class RegistrationState {
       photos: photos ?? this.photos,
     );
   }
+  toJson(){
+    return {
+      'email': email,
+      'password': password,
+      'phone_number': phoneNumber,
+      'profile_data': profileData.toJson(),
+      'photos': photos.map((file) => file.path).toList(),
+    };
+  }
 }
 
 class RegistrationNotifier extends StateNotifier<RegistrationState> {
@@ -141,15 +170,9 @@ class RegistrationNotifier extends StateNotifier<RegistrationState> {
     state = state.copyWith(email: email, password: password);
   }
 
-  // void updateProfileData(Map<String, dynamic> data) {
-  //   // Directly update the profile data from the map provided from registration step 2.
-  //   state = state.copyWith(profileData: ProfileData.fromMap(data));
-  // }
   void updateProfileData(Map<String, dynamic> data) {
     print('DEBUG: updateProfileData called with: $data');
 
-    // Merge strategy: Get current valid data as a map, and overlay the new data on top.
-    // This ensures that if 'data' is partial, we don't lose existing fields.
     final Map<String, dynamic> currentMap = state.profileData.toMap();
     final Map<String, dynamic> mergedMap = {...currentMap, ...data};
 
@@ -191,9 +214,9 @@ class RegistrationNotifier extends StateNotifier<RegistrationState> {
 
   void updateStep1Data(Map<String, String> map) {
     state = state.copyWith(
-      email: map['email'] ?? '',
-      password: map['password'] ?? '',
-      phoneNumber: map['phone_number'] ?? '',
+      email: map.containsKey('email') ? map['email'] ?? '' : state.email,
+      password: map.containsKey('password') ? map['password'] ?? '' : state.password,
+      phoneNumber: map.containsKey('phone_number') ? map['phone_number'] ?? '' : state.phoneNumber,
     );
   }
 

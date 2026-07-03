@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from fastapi import Depends, HTTPException, status
+import logging
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -38,9 +39,11 @@ def get_current_active_user(
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
         email: str = payload.get("sub")
         if not email:
+            logging.getLogger("syno.auth").warning("JWT token missing 'sub' claim. Payload: %s", payload)
             raise credentials_exception
         token_data = schemas.TokenData(email=email)
     except JWTError:
+        logging.getLogger("syno.auth").warning("JWT decode failed for token: %s", token)
         raise credentials_exception
 
     user = crud.get_user_by_email(db, email=token_data.email)

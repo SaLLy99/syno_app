@@ -7,8 +7,13 @@ import 'package:http/http.dart' as http;
 class Sex {
   final int id;
   final String name;
-  Sex({required this.id, required this.name});
-  factory Sex.fromJson(Map<String, dynamic> json) => Sex(id: json['id'], name: json['name']);
+   final String translationKey;
+  Sex({required this.id, required this.name, required this.translationKey});
+  factory Sex.fromJson(Map<String, dynamic> json) => Sex(
+        id: json['id'],
+        name: json['name'],
+        translationKey: json['translation_key'],
+      );
 }
 
 

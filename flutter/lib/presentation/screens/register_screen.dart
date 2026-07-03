@@ -54,7 +54,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     // Here, we just navigate to the next step.
     // The router's redirect logic has been updated to allow this.
     if (mounted) {
-      context.go('/register-step2');
+      context.go('/register-name');
     }
 
     // No need for try-catch or finally if we're not doing an async API call.
