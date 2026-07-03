@@ -95,24 +95,34 @@ class _ThemeSelectionScreenState extends ConsumerState<ThemeSelectionScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _isSaving ? null : () async {
           setState(() => _isSaving = true);
-          final registrationNotifier = ref.read(registrationProvider.notifier);
           try {
-            // Update the registration provider with the selected theme data
-            registrationNotifier.updateProfileData({
+            final themeMap = {
               'theme_id': _selectedTheme.id,
               'background_color': '#${_selectedTheme.backgroundColor.value.toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}',
               'accent_color': '#${_selectedTheme.accentColor.value.toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}',
-              'layout': _selectedTheme.layout, // Assuming layout is part of AppThemeData
-            });
+              'layout': _selectedTheme.layout,
+            };
 
-            if (mounted) {
-              context.go('/profile-confirmation');
+            // Apply the selected theme globally so the app updates immediately.
+            ref.read(themeProvider.notifier).setThemeFromProfile(_selectedTheme);
+
+            final currentUserState = ref.read(currentUserProvider);
+            final isProfileUpdate = currentUserState is AsyncData && currentUserState.value != null;
+
+            if (isProfileUpdate) {
+              final newTheme = AppThemeData.fromJson(themeMap);
+              await ref.read(themeUpdateProvider.notifier).updateTheme(newTheme);
+              if (mounted) context.pop();
+            } else {
+              final registrationNotifier = ref.read(registrationProvider.notifier);
+              registrationNotifier.updateProfileData(themeMap);
+              if (mounted) context.go('/profile-confirmation');
             }
           } on dio.DioException catch (e) {
             if (!mounted) return;
             final message = e.response?.statusCode == 401
                 ? 'profile.settings.theme.save_error_unauthorized'.tr()
-                : 'profile.settings.theme.save_error_generic'.tr(); 
+                : 'profile.settings.theme.save_error_generic'.tr();
 
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
