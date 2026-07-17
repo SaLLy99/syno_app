@@ -32,13 +32,13 @@ class SelectableOptionCard extends StatelessWidget {
             width: selected ? 2 : 1,
           ),
           boxShadow: selected
-              ? [
+              ? <BoxShadow>[
                   BoxShadow(
                       color: CosmicColors.cosmicPink.withOpacity(0.22),
                       blurRadius: 12,
                       offset: const Offset(0, 4))
                 ]
-              : [],
+              : <BoxShadow>[],
         ),
         child: Material(
           color: Colors.transparent,
@@ -49,7 +49,7 @@ class SelectableOptionCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                children: <Widget>[
                   Text(
                     label,
                     style: TextStyle(
@@ -58,7 +58,7 @@ class SelectableOptionCard extends StatelessWidget {
                       fontSize: 15,
                     ),
                   ),
-                  if (subtitle != null) ...[
+                  if (subtitle != null) ...<Widget>[
                     const SizedBox(height: 8),
                     Text(
                       subtitle!,

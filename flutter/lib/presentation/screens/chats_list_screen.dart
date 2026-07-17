@@ -3,12 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
 import 'package:syno_app/domain/entities/match.dart';
+import 'package:syno_app/domain/entities/synastry_data.dart';
 import 'package:syno_app/domain/entities/user.dart';
 import 'package:syno_app/presentation/providers/match_provider.dart';
-import 'package:syno_app/presentation/providers/user_provider.dart';
-import 'package:syno_app/presentation/providers/block_provider.dart';
+import 'package:syno_app/presentation/providers/auth_providers.dart';
 import 'package:syno_app/theme.dart';
-import 'package:syno_app/presentation/providers/auth_providers.dart'; // Import auth_providers to access currentUserProvider
 import 'package:syno_app/presentation/providers/theme_provider.dart';
 
 class ChatsListScreen extends ConsumerWidget {
@@ -16,48 +15,32 @@ class ChatsListScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final AsyncValue<User?> currentUserAsync = ref.watch(currentUserProvider);
-    final theme = ref.watch(themeProvider);
+    final AsyncValue<List<ChatListItem>> chatsAsync = ref.watch(chatsFromBackendProvider);
+    final AppThemeData theme = ref.watch(themeProvider);
 
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(gradient: theme.gradient),
         child: SafeArea(
           child: Column(
-            children: [
+            children: <Widget>[
               _buildAppBar(context, theme),
               Expanded(
-                child: currentUserAsync.when(
-                  data: (User? user) {
-                    if (user == null) {
-                      return Center(child: Text('chat.no_user'.tr()));
+                child: chatsAsync.when(
+                  data: (List<ChatListItem> chats) {
+                    if (chats.isEmpty) {
+                      return _buildEmptyState(context, theme);
                     }
-                    final AsyncValue<List<Match>> acceptedMatchesAsync = ref.watch(acceptedMatchesProvider(user.id.toString()));
-                    final AsyncValue<List<User>> blockedUsersAsync = ref.watch(blockedUsersProvider);
-                    return acceptedMatchesAsync.when(
-                      data: (List<Match> matches) {
-                        final Set<String> blocked = blockedUsersAsync.maybeWhen(
-                          data: (List<User> list) => list.map((u) => u.userId.toString()).toSet(), 
-                          orElse: () => <String>{},
-                        );
-                        final List<Match> visible = matches.where((Match m) => !blocked.contains(m.matchedUserId)).toList();
-                        if (visible.isEmpty) {
-                          return _buildEmptyState(context, theme);
-                        }
-                        return ListView.builder(
-                          padding: AppSpacing.paddingMd,
-                          itemCount: visible.length,
-                          itemBuilder: (BuildContext context, int index) {
-                            final Match match = visible[index];
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                          child: _buildChatCard(context, match, theme, ref),
-                            );
-                          },
+                    return ListView.builder(
+                      padding: AppSpacing.paddingMd,
+                      itemCount: chats.length,
+                      itemBuilder: (BuildContext context, int index) {
+                        final chat = chats[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                          child: _buildChatCard(context, chat, theme, ref),
                         );
                       },
-                      loading: () => Center(child: Text('chats_list.loading'.tr(), style: const TextStyle(color: Colors.white70))),
-                      error: (Object error, StackTrace stack) => _buildErrorState(context, theme),
                     );
                   },
                   loading: () => Center(child: Text('chats_list.loading'.tr(), style: const TextStyle(color: Colors.white70))),
@@ -75,7 +58,7 @@ class ChatsListScreen extends ConsumerWidget {
     return Padding(
       padding: AppSpacing.paddingMd,
       child: Row(
-        children: [
+        children: <Widget>[
           IconButton(
             icon: Icon(Icons.arrow_back_ios_new, color: theme.primaryTextColor),
             onPressed: () => context.go('/discover'),
@@ -84,7 +67,7 @@ class ChatsListScreen extends ConsumerWidget {
             child: Center(
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+                children: <Widget>[
                   Padding(
                     padding: const EdgeInsets.only(right: 8.0),
                     child: SizedBox(
@@ -115,13 +98,40 @@ class ChatsListScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildChatCard(BuildContext context, Match match, AppThemeData theme, WidgetRef ref) {
-    // Assuming currentUserProvider is an AsyncNotifierProvider and its notifier has an 'authToken' getter.
-    // This 'authToken' would be the JWT token obtained during login and stored by the AuthNotifier.
-    final String? authToken = ref.read(currentUserProvider.notifier).authToken;
+  Widget _buildChatCard(BuildContext context, ChatListItem chat, AppThemeData theme, WidgetRef ref) {
+    final String? baseUrl = ref.read(backendUrlProvider);
+    final String photoUrl = chat.matchedPhotoUrl != null && baseUrl != null
+        ? '$baseUrl${chat.matchedPhotoUrl}'
+        : '';
+
+    final matchObj = Match(
+      id: chat.matchId.toString(),
+      userId: '0',
+      matchedUserId: chat.matchedUserId.toString(),
+      matchedUser: User(
+        id: chat.matchedUserId,
+        userId: chat.matchedUserId,
+        name: chat.matchedName ?? 'Unknown',
+        photos: photoUrl.isNotEmpty ? [Photo(id: 0, url: photoUrl, isPrimary: true)] : [],
+      ),
+      finalScore: 0,
+      synastryScore: 0,
+      behavioralScore: 0,
+      topReasons: const <String>[],
+      cosmicInsight: '',
+      synastryData: SynastryData(
+        moonScore: 0, mercuryScore: 0, venusMarsScore: 0,
+        nodesScore: 0, saturnScore: 0,
+        detailedAspects: const <Aspect>[],
+        interpretation: '',
+      ),
+      status: MatchStatus.accepted,
+      createdAt: DateTime.now(),
+      backendMatchId: chat.matchId,
+    );
 
     return GestureDetector(
-      onTap: () => context.push('/chat', extra: match),
+      onTap: () => context.push('/chat', extra: matchObj),
       child: Container(
         padding: AppSpacing.paddingMd,
         decoration: BoxDecoration(
@@ -129,30 +139,36 @@ class ChatsListScreen extends ConsumerWidget {
           borderRadius: BorderRadius.circular(AppRadius.lg),
         ),
         child: Row(
-          children: [
+          children: <Widget>[
             ClipRRect(
               borderRadius: BorderRadius.circular(30),
-              child: Image.network(
-                match.matchedUser.photos.first.url,
-                headers: authToken != null ? {'Authorization': 'Bearer $authToken'} : null,
-                width: 60,
-                height: 60,
-                fit: BoxFit.cover,
-                errorBuilder: (BuildContext context, Object error, StackTrace? stackTrace) => Container(
-                  width: 60,
-                  height: 60,
-                  color: CosmicColors.cosmicPurple,
-                  child: const Icon(Icons.person, size: 30, color: Colors.white),
-                ),
-              ),
+              child: photoUrl.isNotEmpty
+                  ? Image.network(
+                      photoUrl,
+                      width: 60,
+                      height: 60,
+                      fit: BoxFit.cover,
+                      errorBuilder: (BuildContext context, Object error, StackTrace? stackTrace) => Container(
+                        width: 60,
+                        height: 60,
+                        color: CosmicColors.cosmicPurple,
+                        child: const Icon(Icons.person, size: 30, color: Colors.white),
+                      ),
+                    )
+                  : Container(
+                      width: 60,
+                      height: 60,
+                      color: CosmicColors.cosmicPurple,
+                      child: const Icon(Icons.person, size: 30, color: Colors.white),
+                    ),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                children: <Widget>[
                   Text(
-                    match.matchedUser.name.toString(),
+                    chat.matchedName ?? 'Unknown',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       color: theme.primaryTextColor,
                       fontWeight: FontWeight.bold,
@@ -160,7 +176,7 @@ class ChatsListScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
-                    'chats_list.start_conversation'.tr(),
+                    chat.lastMessage ?? 'chats_list.start_conversation'.tr(),
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: theme.primaryTextColor.withOpacity(0.6),
                     ),
@@ -170,23 +186,15 @@ class ChatsListScreen extends ConsumerWidget {
                 ],
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.sm,
-                vertical: AppSpacing.xs,
-              ),
-              decoration: BoxDecoration(
-                gradient: CosmicColors.cosmicGradient,
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-              ),
-              child: Text(
-                '${match.finalScore.toStringAsFixed(0)}%',
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+            if (!chat.isRead)
+              Container(
+                width: 10,
+                height: 10,
+                decoration: const BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
                 ),
               ),
-            ),
           ],
         ),
       ),
@@ -199,7 +207,7 @@ class ChatsListScreen extends ConsumerWidget {
         padding: AppSpacing.paddingXl,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [
+          children: <Widget>[
             Container(
               padding: const EdgeInsets.all(32),
               decoration: BoxDecoration(
@@ -236,7 +244,7 @@ class ChatsListScreen extends ConsumerWidget {
         padding: AppSpacing.paddingXl,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [
+          children: <Widget>[
             Container(
               padding: const EdgeInsets.all(32),
               decoration: BoxDecoration(

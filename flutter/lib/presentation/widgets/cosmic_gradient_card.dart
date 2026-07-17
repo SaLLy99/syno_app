@@ -17,7 +17,7 @@ class CosmicGradientCard extends StatelessWidget {
     this.borderRadius,
   });
 
-  @override
+ @override
   Widget build(BuildContext context) {
     return Container(
       height: height,
@@ -26,11 +26,12 @@ class CosmicGradientCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: CosmicColors.cosmicGradient,
         borderRadius: borderRadius ?? BorderRadius.circular(AppRadius.lg),
-        boxShadow: [
+        // Corrected Box shadow instantiation
+        boxShadow: const <BoxShadow>[
           BoxShadow(
             color: CosmicColors.cosmicPurple30, // Use const color
             blurRadius: 12,
-            offset: const Offset(0, 4),
+            offset: Offset(0, 4),
           ),
         ],
       ),

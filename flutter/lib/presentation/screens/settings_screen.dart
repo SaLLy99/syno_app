@@ -3,17 +3,17 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:syno_app/presentation/providers/theme_provider.dart';
-import 'package:syno_app/presentation/providers/auth_providers.dart';
 import 'package:syno_app/presentation/providers/user_provider.dart';
 import 'package:syno_app/presentation/widgets/app_dialogs.dart';
 import 'package:syno_app/theme.dart';
+import 'package:syno_app/presentation/utils/error_localization.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = ref.watch(themeProvider);
+    final AppThemeData theme = ref.watch(themeProvider);
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -27,7 +27,7 @@ class SettingsScreen extends ConsumerWidget {
         child: SafeArea(
           child: ListView(
             padding: const EdgeInsets.all(AppSpacing.md),
-            children: [
+            children: <Widget>[
               _buildSectionTitle(context, 'profile.settings.general'.tr(), theme),
               _buildSettingsTile(
                 context,
@@ -86,7 +86,7 @@ class SettingsScreen extends ConsumerWidget {
     required AppThemeData theme,
     bool isDestructive = false,
   }) {
-    final color = isDestructive ? Colors.redAccent : theme.primaryTextColor;
+    final Color color = isDestructive ? Colors.redAccent : theme.primaryTextColor;
     return ListTile(
       leading: Icon(icon, color: color),
       title: Text(title, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
@@ -99,14 +99,14 @@ class SettingsScreen extends ConsumerWidget {
   Future<void> _confirmDeactivation(BuildContext context, WidgetRef ref) async {
     final bool? didConfirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (BuildContext context) => AlertDialog(
         backgroundColor: Theme.of(context).cardColor,
         title: Text('profile.settings.deactivate.confirm_title'.tr()),
         content: Text(
           'profile.settings.deactivate.confirm_message'.tr(),
           style: TextStyle(color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.7)),
         ),
-        actions: [
+        actions: <Widget>[
           TextButton(onPressed: () => Navigator.pop(context, false), child: Text('profile.settings.cancel'.tr())),
           TextButton(onPressed: () => Navigator.pop(context, true), child: Text('profile.settings.deactivate.action'.tr(), style: const TextStyle(color: Colors.redAccent))),
         ],
@@ -117,7 +117,7 @@ class SettingsScreen extends ConsumerWidget {
       try {
         await ref.read(currentUserProvider.notifier).deactivateAccount();
       } catch (e) {
-        if (context.mounted) AppDialogs.showErrorDialog(context, 'profile.error'.tr(), e.toString());
+        if (context.mounted) AppDialogs.showErrorDialog(context, 'profile.error'.tr(), resolveLocalizedMessage(e.toString(), context: context));
       }
     }
   }

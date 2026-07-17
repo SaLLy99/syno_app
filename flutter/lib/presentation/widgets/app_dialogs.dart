@@ -86,7 +86,7 @@ class AppDialogs {
                   color: Colors.white70,
                 ),
           ),
-          actions: actions.map((action) {
+          actions: actions.map((DialogAction action) {
             return TextButton(
               onPressed: action.onPressed,
               child: Text(
@@ -100,7 +100,7 @@ class AppDialogs {
           }).toList(),
         );
       },
-    ).then((value) {
+    ).then((bool? value) {
       if (value == null && onDismiss != null) {
         onDismiss();
       }

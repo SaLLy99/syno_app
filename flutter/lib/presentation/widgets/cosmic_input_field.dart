@@ -57,14 +57,14 @@ class _CosmicInputFieldState extends State<CosmicInputField> {
       duration: const Duration(milliseconds: 300),
       decoration: BoxDecoration(
         boxShadow: _isFocused
-            ? [
+            ? <BoxShadow>[
                 BoxShadow(
                   color: CosmicColors.cosmicPink.withOpacity(0.3),
                   blurRadius: 20,
                   offset: const Offset(0, 2),
                 ),
               ]
-            : [],
+            : <BoxShadow>[],
       ),
       child: TextFormField(
         controller: widget.controller,
@@ -76,9 +76,9 @@ class _CosmicInputFieldState extends State<CosmicInputField> {
         cursorColor: CosmicColors.cosmicPink,
         decoration: InputDecoration(
           hintText: widget.hintText,
-          hintStyle: TextStyle(color: CosmicColors.mutedForeground),
+          hintStyle: const TextStyle(color: CosmicColors.mutedForeground),
           labelText: widget.labelText,
-          labelStyle: TextStyle(color: CosmicColors.mutedForeground),
+          labelStyle: const TextStyle(color: CosmicColors.mutedForeground),
           floatingLabelStyle: const TextStyle(color: CosmicColors.cosmicPink),
           prefixIcon: widget.prefixIcon != null
               ? Icon(
@@ -86,7 +86,7 @@ class _CosmicInputFieldState extends State<CosmicInputField> {
                   color: _isFocused ? CosmicColors.cosmicPink : CosmicColors.mutedForeground,
                 )
               : null,
-          enabledBorder: UnderlineInputBorder(
+          enabledBorder: const UnderlineInputBorder(
             borderSide: BorderSide(color: CosmicColors.borderColor),
           ),
           focusedBorder: const UnderlineInputBorder(

@@ -19,15 +19,15 @@ import 'package:syno_app/data/services/education_service.dart';
 import 'package:dio/dio.dart';
 
 // Providers to fetch the dynamic options
-final intentionsProvider = FutureProvider<List<Intention>>((ref) async {
-  final backendUrl = ref.watch(backendUrlProvider);
-  final response = await Dio().get('$backendUrl/api/intentions');
+final FutureProvider<List<Intention>> intentionsProvider = FutureProvider<List<Intention>>((Ref ref) async {
+  final String backendUrl = ref.watch(backendUrlProvider);
+  final Response response = await Dio().get('$backendUrl/api/intentions');
   return (response.data as List).map((i) => Intention.fromJson(i)).toList();
 });
 
-final coreValuesProvider = FutureProvider<List<CoreValue>>((ref) async {
-  final backendUrl = ref.watch(backendUrlProvider);
-  final response = await Dio().get('$backendUrl/api/core-values');
+final FutureProvider<List<CoreValue>> coreValuesProvider = FutureProvider<List<CoreValue>>((Ref ref) async {
+  final String backendUrl = ref.watch(backendUrlProvider);
+  final Response response = await Dio().get('$backendUrl/api/core-values');
   return (response.data as List).map((cv) => CoreValue.fromJson(cv)).toList();
 });
 
@@ -62,8 +62,8 @@ class _RegisterScreen2State extends ConsumerState<RegisterScreen2> {
   final Set<int> _selectedCoreValueIds = <int>{};
   final List<int> _selectedHobbyIds = <int>[];
   LocationItem? _selectedLocation;
-  List<ProfessionModel> _selectedProfessions = <ProfessionModel>[];
-  List<EducationModel> _selectedEducations = <EducationModel>[];
+  final List<ProfessionModel> _selectedProfessions = <ProfessionModel>[];
+  final List<EducationModel> _selectedEducations = <EducationModel>[];
 
   @override
   void initState() {
@@ -98,10 +98,10 @@ class _RegisterScreen2State extends ConsumerState<RegisterScreen2> {
         return SizedBox(
           height: 250,
           child: Column(
-            children: [
+            children: <Widget>[
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
-                children: [
+                children: <Widget>[
                   CupertinoButton(
                     child: const Text('Done', style: TextStyle(color: Colors.white)),
                     onPressed: () => Navigator.of(context).pop(),
@@ -206,8 +206,8 @@ class _RegisterScreen2State extends ConsumerState<RegisterScreen2> {
     final AsyncValue<List<Sex>> sexesAsync = ref.watch(sexesProvider);
     final AsyncValue<List<Orientations>> orientationsAsync = ref.watch(orientationsProvider);
     final AsyncValue<List<Hobby>> hobbiesAsync = ref.watch(hobbiesProvider);
-    final coreValuesAsync = ref.watch(coreValuesProvider);
-    final intentionsAsync = ref.watch(intentionsProvider);
+    final AsyncValue<List<CoreValue>> coreValuesAsync = ref.watch(coreValuesProvider);
+    final AsyncValue<List<Intention>> intentionsAsync = ref.watch(intentionsProvider);
     final bool isFinalizing = ref.watch(registrationProvider).step2Data['phone_number'] != null;
 
     return Container(
@@ -263,9 +263,9 @@ class _RegisterScreen2State extends ConsumerState<RegisterScreen2> {
               TextFormField(
                 controller: _heightController,
                 readOnly: true,
-                decoration: const InputDecoration(labelText: 'Height (cm)', suffixIcon: Icon(Icons.height)),
+                decoration: InputDecoration(labelText: 'register.height'.tr(), suffixIcon: const Icon(Icons.height)),
                 onTap: _showHeightPicker,
-                validator: (String? value) => value == null || value.isEmpty ? 'Height is required' : null,
+                validator: (String? value) => value == null || value.isEmpty ? 'register.errors.height_required'.tr() : null,
               ),
               const SizedBox(height: 24),
 
@@ -336,12 +336,12 @@ class _RegisterScreen2State extends ConsumerState<RegisterScreen2> {
                 },
 
                 onSelected: (LocationItem location) {
-                  _birthLocationController.text = location.displayName;
+                  _birthLocationController.text = location.localizedDisplayName;
                   setState(() => _selectedLocation = location);
                 },
 
-                emptyBuilder: (BuildContext context) => const ListTile(
-                  title: Text('No cities found'),
+                emptyBuilder: (BuildContext context) => ListTile(
+                  title: Text('register.no_cities_found'.tr()),
                 ),
 
                 loadingBuilder: (BuildContext context) => const Center(child: Padding(
@@ -405,7 +405,8 @@ class _RegisterScreen2State extends ConsumerState<RegisterScreen2> {
                   items: sexes
                       .map((Sex sex) => DropdownMenuItem<int>(
                             value: sex.id,
-                            child: Text(sex.name.tr()),
+                            child: Text(sex.translationKey.isNotEmpty && sex.translationKey.tr() != sex.translationKey
+                                ? sex.translationKey.tr() : sex.name),
                           ))
                       .toList(),
                   onChanged: (int? val) => setState(() => _selectedGenderId = val),
@@ -421,7 +422,7 @@ class _RegisterScreen2State extends ConsumerState<RegisterScreen2> {
                 error: (Object err, _) => Text('Error: $err'),
                 data: (List<Orientations> orientations) => DropdownButtonFormField<int>(
                   initialValue: _selectedOrientationId,
-                  decoration: const InputDecoration(labelText: 'Orientation'),
+                  decoration: InputDecoration(labelText: 'register.orientation_label'.tr()),
                   items: orientations
                       .map((Orientations o) => DropdownMenuItem<int>(
                             value: o.id,
@@ -430,7 +431,7 @@ class _RegisterScreen2State extends ConsumerState<RegisterScreen2> {
                       .toList(),
                   onChanged: (int? val) => setState(() => _selectedOrientationId = val),
                   validator: (int? value) =>
-                      value == null ? 'Orientation is required' : null,
+                      value == null ? 'register.errors.orientation_required'.tr() : null,
                 ),
               ),
               const SizedBox(height: 16),
@@ -502,9 +503,9 @@ class _RegisterScreen2State extends ConsumerState<RegisterScreen2> {
               const SizedBox(height: 24),
 
               // Hobbies
-              const Text('Hobbies',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-              const Text('Select your hobbies', style: TextStyle(color: Colors.white70)),
+              Text('register.hobbies_title'.tr(),
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+              Text('register.hobbies_subtitle'.tr(), style: const TextStyle(color: Colors.white70)),
               const SizedBox(height: 8),
               hobbiesAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
@@ -513,8 +514,10 @@ class _RegisterScreen2State extends ConsumerState<RegisterScreen2> {
                   spacing: 8.0,
                   children: hobbies.map((Hobby hobby) {
                     final bool isSelected = _selectedHobbyIds.contains(hobby.id);
+                    final String label = hobby.translationKey.isNotEmpty && hobby.translationKey.tr() != hobby.translationKey
+                        ? hobby.translationKey.tr() : hobby.name;
                     return FilterChip(
-                      label: Text(hobby.name),
+                      label: Text(label),
                       selected: isSelected,
                       onSelected: (bool selected) {
                         setState(() {
@@ -532,8 +535,8 @@ class _RegisterScreen2State extends ConsumerState<RegisterScreen2> {
               const SizedBox(height: 24),
 
               // Career & Education
-              const Text('Career & Education',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+              Text('register.career_title'.tr(),
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
               const SizedBox(height: 16),
 
               // Professions
@@ -542,14 +545,18 @@ class _RegisterScreen2State extends ConsumerState<RegisterScreen2> {
                   padding: const EdgeInsets.only(bottom: 8.0),
                   child: Wrap(
                     spacing: 8,
-                    children: _selectedProfessions.map((ProfessionModel p) => Chip(
-                      label: Text(p.name),
-                      onDeleted: () {
-                        setState(() {
-                          _selectedProfessions.remove(p);
-                        });
-                      },
-                    )).toList(),
+                    children: _selectedProfessions.map((ProfessionModel p) {
+                      final String label = p.translationKey.isNotEmpty && p.translationKey.tr() != p.translationKey
+                          ? p.translationKey.tr() : p.name;
+                      return Chip(
+                        label: Text(label),
+                        onDeleted: () {
+                          setState(() {
+                            _selectedProfessions.remove(p);
+                          });
+                        },
+                      );
+                    }).toList(),
                   ),
                 ),
               TypeAheadField<ProfessionModel>(
@@ -563,7 +570,9 @@ class _RegisterScreen2State extends ConsumerState<RegisterScreen2> {
                   return filtered.where((ProfessionModel p) => !_selectedProfessions.contains(p)).toList();
                 },
                 itemBuilder: (BuildContext context, ProfessionModel suggestion) {
-                  return ListTile(title: Text(suggestion.name));
+                  final String label = suggestion.translationKey.isNotEmpty && suggestion.translationKey.tr() != suggestion.translationKey
+                      ? suggestion.translationKey.tr() : suggestion.name;
+                  return ListTile(title: Text(label));
                 },
                 onSelected: (ProfessionModel suggestion) {
                   setState(() {
@@ -576,12 +585,12 @@ class _RegisterScreen2State extends ConsumerState<RegisterScreen2> {
                     controller: controller,
                     focusNode: focusNode,
                     decoration: InputDecoration(
-                      labelText: 'Add Profession',
-                      hintText: 'Type to search...',
+                      labelText: 'register.profession_label'.tr(),
+                      hintText: 'register.profession_hint'.tr(),
                     ),
                   );
                 },
-                emptyBuilder: (BuildContext context) => const ListTile(title: Text('No professions found')),
+                emptyBuilder: (BuildContext context) => ListTile(title: Text('register.no_professions_found'.tr())),
               ),
               const SizedBox(height: 16),
 
@@ -591,14 +600,18 @@ class _RegisterScreen2State extends ConsumerState<RegisterScreen2> {
                   padding: const EdgeInsets.only(bottom: 8.0),
                   child: Wrap(
                     spacing: 8,
-                    children: _selectedEducations.map((EducationModel e) => Chip(
-                      label: Text(e.name),
-                      onDeleted: () {
-                        setState(() {
-                          _selectedEducations.remove(e);
-                        });
-                      },
-                    )).toList(),
+                    children: _selectedEducations.map((EducationModel e) {
+                      final String label = e.translationKey.isNotEmpty && e.translationKey.tr() != e.translationKey
+                          ? e.translationKey.tr() : e.name;
+                      return Chip(
+                        label: Text(label),
+                        onDeleted: () {
+                          setState(() {
+                            _selectedEducations.remove(e);
+                          });
+                        },
+                      );
+                    }).toList(),
                   ),
                 ),
               TypeAheadField<EducationModel>(
@@ -611,7 +624,9 @@ class _RegisterScreen2State extends ConsumerState<RegisterScreen2> {
                   return filtered.where((EducationModel e) => !_selectedEducations.contains(e)).toList();
                 },
                 itemBuilder: (BuildContext context, EducationModel suggestion) {
-                  return ListTile(title: Text(suggestion.name));
+                  final String label = suggestion.translationKey.isNotEmpty && suggestion.translationKey.tr() != suggestion.translationKey
+                      ? suggestion.translationKey.tr() : suggestion.name;
+                  return ListTile(title: Text(label));
                 },
                 onSelected: (EducationModel suggestion) {
                   setState(() {
@@ -624,12 +639,12 @@ class _RegisterScreen2State extends ConsumerState<RegisterScreen2> {
                     controller: controller,
                     focusNode: focusNode,
                     decoration: InputDecoration(
-                      labelText: 'Add Education',
-                      hintText: 'Type to search...',
+                      labelText: 'register.education_label'.tr(),
+                      hintText: 'register.profession_hint'.tr(),
                     ),
                   );
                 },
-                emptyBuilder: (BuildContext context) => const ListTile(title: Text('No education found')),
+                emptyBuilder: (BuildContext context) => ListTile(title: Text('register.no_education_found'.tr())),
               ),
               const SizedBox(height: 24),
 

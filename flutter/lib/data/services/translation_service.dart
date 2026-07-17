@@ -16,7 +16,7 @@ class TranslationService {
     String text,
   ) async {
     if (context.mounted) {
-      final translatedText = text.tr();
+      final String translatedText = text.tr();
       // Check if a translation was found. If not, .tr() returns the key itself.
       if (translatedText != text) {
         return translatedText;

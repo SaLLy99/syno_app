@@ -14,14 +14,14 @@ class MainShell extends StatelessWidget {
       body: child,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _calculateSelectedIndex(context),
-        onTap: (index) => _onItemTapped(index, context),
+        onTap: (int index) => _onItemTapped(index, context),
         type: BottomNavigationBarType.fixed,
         backgroundColor: CosmicColors.deepSpace,
         selectedItemColor: Colors.white,
         unselectedItemColor: Colors.white.withOpacity(0.6),
         selectedFontSize: 12,
         unselectedFontSize: 12,
-        items: [
+        items: <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: const Icon(Icons.explore_outlined),
             activeIcon: const Icon(Icons.explore),
@@ -30,7 +30,7 @@ class MainShell extends StatelessWidget {
           BottomNavigationBarItem(
             icon: const Icon(Icons.favorite_border),
             activeIcon: const Icon(Icons.favorite),
-            label: 'bottom_nav.matches'.tr(),
+            label: 'bottom_nav.likes'.tr(),
           ),
           BottomNavigationBarItem(
             icon: const Icon(Icons.chat_bubble_outline),
@@ -52,7 +52,7 @@ class MainShell extends StatelessWidget {
     if (location.startsWith('/discover')) {
       return 0;
     }
-    if (location.startsWith('/matches')) {
+    if (location.startsWith('/likes')) {
       return 1;
     }
     if (location.startsWith('/chats')) {
@@ -65,7 +65,7 @@ class MainShell extends StatelessWidget {
   }
 
   void _onItemTapped(int index, BuildContext context) {
-    const paths = ['/discover', '/matches', '/chats', '/profile'];
+    const List<String> paths = <String>['/discover', '/likes', '/chats', '/profile'];
     if (index >= 0 && index < paths.length) {
       context.go(paths[index]);
     }

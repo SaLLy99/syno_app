@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from sqlalchemy.sql import func
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, load_only
 from typing import List, Optional
 from passlib.context import CryptContext
 from fastapi import UploadFile
@@ -147,14 +147,23 @@ def get_sexes(db: Session) -> List[models.Sex]:
 def get_orientations(db: Session) -> List[models.Orientation]:
     return db.query(models.Orientation).all()
 
-def get_hobbies(db: Session) -> List[models.Hobby]:
-    return db.query(models.Hobby).all()
+def get_hobbies(db: Session, query: Optional[str] = None) -> List[models.Hobby]:
+    db_query = db.query(models.Hobby)
+    if query:
+        db_query = db_query.filter(models.Hobby.name.ilike(f"%{query}%"))
+    return db_query.all()
 
-def get_educations(db: Session) -> List[models.Education]:
-    return db.query(models.Education).all()
+def get_educations(db: Session, query: Optional[str] = None) -> List[models.Education]:
+    db_query = db.query(models.Education)
+    if query:
+        db_query = db_query.filter(models.Education.name.ilike(f"%{query}%"))
+    return db_query.all()
 
-def get_professions(db: Session) -> List[models.Profession]:
-    return db.query(models.Profession).all()
+def get_professions(db: Session, query: Optional[str] = None) -> List[models.Profession]:
+    db_query = db.query(models.Profession)
+    if query:
+        db_query = db_query.filter(models.Profession.name.ilike(f"%{query}%"))
+    return db_query.all()
 
 def get_core_values(db: Session) -> List[models.CoreValue]:
     return db.query(models.CoreValue).all()
@@ -260,8 +269,19 @@ def get_blocked_users(db: Session, blocker_id: int) -> List[models.Profile]:
         
     return db.query(models.Profile).options(
         joinedload(models.Profile.sex),
-        joinedload(models.Profile.photos)
+        joinedload(models.Profile.photos).load_only(models.UserPhoto.id, models.UserPhoto.is_primary, models.UserPhoto.upload_order)
     ).filter(models.Profile.user_id.in_(blocked_ids)).all()
+
+
+def get_blocked_user_ids(db: Session, user_id: int) -> set:
+    """Get set of user IDs that are blocked by or have blocked the given user."""
+    blocked_by_me = db.query(models.user_blocks.c.blocked_id).filter(
+        models.user_blocks.c.blocker_id == user_id
+    ).all()
+    blocked_me = db.query(models.user_blocks.c.blocker_id).filter(
+        models.user_blocks.c.blocked_id == user_id
+    ).all()
+    return {r[0] for r in blocked_by_me} | {r[0] for r in blocked_me}
 
 def get_profile_by_name(db: Session, name: str) -> Optional[models.Profile]:
     return db.query(models.Profile).filter(models.Profile.name.ilike(name)).first()
@@ -327,6 +347,296 @@ def verify_otp_logic(db: Session, email: str, provided_code: str):
     otp_record.used_flag = True
     db.commit()
     return True, "otp.success"
+
+
+# --- Incoming Likes ---
+
+def get_received_likes(db: Session, user_id: int) -> List[dict]:
+    blocked_ids = get_blocked_user_ids(db, user_id)
+    matches = db.query(models.Match).filter(
+        models.Match.matched_user_id == user_id,
+        models.Match.status == "accepted",
+        ~models.Match.user_id.in_(blocked_ids) if blocked_ids else True,
+    ).order_by(models.Match.created_at.desc()).all()
+    result = []
+    for match in matches:
+        reverse = db.query(models.Match).filter(
+            models.Match.user_id == user_id,
+            models.Match.matched_user_id == match.user_id,
+            models.Match.status == "accepted"
+        ).first()
+        if reverse:
+            continue
+        profile = db.query(models.Profile).options(
+            joinedload(models.Profile.photos).load_only(models.UserPhoto.id, models.UserPhoto.is_primary, models.UserPhoto.upload_order),
+            joinedload(models.Profile.sex),
+            joinedload(models.Profile.location),
+        ).filter(models.Profile.user_id == match.user_id).first()
+        if not profile:
+            continue
+        primary_photo = next((p for p in profile.photos if p.is_primary), (profile.photos[0] if profile.photos else None))
+        result.append({
+            "match_id": match.id,
+            "user_id": match.user_id,
+            "compatibility_score": match.compatibility_score,
+            "created_at": match.created_at,
+            "profile": {
+                "user_id": profile.user_id,
+                "name": profile.name,
+                "last_name": profile.last_name,
+                "birth_date": profile.birth_date.isoformat() if profile.birth_date else None,
+                "bio": profile.bio,
+                "location": {"id": profile.location.id, "name": profile.location.name} if profile.location else None,
+                "sex": {"id": profile.sex.id, "name": profile.sex.name} if profile.sex else None,
+                "photo_url": f"/api/photos/{primary_photo.id}" if primary_photo else None,
+            }
+        })
+    return result
+
+
+def get_received_like_user_ids(db: Session, user_id: int) -> List[int]:
+    blocked_ids = get_blocked_user_ids(db, user_id)
+    matches = db.query(models.Match).filter(
+        models.Match.matched_user_id == user_id,
+        models.Match.status == "accepted",
+        ~models.Match.user_id.in_(blocked_ids) if blocked_ids else True,
+    ).all()
+    user_ids = []
+    for match in matches:
+        reverse = db.query(models.Match).filter(
+            models.Match.user_id == user_id,
+            models.Match.matched_user_id == match.user_id,
+            models.Match.status == "accepted"
+        ).first()
+        if not reverse:
+            user_ids.append(match.user_id)
+    return user_ids
+
+
+def accept_incoming_like(db: Session, match_id: int, user_id: int) -> Optional[models.Match]:
+    incoming = db.query(models.Match).filter(
+        models.Match.id == match_id,
+        models.Match.matched_user_id == user_id,
+        models.Match.status == "accepted"
+    ).first()
+    if not incoming:
+        return None
+    reverse = db.query(models.Match).filter(
+        models.Match.user_id == user_id,
+        models.Match.matched_user_id == incoming.user_id
+    ).first()
+    if reverse:
+        reverse.status = "accepted"
+        if incoming.compatibility_score is not None:
+            reverse.compatibility_score = incoming.compatibility_score
+        db.commit()
+        db.refresh(reverse)
+        return reverse
+    new_match = models.Match(
+        user_id=user_id,
+        matched_user_id=incoming.user_id,
+        status="accepted",
+        compatibility_score=incoming.compatibility_score
+    )
+    db.add(new_match)
+    db.commit()
+    db.refresh(new_match)
+    return new_match
+
+
+def decline_incoming_like(db: Session, match_id: int, user_id: int) -> bool:
+    incoming = db.query(models.Match).filter(
+        models.Match.id == match_id,
+        models.Match.matched_user_id == user_id,
+        models.Match.status == "accepted"
+    ).first()
+    if not incoming:
+        return False
+    incoming.status = "declined"
+    db.commit()
+    return True
+
+
+# --- Match Management ---
+
+def create_match(db: Session, user_id: int, matched_user_id: int, status: str = "pending", compatibility_score: int = None) -> Optional[models.Match]:
+    if user_id == matched_user_id:
+        return None
+    existing = db.query(models.Match).filter(
+        models.Match.user_id == user_id,
+        models.Match.matched_user_id == matched_user_id
+    ).first()
+    if existing:
+        existing.status = status
+        if compatibility_score is not None:
+            existing.compatibility_score = compatibility_score
+        db.commit()
+        db.refresh(existing)
+        return existing
+    match = models.Match(
+        user_id=user_id,
+        matched_user_id=matched_user_id,
+        status=status,
+        compatibility_score=compatibility_score
+    )
+    db.add(match)
+    db.commit()
+    db.refresh(match)
+    return match
+
+def update_match_status(db: Session, match_id: int, user_id: int, status: str) -> Optional[models.Match]:
+    match = db.query(models.Match).filter(
+        models.Match.id == match_id,
+        models.Match.user_id == user_id
+    ).first()
+    if not match:
+        return None
+    match.status = status
+    db.commit()
+    db.refresh(match)
+    return match
+
+def get_matches_for_user(db: Session, user_id: int) -> List[models.Match]:
+    return db.query(models.Match).filter(
+        models.Match.user_id == user_id
+    ).order_by(models.Match.created_at.desc()).all()
+
+def get_accepted_matches_for_user(db: Session, user_id: int) -> List[models.Match]:
+    return db.query(models.Match).filter(
+        models.Match.user_id == user_id,
+        models.Match.status == "accepted"
+    ).order_by(models.Match.created_at.desc()).all()
+
+def get_mutual_match(db: Session, user_id: int, other_user_id: int) -> Optional[models.Match]:
+    match_a = db.query(models.Match).filter(
+        models.Match.user_id == user_id,
+        models.Match.matched_user_id == other_user_id,
+        models.Match.status == "accepted"
+    ).first()
+    match_b = db.query(models.Match).filter(
+        models.Match.user_id == other_user_id,
+        models.Match.matched_user_id == user_id,
+        models.Match.status == "accepted"
+    ).first()
+    if match_a and match_b:
+        return match_a
+    return None
+
+def is_mutual_match(db: Session, user_id: int, other_user_id: int) -> bool:
+    return get_mutual_match(db, user_id, other_user_id) is not None
+
+def delete_match(db: Session, match_id: int, user_id: int) -> bool:
+    match = db.query(models.Match).filter(
+        models.Match.id == match_id,
+        models.Match.user_id == user_id
+    ).first()
+    if not match:
+        return False
+    db.delete(match)
+    db.commit()
+    return True
+
+
+# --- Message Management ---
+
+def create_message(db: Session, match_id: int, sender_id: int, content: str) -> Optional[models.Message]:
+    match = db.query(models.Match).filter(models.Match.id == match_id).first()
+    if not match:
+        return None
+    if match.user_id != sender_id and match.matched_user_id != sender_id:
+        return None
+    message = models.Message(
+        match_id=match_id,
+        sender_id=sender_id,
+        content=content
+    )
+    db.add(message)
+    db.commit()
+    db.refresh(message)
+    return message
+
+def get_messages_for_match(db: Session, match_id: int, user_id: int) -> List[models.Message]:
+    match = db.query(models.Match).filter(models.Match.id == match_id).first()
+    if not match:
+        return []
+    if match.user_id != user_id and match.matched_user_id != user_id:
+        return []
+    messages = db.query(models.Message).filter(
+        models.Message.match_id == match_id
+    ).order_by(models.Message.created_at.asc()).all()
+    reverse_match = db.query(models.Match).filter(
+        models.Match.user_id == match.matched_user_id,
+        models.Match.matched_user_id == match.user_id
+    ).first()
+    if reverse_match and reverse_match.id != match_id:
+        reverse_messages = db.query(models.Message).filter(
+            models.Message.match_id == reverse_match.id
+        ).order_by(models.Message.created_at.asc()).all()
+        messages.extend(reverse_messages)
+        messages.sort(key=lambda m: m.created_at)
+    return messages
+
+def mark_messages_read(db: Session, match_id: int, user_id: int):
+    db.query(models.Message).filter(
+        models.Message.match_id == match_id,
+        models.Message.sender_id != user_id,
+        models.Message.is_read == False
+    ).update({"is_read": True})
+    db.commit()
+
+def get_unread_count(db: Session, match_id: int, user_id: int) -> int:
+    return db.query(models.Message).filter(
+        models.Message.match_id == match_id,
+        models.Message.sender_id != user_id,
+        models.Message.is_read == False
+    ).count()
+
+def get_chat_list(db: Session, user_id: int) -> List[dict]:
+    blocked_ids = get_blocked_user_ids(db, user_id)
+    matches = db.query(models.Match).filter(
+        models.Match.user_id == user_id,
+        models.Match.status == "accepted",
+        ~models.Match.matched_user_id.in_(blocked_ids) if blocked_ids else True,
+    ).order_by(models.Match.created_at.desc()).all()
+    result = []
+    seen_pairs = set()
+    for match in matches:
+        reverse_match = db.query(models.Match).filter(
+            models.Match.user_id == match.matched_user_id,
+            models.Match.matched_user_id == user_id,
+            models.Match.status == "accepted"
+        ).first()
+        if not reverse_match:
+            continue
+        pair_key = (min(user_id, match.matched_user_id), max(user_id, match.matched_user_id))
+        if pair_key in seen_pairs:
+            continue
+        seen_pairs.add(pair_key)
+        canonical_match_id = min(match.id, reverse_match.id)
+        other_profile = db.query(models.Profile).options(
+            joinedload(models.Profile.photos).load_only(models.UserPhoto.id, models.UserPhoto.is_primary, models.UserPhoto.upload_order),
+            joinedload(models.Profile.sex)
+        ).filter(models.Profile.user_id == match.matched_user_id).first()
+        last_msg = db.query(models.Message).filter(
+            models.Message.match_id == canonical_match_id
+        ).order_by(models.Message.created_at.desc()).first()
+        profile_dict = None
+        if other_profile:
+            primary_photo = next((p for p in other_profile.photos if p.is_primary), (other_profile.photos[0] if other_profile.photos else None))
+            profile_dict = {
+                "name": other_profile.name,
+                "photo_url": f"/api/photos/{primary_photo.id}" if primary_photo else None,
+                "sex": other_profile.sex.name if other_profile.sex else None,
+            }
+        result.append({
+            "match_id": canonical_match_id,
+            "matched_user_id": match.matched_user_id,
+            "matched_profile": profile_dict,
+            "last_message": last_msg.content if last_msg else None,
+            "last_message_at": last_msg.created_at if last_msg else match.created_at,
+            "is_read": get_unread_count(db, canonical_match_id, user_id) == 0,
+        })
+    return result
 
 def verify_otp_phone_logic(db: Session, phone: str, provided_code: str):
     """

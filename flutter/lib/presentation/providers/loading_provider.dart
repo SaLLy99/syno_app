@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:riverpod/src/framework.dart';
 
 /// A notifier to manage a global loading state (e.g., for full-screen overlays).
 class LoadingStateNotifier extends StateNotifier<bool> {
@@ -22,6 +23,6 @@ class LoadingStateNotifier extends StateNotifier<bool> {
 
 /// The provider for the [LoadingStateNotifier].
 /// This allows the UI to watch the loading state and other providers to change it.
-final loadingStateProvider = StateNotifierProvider<LoadingStateNotifier, bool>((ref) {
+final StateNotifierProvider<LoadingStateNotifier, bool> loadingStateProvider = StateNotifierProvider<LoadingStateNotifier, bool>((Ref ref) {
   return LoadingStateNotifier();
 });

@@ -58,20 +58,20 @@ class User {
     this.location,
     this.sex,
     this.orientation,
-    this.photos = const [],
-    this.hobbies = const [],
-    this.professions = const [],
-    this.educations = const [],
+    this.photos = const <Photo>[],
+    this.hobbies = const <Hobby>[],
+    this.professions = const <ProfessionModel>[],
+    this.educations = const <EducationModel>[],
     this.canEditProfile,
     this.daysUntilNextEdit,
-    this.coreValues = const [],
-    this.intentions = const [],
+    this.coreValues = const <CoreValue>[],
+    this.intentions = const <Intention>[],
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
     // Helper to safely parse lists of objects
-    List<T> _parseList<T>(String key, T Function(Map<String, dynamic>) fromJson) {
-      if (json[key] == null) return [];
+    List<T> parseList<T>(String key, T Function(Map<String, dynamic>) fromJson) {
+      if (json[key] == null) return <T>[];
       return (json[key] as List<dynamic>)
           .map((item) => fromJson(item as Map<String, dynamic>))
           .toList();
@@ -90,16 +90,16 @@ class User {
       location: json['location'] != null ? LocationItem.fromJson(json['location']) : null,
       sex: json['sex'] != null ? Sex.fromJson(json['sex']) : null,
       orientation: json['orientation'] != null ? Orientations.fromJson(json['orientation']) : null,
-      photos: _parseList('photos', Photo.fromJson),
-      hobbies: _parseList('hobbies', Hobby.fromJson),
-      professions: _parseList('professions', ProfessionModel.fromJson),
-      educations: _parseList('educations', EducationModel.fromJson),
+      photos: parseList('photos', Photo.fromJson),
+      hobbies: parseList('hobbies', Hobby.fromJson),
+      professions: parseList('professions', ProfessionModel.fromJson),
+      educations: parseList('educations', EducationModel.fromJson),
       canEditProfile: json['can_edit_profile'],
       daysUntilNextEdit: json['days_until_next_edit'],
       
       // Updated fields
-      coreValues: _parseList('core_values', CoreValue.fromJson),
-      intentions: _parseList('intentions', Intention.fromJson),
+      coreValues: parseList('core_values', CoreValue.fromJson),
+      intentions: parseList('intentions', Intention.fromJson),
     );
   }
 }

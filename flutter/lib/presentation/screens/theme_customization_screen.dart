@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:syno_app/presentation/providers/theme_update_provider.dart';
 import 'package:syno_app/presentation/providers/theme_provider.dart';
-import 'package:syno_app/theme.dart';
 
 class ThemeCustomizationScreen extends ConsumerStatefulWidget {
   final String themeId;
@@ -21,7 +20,7 @@ class _ThemeCustomizationScreenState extends ConsumerState<ThemeCustomizationScr
   bool _isSaving = false;
 
   // Predefined palettes
-  final List<Color> _accentColors = [
+  final List<Color> _accentColors = <Color>[
     Colors.blue,
     Colors.purple,
     Colors.teal,
@@ -61,7 +60,7 @@ class _ThemeCustomizationScreenState extends ConsumerState<ThemeCustomizationScr
     setState(() => _isSaving = true);
     try {
       // Construct the JSON map expected by AppThemeData
-      final themeMap = {
+      final Map<String, String> themeMap = <String, String>{
         'theme_id': widget.themeId,
         'background_color': _colorToHex(_backgroundColor),
         'accent_color': _colorToHex(_accentColor),
@@ -69,7 +68,7 @@ class _ThemeCustomizationScreenState extends ConsumerState<ThemeCustomizationScr
       };
 
       // Convert to AppThemeData and use the global update notifier
-      final newTheme = AppThemeData.fromJson(themeMap);
+      final AppThemeData newTheme = AppThemeData.fromJson(themeMap);
       await ref.read(themeUpdateProvider.notifier).updateTheme(newTheme);
 
       if (mounted) {
@@ -79,10 +78,10 @@ class _ThemeCustomizationScreenState extends ConsumerState<ThemeCustomizationScr
       if (mounted) {
         showDialog(
           context: context,
-          builder: (context) => AlertDialog(
+          builder: (BuildContext context) => AlertDialog(
             title: const Text('Error'),
             content: Text('Failed to save theme: $e'),
-            actions: [
+            actions: <Widget>[
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
                 child: const Text('OK'),
@@ -98,7 +97,7 @@ class _ThemeCustomizationScreenState extends ConsumerState<ThemeCustomizationScr
 
   @override
   Widget build(BuildContext context) {
-    final currentTheme = ref.watch(themeProvider);
+    final AppThemeData currentTheme = ref.watch(themeProvider);
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -106,7 +105,7 @@ class _ThemeCustomizationScreenState extends ConsumerState<ThemeCustomizationScr
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: currentTheme.primaryTextColor,
-        actions: [
+        actions: <Widget>[
           TextButton(
             onPressed: _isSaving ? null : _saveTheme,
             child: _isSaving
@@ -120,7 +119,7 @@ class _ThemeCustomizationScreenState extends ConsumerState<ThemeCustomizationScr
         ],
       ),
       body: Column(
-        children: [
+        children: <Widget>[
           // Live Preview Area
           Expanded(
             flex: 3,
@@ -130,7 +129,7 @@ class _ThemeCustomizationScreenState extends ConsumerState<ThemeCustomizationScr
               decoration: BoxDecoration(
                 color: _backgroundColor,
                 borderRadius: BorderRadius.circular(20),
-                boxShadow: [
+                boxShadow: <BoxShadow>[
                   BoxShadow(
                     color: Colors.black.withOpacity(0.1),
                     blurRadius: 10,
@@ -140,7 +139,7 @@ class _ThemeCustomizationScreenState extends ConsumerState<ThemeCustomizationScr
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+                children: <Widget>[
                   CircleAvatar(
                     radius: 40,
                     backgroundColor: _accentColor.withOpacity(0.2),
@@ -159,7 +158,7 @@ class _ThemeCustomizationScreenState extends ConsumerState<ThemeCustomizationScr
                   // Mock Layout Preview
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(3, (index) {
+                    children: List.generate(3, (int index) {
                       return Container(
                         width: _layout == 'Grid' ? 40 : 80,
                         height: 40,
@@ -183,7 +182,7 @@ class _ThemeCustomizationScreenState extends ConsumerState<ThemeCustomizationScr
             decoration: BoxDecoration(
               color: Theme.of(context).cardColor,
               borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              boxShadow: [
+              boxShadow: <BoxShadow>[
                 BoxShadow(
                   color: Colors.black.withOpacity(0.05),
                   blurRadius: 10,
@@ -193,12 +192,12 @@ class _ThemeCustomizationScreenState extends ConsumerState<ThemeCustomizationScr
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+              children: <Widget>[
                 Text('Accent Color', style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: _accentColors.map((color) {
+                  children: _accentColors.map((Color color) {
                     return GestureDetector(
                       onTap: () => setState(() => _accentColor = color),
                       child: CircleAvatar(
@@ -215,11 +214,11 @@ class _ThemeCustomizationScreenState extends ConsumerState<ThemeCustomizationScr
                 Text('Layout Style', style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 12),
                 SegmentedButton<String>(
-                  segments: const [
+                  segments: const <ButtonSegment<String>>[
                     ButtonSegment(value: 'Grid', label: Text('Grid'), icon: Icon(Icons.grid_view)),
                     ButtonSegment(value: 'List', label: Text('List'), icon: Icon(Icons.view_list)),
                   ],
-                  selected: {_layout},
+                  selected: <String>{_layout},
                   onSelectionChanged: (Set<String> newSelection) {
                     setState(() {
                       _layout = newSelection.first;

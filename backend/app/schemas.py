@@ -15,26 +15,32 @@ class OrmBaseModel(BaseModel):
 class Sex(OrmBaseModel):
     id: int
     name: str
+    translation_key: Optional[str] = None
 
 class Orientation(OrmBaseModel):
     id: int
     name: str
+    translation_key: Optional[str] = None
 
 class Hobby(OrmBaseModel):
     id: int
     name: str
+    translation_key: Optional[str] = None
 
 class Education(OrmBaseModel):
     id: int
     name: str
+    translation_key: Optional[str] = None
 
 class Profession(OrmBaseModel):
     id: int
     name: str
+    translation_key: Optional[str] = None
 
 class LocationParent(OrmBaseModel):
     id: int
     name: str
+    translation_key: Optional[str] = None
 
 class Location(OrmBaseModel):
     id: int
@@ -42,6 +48,7 @@ class Location(OrmBaseModel):
     type: str
     parent_id: Optional[int] = None
     parent: Optional[LocationParent] = None
+    translation_key: Optional[str] = None
 
 class UserPhoto(OrmBaseModel):
     id: int
@@ -233,8 +240,148 @@ class ThemeSettingsUpdate(BaseModel):
     accent_color: str
     layout: str
 
+class UserPreferencesCreate(BaseModel):
+    min_age: Optional[int] = 18
+    max_age: Optional[int] = 50
+    max_distance: Optional[int] = 100
+    genders: Optional[List[str]] = []
+    orientations: Optional[List[str]] = []
+    looking_for: Optional[List[str]] = []
+    verified_only: Optional[bool] = False
+    online_recently: Optional[bool] = False
+    min_compatibility: Optional[int] = 0
+    priority_type: Optional[str] = 'balanced'
+    weight_romance: Optional[int] = 50
+    weight_emotional: Optional[int] = 50
+    weight_communication: Optional[int] = 50
+    weight_long_term: Optional[int] = 50
+    weight_marriage: Optional[int] = 50
+    weight_friendship: Optional[int] = 50
+    weight_chemistry: Optional[int] = 50
+    weight_spiritual: Optional[int] = 50
+    birth_time_requirement: Optional[str] = 'optional'
+    wants_children: Optional[str] = None
+    smoking: Optional[str] = None
+    drinking: Optional[str] = None
+    religion: Optional[str] = None
+    political: Optional[str] = None
+    education: Optional[str] = None
+    languages: Optional[List[str]] = []
+    pets: Optional[str] = None
+    min_height: Optional[int] = None
+    max_height: Optional[int] = None
+    hide_swiped: Optional[bool] = True
+    hide_inactive: Optional[bool] = False
+    show_traveling: Optional[bool] = False
+    global_search: Optional[bool] = False
+    photos_only: Optional[bool] = False
+    complete_profiles_only: Optional[bool] = False
+
+class UserPreferencesResponse(OrmBaseModel):
+    id: int
+    profile_id: int
+    min_age: int
+    max_age: int
+    max_distance: int
+    genders: List[str]
+    orientations: List[str]
+    looking_for: List[str]
+    verified_only: bool
+    online_recently: bool
+    min_compatibility: int
+    priority_type: str
+    weight_romance: int
+    weight_emotional: int
+    weight_communication: int
+    weight_long_term: int
+    weight_marriage: int
+    weight_friendship: int
+    weight_chemistry: int
+    weight_spiritual: int
+    birth_time_requirement: str
+    wants_children: Optional[str]
+    smoking: Optional[str]
+    drinking: Optional[str]
+    religion: Optional[str]
+    political: Optional[str]
+    education: Optional[str]
+    languages: List[str]
+    pets: Optional[str]
+    min_height: Optional[int]
+    max_height: Optional[int]
+    hide_swiped: bool
+    hide_inactive: bool
+    show_traveling: bool
+    global_search: bool
+    photos_only: bool
+    complete_profiles_only: bool
+
 class BlockByNameRequest(BaseModel):
     name: str
 
 class UserByEmailRequest(BaseModel):
     email: EmailStr
+
+
+# --- Schemas for Matches ---
+
+class MatchCreate(BaseModel):
+    matched_user_id: int
+    status: str = "pending"
+    compatibility_score: Optional[int] = None
+
+class MatchUpdate(BaseModel):
+    status: str
+
+class MatchResponse(OrmBaseModel):
+    id: int
+    user_id: int
+    matched_user_id: int
+    status: str
+    compatibility_score: Optional[int]
+    created_at: datetime
+    updated_at: datetime
+
+class MatchWithProfileResponse(OrmBaseModel):
+    id: int
+    user_id: int
+    matched_user_id: int
+    status: str
+    compatibility_score: Optional[int]
+    created_at: datetime
+    updated_at: datetime
+    matched_profile: Optional[dict] = None
+
+class MutualMatchCheck(BaseModel):
+    is_mutual: bool
+    match_id: Optional[int] = None
+
+
+# --- Schemas for Messages ---
+
+class MessageCreate(BaseModel):
+    match_id: int
+    content: str
+
+class MessageResponse(OrmBaseModel):
+    id: int
+    match_id: int
+    sender_id: int
+    content: str
+    is_read: bool
+    created_at: datetime
+
+class ChatListResponse(OrmBaseModel):
+    match_id: int
+    matched_user_id: int
+    matched_profile: Optional[dict] = None
+    last_message: Optional[str] = None
+    last_message_at: Optional[datetime] = None
+    is_read: bool = True
+
+class ReceivedLikeResponse(OrmBaseModel):
+    match_id: int
+    user_id: int
+    compatibility_score: Optional[int] = None
+    created_at: datetime
+    profile: Optional[dict] = None

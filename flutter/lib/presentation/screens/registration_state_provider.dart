@@ -16,6 +16,6 @@ class RegistrationStateNotifier extends StateNotifier<RegistrationState> {
   }
 }
 
-final registrationStateProvider = StateNotifierProvider<RegistrationStateNotifier, RegistrationState>((ref) {
+final StateNotifierProvider<RegistrationStateNotifier, RegistrationState> registrationStateProvider = StateNotifierProvider<RegistrationStateNotifier, RegistrationState>((Ref ref) {
   return RegistrationStateNotifier();
 });

@@ -20,7 +20,7 @@ class SearchableMultiSelectDialog<T> extends StatefulWidget {
 }
 
 class _SearchableMultiSelectDialogState<T> extends State<SearchableMultiSelectDialog<T>> {
-  List<T> _searchResults = [];
+  List<T> _searchResults = <T>[];
   late List<T> _selectedItems;
   final TextEditingController _searchController = TextEditingController();
   Timer? _debounce;
@@ -47,7 +47,7 @@ class _SearchableMultiSelectDialogState<T> extends State<SearchableMultiSelectDi
       if (_searchController.text.length > 1) {
         setState(() => _isLoading = true);
         try {
-          final results = await widget.onSearch(_searchController.text);
+          final List<T> results = await widget.onSearch(_searchController.text);
           if (mounted) {
             setState(() {
               _searchResults = results;
@@ -58,7 +58,7 @@ class _SearchableMultiSelectDialogState<T> extends State<SearchableMultiSelectDi
           if (mounted) setState(() => _isLoading = false);
         }
       } else {
-        if (mounted) setState(() => _searchResults = []);
+        if (mounted) setState(() => _searchResults = <T>[]);
       }
     });
   }
@@ -81,7 +81,7 @@ class _SearchableMultiSelectDialogState<T> extends State<SearchableMultiSelectDi
         width: double.maxFinite,
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: [
+          children: <Widget>[
             TextField(
               controller: _searchController,
               autofocus: true,
@@ -94,9 +94,9 @@ class _SearchableMultiSelectDialogState<T> extends State<SearchableMultiSelectDi
             Expanded(
               child: ListView.builder(
                 itemCount: _searchResults.length,
-                itemBuilder: (context, index) {
+                itemBuilder: (BuildContext context, int index) {
                   final item = _searchResults[index];
-                  final isSelected = _selectedItems.any((element) => element == item);
+                  final bool isSelected = _selectedItems.any((element) => element == item);
                   return CheckboxListTile(
                     title: Text(widget.itemToString(item)),
                     value: isSelected,
@@ -108,7 +108,7 @@ class _SearchableMultiSelectDialogState<T> extends State<SearchableMultiSelectDi
           ],
         ),
       ),
-      actions: [
+      actions: <Widget>[
         TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
         TextButton(onPressed: () => Navigator.of(context).pop(_selectedItems), child: const Text('OK')),
       ],

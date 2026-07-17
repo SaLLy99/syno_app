@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:syno_app/domain/entities/user.dart';
 import 'package:syno_app/presentation/providers/theme_provider.dart';
 import 'package:syno_app/presentation/providers/user_provider.dart';
 
@@ -11,7 +12,7 @@ import 'package:syno_app/presentation/providers/user_provider.dart';
 /// 2. Calling the user service to persist the change.
 /// 3. Updating the global `currentUserProvider` and `themeProvider` on success.
 /// 4. Managing its own loading/error state, which can be watched by the UI.
-final themeUpdateProvider = StateNotifierProvider<ThemeUpdateNotifier, AsyncValue<void>>((ref) {
+final StateNotifierProvider<ThemeUpdateNotifier, AsyncValue<void>> themeUpdateProvider = StateNotifierProvider<ThemeUpdateNotifier, AsyncValue<void>>((Ref ref) {
   return ThemeUpdateNotifier(ref);
 });
 
@@ -32,11 +33,11 @@ class ThemeUpdateNotifier extends StateNotifier<AsyncValue<void>> {
 
       // The backend expects a single background color, but the theme uses a gradient.
       // We'll use the first color of the gradient as the representative background color.
-      final backgroundColor = (newTheme.gradient is LinearGradient)
+      final Color backgroundColor = (newTheme.gradient is LinearGradient)
           ? (newTheme.gradient as LinearGradient).colors.first
           : Colors.black; // Fallback color
 
-      final themeData = {
+      final Map<String, String> themeData = <String, String>{
         'theme_id': newTheme.id,
         'background_color': colorToHex(backgroundColor),
         'accent_color': colorToHex(newTheme.accentColor),
@@ -44,11 +45,11 @@ class ThemeUpdateNotifier extends StateNotifier<AsyncValue<void>> {
       };
 
       // 1. Call the service to update the backend. This returns the full, updated user object.
-      final updatedUser = await _ref.read(userServiceProvider).updateTheme(themeData);
+      final User updatedUser = await _ref.read(userServiceProvider).updateTheme(themeData);
 
       // 2. Update the global theme provider with the new theme from the response.
       if (updatedUser.themePreferences != null) {
-        final newThemeData = AppThemeData.fromJson(updatedUser.themePreferences!);
+        final AppThemeData newThemeData = AppThemeData.fromJson(updatedUser.themePreferences!);
         _ref.read(themeProvider.notifier).setThemeFromProfile(newThemeData);
       }
 

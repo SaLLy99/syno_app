@@ -12,21 +12,21 @@ class SplashScreen extends ConsumerStatefulWidget {
 class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   Widget build(BuildContext context) {
-    final theme = ref.watch(themeProvider);
+    final AppThemeData theme = ref.watch(themeProvider);
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(gradient: theme.gradient),
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+            children: <Widget>[
               Container(
                 width: 120,
                 height: 120,
                 decoration: BoxDecoration(
-                  gradient: theme.id == 'deep_space' ? CosmicColors.cosmicGradient : LinearGradient(colors: [theme.accentColor.withOpacity(0.7), theme.accentColor]),
+                  gradient: theme.id == 'deep_space' ? CosmicColors.cosmicGradient : LinearGradient(colors: <Color>[theme.accentColor.withOpacity(0.7), theme.accentColor]),
                   shape: BoxShape.circle,
-                  boxShadow: [
+                  boxShadow: <BoxShadow>[
                     BoxShadow(
                       color: theme.accentColor.withOpacity(0.5),
                       blurRadius: 30,

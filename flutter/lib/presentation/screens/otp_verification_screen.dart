@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,10 +6,10 @@ import 'package:flutter_otp_text_field/flutter_otp_text_field.dart';
 import 'package:syno_app/data/services/auth_service.dart';
 import 'package:syno_app/presentation/providers/auth_service_provider.dart';
 import 'package:syno_app/presentation/providers/user_provider.dart';
-import 'package:syno_app/presentation/screens/theme.dart';
 import 'package:syno_app/presentation/providers/registration_provider.dart';
 import 'package:syno_app/data/services/otp_verification_args.dart';
 import 'package:syno_app/theme.dart';
+import 'package:syno_app/presentation/utils/error_localization.dart';
 
 class OtpVerificationScreen extends ConsumerStatefulWidget {
   final OtpVerificationArgs args;
@@ -34,12 +33,12 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
     if (!mounted) return;
     return showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (BuildContext context) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          children: [
+          children: <Widget>[
             Icon(
               isError ? Icons.error_outline : Icons.check_circle_outline,
               color: isError ? Colors.redAccent : Colors.greenAccent,
@@ -59,7 +58,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
             ),
           ],
         ),
-        actions: [
+        actions: <Widget>[
           Center(
             child: TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -85,8 +84,8 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final authService = ref.read(authServiceProvider);
-      final response = await authService.verifyOtp(
+      final AuthService authService = ref.read(authServiceProvider);
+      final Map<String, dynamic> response = await authService.verifyOtp(
         email: widget.args.isEmail ? widget.args.identifier : null,
         phoneNumber: widget.args.isEmail ? null : widget.args.identifier, otpCode: _otpCode);
 
@@ -95,16 +94,16 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
 
       // 1. Seed registration data if the user is new
       if (!isRegistered) {
-        final key = widget.args.isEmail ? 'email' : 'phone_number';
-        ref.read(registrationProvider.notifier).updateStep1Data({
+        final String key = widget.args.isEmail ? 'email' : 'phone_number';
+        ref.read(registrationProvider.notifier).updateStep1Data(<String, String>{
           key: widget.args.identifier
         });
       }
 
       // 2. Show success dialog and wait for user acknowledgment
       await _showStatusDialog(
-        title: isRegistered ? 'login.success_title'.tr() : 'otp.verify_title'.tr(),
-        message: isRegistered ? 'login.success_message'.tr() : 'register.welcome_message'.tr(),
+        title: isRegistered ? 'login.success_title'.tr() : 'otp.verification_success_title'.tr(),
+        message: isRegistered ? 'login.success_message'.tr() : 'otp.verification_success_message'.tr(),
       );
 
       if (!mounted) return;
@@ -123,11 +122,10 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
         context.go('/register-name');
       }
     } catch (e) {
-      // Extract translation key and localize it
-      final errorKey = e.toString().replaceFirst('Exception: ', '').trim();
+      final String message = resolveLocalizedMessage(e.toString());
       await _showStatusDialog(
         title: 'dialog.error_title'.tr(),
-        message: errorKey.tr(),
+        message: message,
         isError: true,
       );
     } finally {
@@ -138,20 +136,20 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
   Future<void> _resendOtp() async {
     setState(() => _isLoading = true);
     try {
-      final authService = ref.read(authServiceProvider);
-      final lang = context.locale.languageCode;
+      final AuthService authService = ref.read(authServiceProvider);
+      final String lang = context.locale.languageCode;
       await authService.requestOtp(
         email: widget.args.isEmail ? widget.args.identifier : null,
         phoneNumber: widget.args.isEmail ? null : widget.args.identifier, lang: lang);
       await _showStatusDialog(
         title: 'otp.otp_subject'.tr(),
-        message: 'otp.otp_message'.tr(namedArgs: {'code': '...', 'minutes': '10'}),
+        message: 'otp.otp_message'.tr(namedArgs: <String, String>{'code': '...', 'minutes': '10'}),
       );
     } catch (e) {
-      final errorKey = e.toString().replaceFirst('Exception: ', '');
+      final String message = resolveLocalizedMessage(e.toString());
       await _showStatusDialog(
         title: 'otp.rate_limit_error'.tr(),
-        message: errorKey.tr(),
+        message: message,
         isError: true,
       );
     } finally {
@@ -163,24 +161,24 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('otp.verify_title'.tr()),
+        title: Text('otp.enter_code_title'.tr()),
       ),
       body: Padding(
         padding: const EdgeInsets.all(AppSpacing.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+          children: <Widget>[
             Text(
               widget.args.isEmail
-                  ? 'otp.verify_message'.tr(args: [widget.args.identifier])
-                  : 'otp.verify_message_phone'.tr(namedArgs: {'phone_number': widget.args.identifier}),
+                  ? 'otp.verify_message'.tr(args: <String>[widget.args.identifier])
+                  : 'otp.verify_message_phone'.tr(namedArgs: <String, String>{'phone_number': widget.args.identifier}),
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: AppSpacing.lg),
             Stack(
               alignment: Alignment.center,
-              children: [
+              children: <Widget>[
                 OtpTextField(
                   numberOfFields: 6,
                   borderColor: Colors.white,

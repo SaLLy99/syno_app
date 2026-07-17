@@ -12,15 +12,15 @@ load_dotenv(dotenv_path=ENV_FILE_PATH)
 
 class Settings(BaseSettings):
     database_url: str
-    secret_key: str
+    secret_key: str = "dev-secret-key-change-in-production"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     debug: bool = False
     
-    smtp_server: str 
-    smtp_port: int 
-    smtp_user: str
-    smtp_password: str
+    smtp_server: str = "smtp.gmail.com"
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
 
     # Twilio SMS Gateway Settings
     twilio_sid: str = ""

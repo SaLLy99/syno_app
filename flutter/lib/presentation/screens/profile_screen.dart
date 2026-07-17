@@ -3,15 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:intl/intl.dart';
 
 // Assuming these paths exist in your project
 import 'package:syno_app/domain/entities/user.dart';
 import 'package:syno_app/presentation/providers/auth_providers.dart';
 import 'package:syno_app/presentation/providers/user_provider.dart';
-import 'package:syno_app/presentation/providers/block_provider.dart';
 import 'package:syno_app/presentation/widgets/app_dialogs.dart'; 
 import 'package:syno_app/theme.dart';
+import 'package:syno_app/presentation/utils/error_localization.dart';
 import 'package:syno_app/presentation/providers/theme_provider.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -21,13 +20,13 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AsyncValue<User?> currentUserAsync = ref.watch(currentUserProvider);
-    final theme = ref.watch(themeProvider);
+    final AppThemeData theme = ref.watch(themeProvider);
 
     // Listen for errors in currentUserProvider and show a dialog
-    ref.listen<AsyncValue<User?>>(currentUserProvider, (previous, next) {
+    ref.listen<AsyncValue<User?>>(currentUserProvider, (AsyncValue<User?>? previous, AsyncValue<User?> next) {
       if (next.hasError && !next.isLoading && next.error != null) {
         if (context.mounted) {
-          AppDialogs.showErrorDialog(context, "Error", next.error.toString().replaceFirst("Exception: ", ""));
+          AppDialogs.showErrorDialog(context, 'profile.error'.tr(), resolveLocalizedMessage(next.error.toString(), context: context));
         }
       }
     });
@@ -51,7 +50,7 @@ class ProfileScreen extends ConsumerWidget {
                     padding: AppSpacing.paddingLg,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                      children: <Widget>[
                         _buildProfileHeader(context, user, ref, theme, isReadOnly),
                         const SizedBox(height: AppSpacing.xl),
                         _buildNameSection(context, user, theme),
@@ -69,7 +68,7 @@ class ProfileScreen extends ConsumerWidget {
                         _buildCareerEducationSection(context, user, theme),
                         const SizedBox(height: AppSpacing.xl),
                         _buildPreferencesSection(context, user, theme),
-                        if (!isReadOnly) ...[
+                        if (!isReadOnly) ...<Widget>[
                           const SizedBox(height: AppSpacing.xl),
                           _buildLogoutButton(context, ref),
                         ],
@@ -103,7 +102,7 @@ class ProfileScreen extends ConsumerWidget {
           : null,
       title: Row(
         mainAxisSize: MainAxisSize.min,
-        children: [
+        children: <Widget>[
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
             child: SizedBox(
@@ -126,7 +125,7 @@ class ProfileScreen extends ConsumerWidget {
           ),
         ],
       ),
-      actions: [
+      actions: <Widget>[
         if (!isReadOnly)
           IconButton(
             icon: Icon(Icons.settings, color: theme.primaryTextColor),
@@ -138,7 +137,7 @@ class ProfileScreen extends ConsumerWidget {
 
   Widget _buildProfileHeader(BuildContext context, User user, WidgetRef ref, AppThemeData theme, bool isReadOnly) {
     return Column(
-      children: [
+      children: <Widget>[
         Center(
           child: Container(
             width: 120,
@@ -146,7 +145,7 @@ class ProfileScreen extends ConsumerWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(color: CosmicColors.cosmicPurple, width: 3),
-              boxShadow: const [
+              boxShadow: const <BoxShadow>[
                 BoxShadow(
                   color: CosmicColors.cosmicPurple30,
                   blurRadius: 20,
@@ -168,7 +167,7 @@ class ProfileScreen extends ConsumerWidget {
                 fontWeight: FontWeight.bold,
               ),
         ),
-        if (!isReadOnly) ...[
+        if (!isReadOnly) ...<Widget>[
           const SizedBox(height: AppSpacing.md),
           _buildActionButtons(context, user),
         ],
@@ -182,7 +181,7 @@ class ProfileScreen extends ConsumerWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
       child: Row(
-        children: [
+        children: <Widget>[
           Expanded(
             child: _CosmicButton(
               icon: Icons.edit,
@@ -192,8 +191,8 @@ class ProfileScreen extends ConsumerWidget {
                   : () {
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                         content: Text('profile.edit_limited_message'.tr(
-                            namedArgs: {
-                              'days': user.daysUntilNextEdit?.toString() ?? '0'
+                            namedArgs: <String, String>{
+                              'days': user.daysUntilNextEdit.toString() ?? '0'
                             })),
                         backgroundColor: CosmicColors.grey800,
                       ));
@@ -237,7 +236,7 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Widget _buildGallerySection(BuildContext context, User user) {
-    final additionalPhotos = user.photos.where((p) => p.isPrimary != true).toList();
+    final List<Photo> additionalPhotos = user.photos.where((Photo p) => p.isPrimary != true).toList();
     if (additionalPhotos.isEmpty) return const SizedBox.shrink();
 
     return _SectionWrapper(
@@ -255,7 +254,7 @@ class ProfileScreen extends ConsumerWidget {
           mainAxisSpacing: 8,
         ),
         itemCount: additionalPhotos.length,
-        itemBuilder: (context, index) {
+        itemBuilder: (BuildContext context, int index) {
           return ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: _GalleryImage(photoId: additionalPhotos[index].id),
@@ -274,21 +273,26 @@ class ProfileScreen extends ConsumerWidget {
           : Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: user.coreValues.map((item) => _TagChip(label: item.translationKey.tr(), textColor: theme.primaryTextColor)).toList(),
+              children: user.coreValues.map((CoreValue item) => _TagChip(label: item.translationKey.tr(), textColor: theme.primaryTextColor)).toList(),
             ),
     );
   }
 
   Widget _buildHobbiesSection(BuildContext context, User user, AppThemeData theme) {
     return _SectionWrapper(
-      title: 'profile.hobbies'.tr(),
+      title: 'profile.hobbies_title'.tr(),
       textColor: theme.primaryTextColor,
       child: user.hobbies.isEmpty
           ? _PlaceholderText('profile.no_hobbies'.tr(), theme.primaryTextColor)
           : Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: user.hobbies.map((h) => _TagChip(label: h.name, textColor: theme.primaryTextColor)).toList(),
+              children: user.hobbies.map((Hobby h) {
+                final String label = h.translationKey.isNotEmpty && h.translationKey.tr() != h.translationKey
+                    ? h.translationKey.tr()
+                    : h.name;
+                return _TagChip(label: label, textColor: theme.primaryTextColor);
+              }).toList(),
             ),
     );
   }
@@ -299,28 +303,34 @@ class ProfileScreen extends ConsumerWidget {
       textColor: theme.primaryTextColor,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildTagsSection(context, Icons.work_outline, 'profile.profession'.tr(), user.professions.map((p) => p.name).toList(), theme),
+        children: <Widget>[
+          _buildTagsSection(context, Icons.work_outline, 'profile.profession'.tr(), user.professions.map((ProfessionModel p) {
+            return p.translationKey.isNotEmpty && p.translationKey.tr() != p.translationKey
+                ? p.translationKey.tr() : p.name;
+          }).toList(), theme),
           const SizedBox(height: AppSpacing.md),
           Divider(color: theme.primaryTextColor.withOpacity(0.1), height: 1),
           const SizedBox(height: AppSpacing.md),
-          _buildTagsSection(context, Icons.school_outlined, 'profile.education'.tr(), user.educations.map((e) => e.name).toList(), theme),
+          _buildTagsSection(context, Icons.school_outlined, 'profile.education'.tr(), user.educations.map((EducationModel e) {
+            return e.translationKey.isNotEmpty && e.translationKey.tr() != e.translationKey
+                ? e.translationKey.tr() : e.name;
+          }).toList(), theme),
         ],
       ),
     );
   }
 
   Widget _buildBirthInfoSection(BuildContext context, User user, AppThemeData theme) {
-    final zodiacData = user.zodiacSign != null ? _getZodiacData(user.zodiacSign!) : null;
+    final Map<String, String>? zodiacData = user.zodiacSign != null ? _getZodiacData(user.zodiacSign!) : null;
     return _SectionWrapper(
       title: 'profile.birth_info'.tr(),
       textColor: theme.primaryTextColor,
       child: Column(
-        children: [
+        children: <Widget>[
           _InfoRow(
             icon: Icons.cake,
             label: 'register.dob_label'.tr(),
-            value: user.birthDate != null ? DateFormat('MMMM d, y').format(user.birthDate!) : 'N/A',
+            value: user.birthDate != null ? _formatLocalizedDate(user.birthDate!) : 'N/A',
             textColor: theme.primaryTextColor,
           ),
           const SizedBox(height: AppSpacing.md),
@@ -329,10 +339,10 @@ class ProfileScreen extends ConsumerWidget {
           _InfoRow(
             icon: Icons.location_on,
             label: 'profile.birth_location'.tr(),
-            value: user.location != null ? '${user.location!.name}, ${user.location!.parent?.name ?? ''}' : 'N/A',
+            value: user.location?.localizedDisplayName ?? 'N/A',
             textColor: theme.primaryTextColor,
           ),
-          if (zodiacData != null) ...[
+          if (zodiacData != null) ...<Widget>[
             const SizedBox(height: AppSpacing.md),
             _InfoRow(icon: Icons.auto_awesome, label: 'profile.zodiac_sign'.tr(), value: zodiacData['name']!, textColor: theme.primaryTextColor),
           ],
@@ -346,10 +356,10 @@ class ProfileScreen extends ConsumerWidget {
       title: 'profile.preferences'.tr(),
       textColor: theme.primaryTextColor,
       child: Column(
-        children: [
-          _InfoRow(icon: Icons.person_outline, label: 'profile.sex'.tr(), value: user.sex?.name ?? 'N/A', textColor: theme.primaryTextColor),
+        children: <Widget>[
+          _InfoRow(icon: Icons.person_outline, label: 'profile.sex'.tr(), value: (user.sex?.translationKey.isNotEmpty == true && user.sex!.translationKey.tr() != user.sex!.translationKey) ? user.sex!.translationKey.tr() : (user.sex?.name ?? 'N/A'), textColor: theme.primaryTextColor),
           const SizedBox(height: AppSpacing.md),
-          _InfoRow(icon: Icons.favorite_border, label: 'profile.orientation'.tr(), value: user.orientation?.name ?? 'N/A', textColor: theme.primaryTextColor),
+          _InfoRow(icon: Icons.favorite_border, label: 'profile.orientation'.tr(), value: (user.orientation?.translationKey.isNotEmpty == true && user.orientation!.translationKey.tr() != user.orientation!.translationKey) ? user.orientation!.translationKey.tr() : (user.orientation?.name ?? 'N/A'), textColor: theme.primaryTextColor),
           const SizedBox(height: AppSpacing.md),
           _buildIntentionsSection(context, user, theme),
         ],
@@ -358,13 +368,9 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   Widget _buildIntentionsSection(BuildContext context, User user, AppThemeData theme) {
-    List<dynamic> intentions = [];
-    if (user.intentions is Iterable) {
-      intentions = (user.intentions as Iterable).toList();
-    } else if (user.intentions != null) {
-      intentions = [user.intentions];
-    }
-
+    List<dynamic> intentions = <dynamic>[];
+    intentions = (user.intentions as Iterable).toList();
+  
     final List<String> labels = intentions.map((i) {
       try {
         // Handle both Map (json) and Object (entity) access
@@ -397,11 +403,11 @@ class ProfileScreen extends ConsumerWidget {
         onPressed: () async {
           final bool? didConfirm = await showDialog<bool>(
             context: context,
-            builder: (context) => AlertDialog(
+            builder: (BuildContext context) => AlertDialog(
               backgroundColor: CosmicColors.grey800,
               title: Text('profile.logout_confirm_title'.tr(), style: const TextStyle(color: Colors.white)),
               content: Text('profile.logout_confirm_subtitle'.tr(), style: const TextStyle(color: Colors.white70)),
-              actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: Text('profile.cancel'.tr())), TextButton(onPressed: () => Navigator.pop(context, true), child: Text('profile.logout'.tr()))],
+              actions: <Widget>[TextButton(onPressed: () => Navigator.pop(context, false), child: Text('profile.cancel'.tr())), TextButton(onPressed: () => Navigator.pop(context, true), child: Text('profile.logout'.tr()))],
             ),
           );
           if (didConfirm == true && context.mounted) {
@@ -416,13 +422,13 @@ class ProfileScreen extends ConsumerWidget {
 
   Widget _buildTagsSection(BuildContext context, IconData icon, String label, List<String> items, AppThemeData theme) {
     // Filter out empty strings that might result from failed translation mapping
-    final filteredItems = items.where((item) => item.trim().isNotEmpty).toList();
+    final List<String> filteredItems = items.where((String item) => item.trim().isNotEmpty).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+      children: <Widget>[
         Row(
-          children: [
+          children: <Widget>[
             Icon(icon, color: CosmicColors.cosmicPink, size: 20),
             const SizedBox(width: AppSpacing.sm),
             Text(label, style: TextStyle(color: theme.primaryTextColor.withOpacity(0.6), fontSize: 12)),
@@ -434,17 +440,28 @@ class ProfileScreen extends ConsumerWidget {
             : Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: items.map((item) => _TagChip(label: item, textColor: theme.primaryTextColor)).toList(),
+                children: items.map((String item) => _TagChip(label: item, textColor: theme.primaryTextColor)).toList(),
               ),
       ],
     );
   }
 
+  String _formatLocalizedDate(DateTime date) {
+    const List<String> monthKeys = <String>[
+      'months.january', 'months.february', 'months.march', 'months.april',
+      'months.may', 'months.june', 'months.july', 'months.august',
+      'months.september', 'months.october', 'months.november', 'months.december',
+    ];
+    final String monthName = monthKeys[date.month - 1].tr();
+    return '$monthName ${date.day}, ${date.year}';
+  }
+
   Map<String, String> _getZodiacData(String sign) {
-    final s = sign.trim().toLowerCase();
+    final String s = sign.trim().toLowerCase();
     String key = 'zodiac.unknown';
-    if (s.contains('aries')) key = 'zodiac.aries';
-    else if (s.contains('taurus')) key = 'zodiac.taurus';
+    if (s.contains('aries')) {
+      key = 'zodiac.aries';
+    } else if (s.contains('taurus')) key = 'zodiac.taurus';
     else if (s.contains('gemini')) key = 'zodiac.gemini';
     else if (s.contains('cancer')) key = 'zodiac.cancer';
     else if (s.contains('leo')) key = 'zodiac.leo';
@@ -456,7 +473,7 @@ class ProfileScreen extends ConsumerWidget {
     else if (s.contains('aquarius')) key = 'zodiac.aquarius';
     else if (s.contains('pisces')) key = 'zodiac.pisces';
     
-    final Map<String, String> emojis = {
+    final Map<String, String> emojis = <String, String>{
       'zodiac.aries': '♈', 'zodiac.taurus': '♉', 'zodiac.gemini': '♊',
       'zodiac.cancer': '♋', 'zodiac.leo': '♌', 'zodiac.virgo': '♍',
       'zodiac.libra': '♎', 'zodiac.scorpio': '♏', 'zodiac.sagittarius': '♐',
@@ -464,7 +481,7 @@ class ProfileScreen extends ConsumerWidget {
       'zodiac.unknown': '✨'
     };
 
-    return {'emoji': emojis[key]!, 'name': key.tr()};
+    return <String, String>{'emoji': emojis[key]!, 'name': key.tr()};
   }
 }
 
@@ -480,14 +497,14 @@ class _SectionWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+      children: <Widget>[
         Text(title, style: TextStyle(color: textColor ?? Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
         const SizedBox(height: AppSpacing.md),
         Container(
           width: double.infinity,
           padding: AppSpacing.paddingMd,
           decoration: BoxDecoration(
-            gradient: const LinearGradient(colors: [CosmicColors.cosmicPurple20, CosmicColors.cosmicPink20]),
+            gradient: const LinearGradient(colors: <Color>[CosmicColors.cosmicPurple20, CosmicColors.cosmicPink20]),
             borderRadius: BorderRadius.circular(AppRadius.md),
           ),
           child: child,
@@ -537,13 +554,13 @@ class _InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      children: [
+      children: <Widget>[
         Icon(icon, color: CosmicColors.cosmicPink, size: 20),
         const SizedBox(width: AppSpacing.sm),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+            children: <Widget>[
               Text(label, style: TextStyle(color: (textColor ?? Colors.white).withOpacity(0.6), fontSize: 12)),
               Text(value, style: TextStyle(color: textColor ?? Colors.white, fontWeight: FontWeight.w500)),
             ],
@@ -572,7 +589,7 @@ class _ProfileImageState extends State<_ProfileImage> {
   }
 
   Future<void> _loadToken() async {
-    final prefs = await SharedPreferences.getInstance();
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
     if (mounted) setState(() => _token = prefs.getString('auth_token'));
   }
 
@@ -580,17 +597,17 @@ class _ProfileImageState extends State<_ProfileImage> {
   Widget build(BuildContext context) {
     if (_token == null) return const Center(child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white));
     
-    final primaryPhoto = widget.user.photos.cast<Photo?>().firstWhere((p) => p?.isPrimary == true, orElse: () => null);
+    final Photo? primaryPhoto = widget.user.photos.cast<Photo?>().firstWhere((Photo? p) => p?.isPrimary == true, orElse: () => null);
 
     if (primaryPhoto == null) {
       return const ColoredBox(color: CosmicColors.cosmicPurple, child: Icon(Icons.person, size: 60, color: Colors.white));
     }
 
-    return Consumer(builder: (context, ref, _) {
-      final backendUrl = ref.watch(backendUrlProvider);
+    return Consumer(builder: (BuildContext context, WidgetRef ref, _) {
+      final String backendUrl = ref.watch(backendUrlProvider);
       return Image.network(
         '$backendUrl/api/photos/${primaryPhoto.id}',
-        headers: {'Authorization': 'Bearer $_token'},
+        headers: <String, String>{'Authorization': 'Bearer $_token'},
         fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,
@@ -621,7 +638,7 @@ class _CosmicButton extends StatelessWidget {
         gradient: isOutlined
             ? null
             : const LinearGradient(
-                colors: [CosmicColors.cosmicPurple, CosmicColors.cosmicPink],
+                colors: <Color>[CosmicColors.cosmicPurple, CosmicColors.cosmicPink],
               ),
         color: isOutlined ? Colors.white.withOpacity(0.05) : null,
         borderRadius: BorderRadius.circular(AppRadius.md),
@@ -630,7 +647,7 @@ class _CosmicButton extends StatelessWidget {
             : null,
         boxShadow: isOutlined
             ? null
-            : [
+            : <BoxShadow>[
                 BoxShadow(
                   color: CosmicColors.cosmicPink.withOpacity(0.3),
                   blurRadius: 12,
@@ -643,20 +660,32 @@ class _CosmicButton extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(AppRadius.md),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: Colors.white, size: 18),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Icon(icon, color: Colors.white, size: 18),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      label,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -682,7 +711,7 @@ class _GalleryImageState extends State<_GalleryImage> {
   }
 
   Future<void> _loadToken() async {
-    final prefs = await SharedPreferences.getInstance();
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
     if (mounted) setState(() => _token = prefs.getString('auth_token'));
   }
 
@@ -690,11 +719,11 @@ class _GalleryImageState extends State<_GalleryImage> {
   Widget build(BuildContext context) {
     if (_token == null) return Container(color: Colors.white10);
     
-    return Consumer(builder: (context, ref, _) {
-      final backendUrl = ref.watch(backendUrlProvider);
+    return Consumer(builder: (BuildContext context, WidgetRef ref, _) {
+      final String backendUrl = ref.watch(backendUrlProvider);
       return Image.network(
         '$backendUrl/api/photos/${widget.photoId}',
-        headers: {'Authorization': 'Bearer $_token'},
+        headers: <String, String>{'Authorization': 'Bearer $_token'},
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) => Container(color: Colors.white10, child: const Icon(Icons.broken_image, color: Colors.white24)),
       );

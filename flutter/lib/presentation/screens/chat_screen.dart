@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:syno_app/domain/entities/chat_message.dart';
 import 'package:syno_app/domain/entities/match.dart';
+import 'package:syno_app/domain/entities/user.dart';
 import 'package:syno_app/presentation/providers/chat_provider.dart';
 import 'package:syno_app/presentation/providers/user_provider.dart';
 import 'package:syno_app/presentation/providers/block_provider.dart';
+import 'package:syno_app/presentation/providers/auth_providers.dart';
 import 'package:syno_app/presentation/widgets/match_score_badge.dart';
 import 'package:syno_app/theme.dart';
 import 'package:syno_app/presentation/providers/theme_provider.dart';
@@ -52,8 +53,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentUserAsync = ref.watch(currentUserProvider);
-    final theme = ref.watch(themeProvider);
+    final AsyncValue<User?> currentUserAsync = ref.watch(currentUserProvider);
+    final AppThemeData theme = ref.watch(themeProvider);
     final AsyncValue<List<ChatMessage>> messagesAsync = ref.watch(chatMessagesProvider(widget.match.id));
     final AsyncValue<bool> isBlockedAsync = ref.watch(isUserBlockedProvider(widget.match.matchedUserId));
 
@@ -61,14 +62,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       body: Container(
         decoration: BoxDecoration(gradient: theme.gradient),
         child: Column(
-          children: [
+          children: <Widget>[
             _buildHeader(context, theme),
             Expanded(
               child: currentUserAsync.when(
-                data: (currentUser) { // currentUser is User?
+                data: (User? currentUser) { // currentUser is User?
                   if (currentUser == null) return Center(child: Text('chat.no_user'.tr()));
                   return Column(
-                    children: [
+                    children: <Widget>[
                       isBlockedAsync.when(
                         data: (bool isBlocked) => isBlocked ? _buildBlockedBanner(context, theme) : const SizedBox.shrink(),
                         loading: () => const SizedBox.shrink(),
@@ -78,14 +79,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         child: messagesAsync.when(
                           data: (List<ChatMessage> messages) => _buildMessagesList(context, messages, currentUser.id.toString(), theme),
                           loading: () => const Center(child: CircularProgressIndicator()),
-                          error: (Object error, StackTrace stack) => Center(child: Text('chat.error'.tr(args: [error.toString()]))),
+                          error: (Object error, StackTrace stack) => Center(child: Text('chat.error'.tr(args: <String>[error.toString()]))),
                         ),
                       ),
                     ],
                   );
                 },
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (Object error, StackTrace stack) => Center(child: Text('chat.error'.tr(args: [error.toString()]))),
+                error: (Object error, StackTrace stack) => Center(child: Text('chat.error'.tr(args: <String>[error.toString()]))),
               ),
             ),
             isBlockedAsync.when(
@@ -108,11 +109,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       child: SafeArea(
         bottom: false,
         child: Column(
-          children: [
+          children: <Widget>[
             Padding(
               padding: AppSpacing.paddingMd,
               child: Row(
-                children: [
+                children: <Widget>[
                   IconButton(
                     icon: Icon(Icons.arrow_back, color: theme.primaryTextColor),
                     onPressed: () => context.pop(),
@@ -120,7 +121,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(20),
                     child: Image.network(
-                      widget.match.matchedUser.photos.first.url,
+                      widget.match.matchedUser.photos.first.getFullUrl(ref.read(backendUrlProvider)),
                       width: 40,
                       height: 40,
                       fit: BoxFit.cover,
@@ -128,7 +129,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         width: 40,
                         height: 40,
                         color: CosmicColors.cosmicPurple,
-                        child: Icon(Icons.person, size: 20, color: Colors.white),
+                        child: const Icon(Icons.person, size: 20, color: Colors.white),
                       ),
                     ),
                   ),
@@ -136,7 +137,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                      children: <Widget>[
                         Text(
                           widget.match.matchedUser.name.toString(),
                           style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -145,7 +146,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           ),
                         ),
                         Text(
-                          'match_details.match_percentage'.tr(args: [widget.match.finalScore.toStringAsFixed(0)]),
+                          'match_details.match_percentage'.tr(args: <String>[widget.match.finalScore.toStringAsFixed(0)]),
                           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: theme.primaryTextColor.withOpacity(0.7),
                           ),
@@ -194,9 +195,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+              children: <Widget>[
                 Row(
-                  children: [
+                  children: <Widget>[
                     Icon(Icons.security, color: theme.primaryTextColor),
                     const SizedBox(width: AppSpacing.sm),
                     Text(
@@ -216,7 +217,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     color: isBlocked ? theme.primaryTextColor : Colors.red,
                   ),
                   title: Text(
-                    isBlocked ? 'chat.unblock_user'.tr(namedArgs: {'name': widget.match.matchedUser.name.toString()}) : 'chat.block_user'.tr(namedArgs: {'name': widget.match.matchedUser.name.toString()}),
+                    isBlocked ? 'chat.unblock_user'.tr(namedArgs: <String, String>{'name': widget.match.matchedUser.name.toString()}) : 'chat.block_user'.tr(namedArgs: <String, String>{'name': widget.match.matchedUser.name.toString()}),
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           color: isBlocked ? theme.primaryTextColor : Colors.red,
                           fontWeight: FontWeight.w600,
@@ -265,7 +266,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         border: Border.all(color: Colors.red.withOpacity(0.4), width: 1),
       ),
       child: Row(
-        children: [
+        children: <Widget>[
           const Icon(Icons.block, color: Colors.red),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
@@ -290,7 +291,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         child: Padding(
           padding: AppSpacing.paddingMd,
           child: Row(
-            children: [
+            children: <Widget>[
               Expanded(
                 child: Text(
                   'chat.blocked_footer'.tr(),
@@ -319,7 +320,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           padding: AppSpacing.paddingXl,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+            children: <Widget>[
               Icon(Icons.chat_bubble_outline, size: 64, color: theme.primaryTextColor),
               const SizedBox(height: AppSpacing.lg),
               Text(
@@ -331,7 +332,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
-                'chat.say_hello'.tr(namedArgs: {'name': widget.match.matchedUser.name.toString()}),
+                'chat.say_hello'.tr(namedArgs: <String, String>{'name': widget.match.matchedUser.name.toString()}),
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: theme.primaryTextColor.withOpacity(0.7),
                 ),
@@ -359,12 +360,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: Row(
         mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-        children: [
-          if (!isMe) ...[
+        children: <Widget>[
+          if (!isMe) ...<Widget>[
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
               child: Image.network(
-                widget.match.matchedUser.photos.first.url,
+                widget.match.matchedUser.photos.first.getFullUrl(ref.read(backendUrlProvider)),
                 width: 32,
                 height: 32,
                 fit: BoxFit.cover,
@@ -390,7 +391,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                children: <Widget>[
                   Text(
                     message.content,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -424,7 +425,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         child: Padding(
           padding: AppSpacing.paddingMd,
           child: Row(
-            children: [
+            children: <Widget>[
               Expanded(
                 child: TextField(
                   controller: _messageController,

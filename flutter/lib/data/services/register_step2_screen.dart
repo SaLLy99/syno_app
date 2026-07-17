@@ -7,49 +7,49 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:syno_app/presentation/providers/auth_providers.dart'; 
 
 // Providers to fetch the dynamic options
-final intentionsProvider = FutureProvider<List<Intention>>((ref) async {
+final FutureProvider<List<Intention>> intentionsProvider = FutureProvider<List<Intention>>((Ref ref) async {
   // Replace with your actual API call logic
-  final response = await Dio().get('http://localhost:8000/api/intentions');
+  final Response response = await Dio().get('http://localhost:8000/api/intentions');
   return (response.data as List).map((i) => Intention.fromJson(i)).toList();
 });
 
-final coreValuesProvider = FutureProvider<List<CoreValue>>((ref) async {
+final FutureProvider<List<CoreValue>> coreValuesProvider = FutureProvider<List<CoreValue>>((Ref ref) async {
   // Replace with your actual API call logic
-  final response = await Dio().get('http://localhost:8000/api/core-values');
+  final Response response = await Dio().get('http://localhost:8000/api/core-values');
   return (response.data as List).map((cv) => CoreValue.fromJson(cv)).toList();
 });
 
 class RegisterStep2Screen extends ConsumerStatefulWidget {
-  const RegisterStep2Screen({Key? key}) : super(key: key);
+  const RegisterStep2Screen({super.key});
 
   @override
   _RegisterStep2ScreenState createState() => _RegisterStep2ScreenState();
 }
 
 class _RegisterStep2ScreenState extends ConsumerState<RegisterStep2Screen> {
-  final Set<int> _selectedIntentionIds = {};
-  final Set<int> _selectedCoreValueIds = {};
+  final Set<int> _selectedIntentionIds = <int>{};
+  final Set<int> _selectedCoreValueIds = <int>{};
 
   // ... other form controllers for bio, etc.
 
   void _saveProfile() {
     // Assuming you have a user service instance from a provider
-    final userService = ref.read(userServiceProvider);
+    final UserService userService = ref.read(userServiceProvider);
 
-    final profileData = {
+    final Map<String, List<int>> profileData = <String, List<int>>{
       // ... other profile data like bio, gender, etc.
       'intention_ids': _selectedIntentionIds.toList(),
       'core_value_ids': _selectedCoreValueIds.toList(),
     };
 
     // The user service will now send these IDs to the backend
-    userService.createProfileWithPhotos(profileData, []); // Pass photo paths if any
+    userService.createProfileWithPhotos(profileData, <String>[]); // Pass photo paths if any
   }
 
   @override
   Widget build(BuildContext context) {
-    final intentionsAsync = ref.watch(intentionsProvider);
-    final coreValuesAsync = ref.watch(coreValuesProvider);
+    final AsyncValue<List<Intention>> intentionsAsync = ref.watch(intentionsProvider);
+    final AsyncValue<List<CoreValue>> coreValuesAsync = ref.watch(coreValuesProvider);
 
     return Scaffold(
       appBar: AppBar(title: Text('register.step2_title'.tr())),
@@ -57,19 +57,19 @@ class _RegisterStep2ScreenState extends ConsumerState<RegisterStep2Screen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: <Widget>[
             // ... other form fields for DOB, location, etc.
 
             Text('register.intention_label'.tr(), style: Theme.of(context).textTheme.titleLarge),
             intentionsAsync.when(
-              data: (intentions) => Wrap(
+              data: (List<Intention> intentions) => Wrap(
                 spacing: 8.0,
-                children: intentions.map((intention) {
-                  final isSelected = _selectedIntentionIds.contains(intention.id);
+                children: intentions.map((Intention intention) {
+                  final bool isSelected = _selectedIntentionIds.contains(intention.id);
                   return FilterChip(
                     label: Text(intention.translationKey.tr()),
                     selected: isSelected,
-                    onSelected: (selected) {
+                    onSelected: (bool selected) {
                       setState(() {
                         if (selected) {
                           _selectedIntentionIds.add(intention.id);
@@ -82,21 +82,21 @@ class _RegisterStep2ScreenState extends ConsumerState<RegisterStep2Screen> {
                 }).toList(),
               ),
               loading: () => const CircularProgressIndicator(),
-              error: (e, st) => Text('Failed to load intentions: $e'),
+              error: (Object e, StackTrace st) => Text('Failed to load intentions: $e'),
             ),
 
             const SizedBox(height: 24),
 
             Text('register.core_values_title'.tr(), style: Theme.of(context).textTheme.titleLarge),
             coreValuesAsync.when(
-              data: (values) => Wrap(
+              data: (List<CoreValue> values) => Wrap(
                 spacing: 8.0,
-                children: values.map((value) {
-                  final isSelected = _selectedCoreValueIds.contains(value.id);
+                children: values.map((CoreValue value) {
+                  final bool isSelected = _selectedCoreValueIds.contains(value.id);
                   return FilterChip(
                     label: Text(value.translationKey.tr()),
                     selected: isSelected,
-                    onSelected: (selected) {
+                    onSelected: (bool selected) {
                       setState(() {
                         if (selected) {
                           _selectedCoreValueIds.add(value.id);
@@ -109,7 +109,7 @@ class _RegisterStep2ScreenState extends ConsumerState<RegisterStep2Screen> {
                 }).toList(),
               ),
               loading: () => const CircularProgressIndicator(),
-              error: (e, st) => Text('Failed to load core values: $e'),
+              error: (Object e, StackTrace st) => Text('Failed to load core values: $e'),
             ),
             
             // ... Bio field and Finish button that calls _saveProfile()

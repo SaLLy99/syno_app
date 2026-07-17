@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:syno_app/presentation/providers/auth_service_provider.dart';
 import 'package:syno_app/data/services/otp_verification_args.dart';
 import 'package:syno_app/theme.dart';
+import 'package:syno_app/presentation/utils/error_localization.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -14,19 +15,19 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _emailController = TextEditingController();
-  final _phoneController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
   bool _isEmailActive = true;
   bool _isButtonEnabled = false;
   bool _isLoading = false;
 
-  final _emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
+  final RegExp _emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
   // Simple regex for international phone numbers (e.g., +995555123456)
-  final _phoneRegex = RegExp(r'^\+?[1-9]\d{1,14}$');
+  final RegExp _phoneRegex = RegExp(r'^\+?[1-9]\d{1,14}$');
 
   void _validateInput(String value) {
     setState(() {
-      final trimmedValue = value.trim();
+      final String trimmedValue = value.trim();
       if (_isEmailActive) {
         _isButtonEnabled = _emailRegex.hasMatch(trimmedValue);
       } else {
@@ -38,14 +39,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _handleContinue() async {
     setState(() => _isLoading = true);
     try {
-      final identifier = _isEmailActive 
+      final String identifier = _isEmailActive 
           ? _emailController.text.trim() 
           : _phoneController.text.trim();
           
-      final args = OtpVerificationArgs(identifier: identifier, isEmail: _isEmailActive);
+      final OtpVerificationArgs args = OtpVerificationArgs(identifier: identifier, isEmail: _isEmailActive);
       
       // Pass the current locale to the backend for localized email
-      final lang = context.locale.languageCode;
+      final String lang = context.locale.languageCode;
       await ref.read(authServiceProvider).requestOtp(
         email: _isEmailActive ? identifier : null,
         phoneNumber: !_isEmailActive ? identifier : null,
@@ -56,15 +57,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         context.push('/otp-verification', extra: args);
       }
     } catch (e) {
-      final errorKey = e.toString().replaceFirst('Exception: ', '').trim();
+      final String message = resolveLocalizedMessage(e.toString(), context: context);
       showDialog(
         context: context,
-        builder: (ctx) => AlertDialog(
+        builder: (BuildContext ctx) => AlertDialog(
           backgroundColor: const Color(0xFF1A1A1A),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Text('dialog.error_title'.tr(), style: const TextStyle(color: Colors.white)),
-          content: Text(errorKey.tr(), style: const TextStyle(color: Colors.white70)),
-          actions: [
+          content: Text(message, style: const TextStyle(color: Colors.white70)),
+          actions: <Widget>[
             TextButton(
               onPressed: () => Navigator.pop(ctx),
               child: Text('dialog.ok'.tr(), style: const TextStyle(color: Colors.cyanAccent)),
@@ -86,7 +87,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 32.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+            children: <Widget>[
               // App Logo
               Image.asset('assets/icons/dreamflow_icon.jpg', height: 120),
               const SizedBox(height: 40),
@@ -94,7 +95,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               // Email/Phone Badge Toggles
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+                children: <Widget>[
                   _buildBadge("login.email_toggle".tr(), _isEmailActive, () => setState(() => _isEmailActive = true)),
                   const SizedBox(width: 16),
                   _buildBadge("login.mobile_toggle".tr(), !_isEmailActive, () => setState(() => _isEmailActive = false)),
@@ -102,7 +103,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               const SizedBox(height: 32),
 
-              if (_isEmailActive) ...[
+              if (_isEmailActive) ...<Widget>[
                 TextField(
                   controller: _emailController,
                   onChanged: _validateInput,
@@ -116,7 +117,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Colors.cyanAccent)),
                   ),
                 ),
-              ] else ...[
+              ] else ...<Widget>[
                 TextField(
                   controller: _phoneController,
                   onChanged: _validateInput,

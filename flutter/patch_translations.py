@@ -260,7 +260,7 @@ updates = {
         'profile.core_values.creativity': 'კრეატიულობა',
         'profile.core_values.growth': 'განვითარება',
         'profile.core_values.spirituality': 'სულიერება',
-        'profile.core_values.adventure': 'სათავგადასავლო',
+        'profile.core_values.adventure': 'თავგადასავალი',
         'profile.settings.account': 'ანგარიში',
         'profile.settings.title': 'პარამეტრები',
         'profile.updated': 'პროფილი განახლებულია',

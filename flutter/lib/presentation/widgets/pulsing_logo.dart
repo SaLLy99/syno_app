@@ -53,7 +53,7 @@ class _PulsingLogoState extends State<PulsingLogo> with SingleTickerProviderStat
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _controller,
-      builder: (context, child) {
+      builder: (BuildContext context, Widget? child) {
         return Transform.translate(
           offset: _floatAnimation.value,
           child: Container(
@@ -61,7 +61,7 @@ class _PulsingLogoState extends State<PulsingLogo> with SingleTickerProviderStat
             height: widget.size,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              boxShadow: [
+              boxShadow: <BoxShadow>[
                 BoxShadow(
                   color: CosmicColors.cosmicPurple.withOpacity(0.5),
                   blurRadius: _blurAnimation.value,

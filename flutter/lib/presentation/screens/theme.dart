@@ -5,7 +5,7 @@ class CosmicColors {
   static const LinearGradient deepSpaceGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [
+    colors: <Color>[
       Color(0xFF1A1A2E),
       Color(0xFF2D1B4E),
       Color(0xFF0F0F1A),

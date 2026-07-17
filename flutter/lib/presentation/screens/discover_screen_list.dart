@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:syno_app/domain/entities/match.dart';
+import 'package:syno_app/presentation/providers/auth_providers.dart';
 import 'package:syno_app/presentation/providers/match_provider.dart';
 import 'package:syno_app/presentation/widgets/match_score_badge.dart';
 import 'package:syno_app/theme.dart';
@@ -20,7 +21,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
   @override
   Widget build(BuildContext context) {
     final AsyncValue<List<Match>> potentialMatchesAsync = ref.watch(potentialMatchesProvider);
-    final theme = ref.watch(themeProvider);
+    final AppThemeData theme = ref.watch(themeProvider);
 
     return Scaffold(
       body: Container(
@@ -147,7 +148,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
             fit: StackFit.expand,
             children: <Widget>[
               Image.network(
-                match.matchedUser.photos.first.url,
+                match.matchedUser.photos.first.getFullUrl(ref.read(backendUrlProvider)),
                 fit: BoxFit.cover,
                 errorBuilder: (BuildContext context, Object error, StackTrace? stackTrace) => Container(
                   color: CosmicColors.cosmicPurple,

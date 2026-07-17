@@ -38,7 +38,7 @@ class CosmicDialog extends StatelessWidget {
         ),
       ),
       title: Row(
-        children: [
+        children: <Widget>[
           Icon(icon ?? Icons.info_outline, color: theme.accentColor, size: 28),
           const SizedBox(width: 12),
           Expanded(
@@ -61,12 +61,12 @@ class CosmicDialog extends StatelessWidget {
           height: 1.4,
         ),
       ),
-      actions: [
+      actions: <Widget>[
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.end,
-            children: [
+            children: <Widget>[
               if (cancelText != null)
                 TextButton(
                   onPressed: onCancelPressed ?? () => Navigator.pop(context),
@@ -102,7 +102,7 @@ void showCosmicErrorDialog(BuildContext context, String title, String message, A
     useRootNavigator: true, // Ensure the dialog appears over the root navigator
     barrierDismissible: false, // User must tap the button to dismiss
     barrierColor: Colors.black.withOpacity(0.7),
-    builder: (context) => CosmicDialog(
+    builder: (BuildContext context) => CosmicDialog(
       title: title,
       message: message,
       theme: theme,
@@ -123,7 +123,7 @@ void showCosmicConfirmDialog({
     context: context,
     useRootNavigator: true,
     barrierColor: Colors.black.withOpacity(0.7),
-    builder: (context) => CosmicDialog(
+    builder: (BuildContext context) => CosmicDialog(
       title: title,
       message: message,
       theme: theme,
@@ -143,7 +143,7 @@ void showUserNotFoundDialog(BuildContext context, AppThemeData theme) {
     context: context,
     useRootNavigator: true,
     barrierColor: Colors.black.withOpacity(0.7),
-    builder: (context) => CosmicDialog(
+    builder: (BuildContext context) => CosmicDialog(
       title: 'dialog.user_not_found'.tr(),
       message: 'profile.settings.blocked_users.error_not_found'.tr(),
       theme: theme,

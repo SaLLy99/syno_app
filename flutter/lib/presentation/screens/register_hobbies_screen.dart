@@ -4,7 +4,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
 import 'package:syno_app/domain/entities/hobbies_data.dart';
 import 'package:syno_app/presentation/providers/registration_provider.dart'
-    show hobbiesProvider, registrationProvider;
+    show ProfileData, hobbiesProvider, registrationProvider;
 import 'package:syno_app/presentation/widgets/onboarding_scaffold.dart';
 import 'package:syno_app/presentation/widgets/selectable_option_card.dart';
 
@@ -17,19 +17,17 @@ class RegisterHobbiesScreen extends ConsumerStatefulWidget {
 }
 
 class _RegisterHobbiesScreenState extends ConsumerState<RegisterHobbiesScreen> {
-  final Set<int> _selectedIds = {};
+  final Set<int> _selectedIds = <int>{};
 
   @override
   void initState() {
     super.initState();
-    final regState = ref.read(registrationProvider).profileData;
-    if (regState.hobbyIds != null) {
-      _selectedIds.addAll(regState.hobbyIds!);
+    final ProfileData regState = ref.read(registrationProvider).profileData;
+    _selectedIds.addAll(regState.hobbyIds);
     }
-  }
 
   void _onNext() {
-    ref.read(registrationProvider.notifier).updateProfileData({
+    ref.read(registrationProvider.notifier).updateProfileData(<String, dynamic>{
       'hobby_ids': _selectedIds.toList(),
     });
     context.push('/register-career');
@@ -37,7 +35,7 @@ class _RegisterHobbiesScreenState extends ConsumerState<RegisterHobbiesScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final hobbiesAsync = ref.watch(hobbiesProvider);
+    final AsyncValue<List<Hobby>> hobbiesAsync = ref.watch(hobbiesProvider);
 
     return OnboardingScaffold(
       title: 'register.hobbies_title'.tr(),
@@ -47,19 +45,21 @@ class _RegisterHobbiesScreenState extends ConsumerState<RegisterHobbiesScreen> {
         padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: <Widget>[
             Text('register.hobbies_subtitle'.tr(),
                 style: const TextStyle(color: Colors.white70)),
             const SizedBox(height: 24),
             hobbiesAsync.when(
-              data: (hobbies) => Wrap(
+              data: (List<Hobby> hobbies) => Wrap(
                 spacing: 12,
                 runSpacing: 12,
-                children: hobbies.map((hobby) {
-                  final isSelected = _selectedIds.contains(hobby.id);
+                children: hobbies.map((Hobby hobby) {
+                  final bool isSelected = _selectedIds.contains(hobby.id);
+                  final String label = hobby.translationKey.isNotEmpty && hobby.translationKey.tr() != hobby.translationKey
+                      ? hobby.translationKey.tr() : hobby.name;
                   return SelectableOptionCard(
                     selected: isSelected,
-                    label: hobby.name,
+                    label: label,
                     onTap: () {
                       setState(() {
                         if (isSelected) {
@@ -73,7 +73,7 @@ class _RegisterHobbiesScreenState extends ConsumerState<RegisterHobbiesScreen> {
                 }).toList(),
               ),
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, _) => Text('Error: $err'),
+              error: (Object err, _) => Text('Error: $err'),
             ),
           ],
         ),

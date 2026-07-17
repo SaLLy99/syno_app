@@ -14,16 +14,16 @@ class RegisterNameScreen extends ConsumerStatefulWidget {
 }
 
 class _RegisterNameScreenState extends ConsumerState<RegisterNameScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _lastNameController = TextEditingController();
-  final _heightController = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _lastNameController = TextEditingController();
+  final TextEditingController _heightController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     // Pre-fill data if user is returning to this step
-    final regState = ref.read(registrationProvider).profileData;
+    final ProfileData regState = ref.read(registrationProvider).profileData;
     if (regState.name != null) _nameController.text = regState.name.toString();
     if (regState.lastName != null) _lastNameController.text = regState.lastName.toString();
     if (regState.height != null) _heightController.text = regState.height.toString();
@@ -40,10 +40,10 @@ class _RegisterNameScreenState extends ConsumerState<RegisterNameScreen> {
         return SizedBox(
           height: 250,
           child: Column(
-            children: [
+            children: <Widget>[
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
-                children: [
+                children: <Widget>[
                   CupertinoButton(
                     child: Text('register.done'.tr(), style: const TextStyle(color: Colors.white)),
                     onPressed: () => Navigator.of(context).pop(),
@@ -81,7 +81,7 @@ class _RegisterNameScreenState extends ConsumerState<RegisterNameScreen> {
         heightInCm = (heightValue < 3.0) ? (heightValue * 100).round() : heightValue.round();
       }
 
-      ref.read(registrationProvider.notifier).updateProfileData({
+      ref.read(registrationProvider.notifier).updateProfileData(<String, dynamic>{
         'name': _nameController.text.trim(),
         'last_name': _lastNameController.text.trim(),
         'height': heightInCm,
@@ -103,7 +103,7 @@ class _RegisterNameScreenState extends ConsumerState<RegisterNameScreen> {
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+            children: <Widget>[
               Text(
                 'register.name'.tr(),
                 style: const TextStyle(color: Colors.white70, fontSize: 16),
@@ -119,7 +119,7 @@ class _RegisterNameScreenState extends ConsumerState<RegisterNameScreen> {
                   hintText: 'register.name'.tr(),
                   hintStyle: const TextStyle(color: Colors.white24),
                 ),
-                validator: (value) => (value == null || value.trim().isEmpty) 
+                validator: (String? value) => (value == null || value.trim().isEmpty) 
                     ? 'register.errors.name_required'.tr() 
                     : null,
                 autofocus: true,
@@ -147,7 +147,7 @@ class _RegisterNameScreenState extends ConsumerState<RegisterNameScreen> {
                   suffixIcon: const Icon(Icons.height, color: Colors.white70),
                 ),
                 onTap: _showHeightPicker,
-                validator: (value) => (value == null || value.isEmpty) 
+                validator: (String? value) => (value == null || value.isEmpty) 
                     ? 'register.errors.height_required'.tr() 
                     : null,
               ),

@@ -9,7 +9,7 @@ class LandingScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final appTheme = ref.watch(themeProvider);
+    final AppThemeData appTheme = ref.watch(themeProvider);
     
     return Scaffold(
       body: Container(
@@ -17,11 +17,11 @@ class LandingScreen extends ConsumerWidget {
         height: double.infinity,
         decoration: BoxDecoration(
           gradient: appTheme.gradient,
-          color: appTheme.gradient == null ? Colors.black : null,
+          color: null,
         ),
         child: SafeArea(
           child: Column(
-            children: [
+            children: <Widget>[
               const Spacer(flex: 2),
               
               // A. Logo
@@ -31,7 +31,7 @@ class LandingScreen extends ConsumerWidget {
                   shape: BoxShape.circle,
                   color: Colors.white.withOpacity(0.1),
                   border: Border.all(color: Colors.white24, width: 1),
-                  boxShadow: [
+                  boxShadow: <BoxShadow>[
                     BoxShadow(
                       color: Colors.black.withOpacity(0.2),
                       blurRadius: 20,
@@ -46,7 +46,7 @@ class LandingScreen extends ConsumerWidget {
                     height: 120,
                     width: 120,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => const Icon(
+                    errorBuilder: (BuildContext context, Object error, StackTrace? stackTrace) => const Icon(
                       Icons.auto_awesome,
                       size: 60,
                       color: Colors.white,
@@ -107,8 +107,8 @@ class LandingScreen extends ConsumerWidget {
               const SizedBox(height: 8),
               
               // E. Legal Text
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
                 child: _LegalText(),
               ),
               const SizedBox(height: 20),
@@ -125,7 +125,7 @@ class _LanguageSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currentLocale = context.locale;
+    final Locale currentLocale = context.locale;
     
     return GestureDetector(
       onTap: () => _showLanguagePicker(context),
@@ -138,7 +138,7 @@ class _LanguageSelector extends StatelessWidget {
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          children: [
+          children: <Widget>[
              _GeometricFlag(flag: _getFlag(currentLocale.languageCode), size: 32),
              const SizedBox(width: 16),
              Text(
@@ -157,18 +157,18 @@ class _LanguageSelector extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
+      builder: (BuildContext context) => Container(
         decoration: const BoxDecoration(
           color: Color(0xFF1A1A1A),
           borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
         ),
         padding: const EdgeInsets.symmetric(vertical: 32),
-        child: Column(
+        child: const Column(
           mainAxisSize: MainAxisSize.min,
-          children: [
-            _LanguageOption(locale: const Locale('en'), name: 'English', flag: '🇬🇧'),
-            _LanguageOption(locale: const Locale('ru'), name: 'Русский', flag: '🇷🇺'),
-            _LanguageOption(locale: const Locale('ka'), name: 'ქართული', flag: '🇬🇪'),
+          children: <Widget>[
+            _LanguageOption(locale: Locale('en'), name: 'English', flag: '🇬🇧'),
+            _LanguageOption(locale: Locale('ru'), name: 'Русский', flag: '🇷🇺'),
+            _LanguageOption(locale: Locale('ka'), name: 'ქართული', flag: '🇬🇪'),
           ],
         ),
       ),
@@ -214,18 +214,18 @@ class _LegalText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Accessing keys directly here ensures reactivity when context.locale changes
-    final fullText = 'landing.legal_full'.tr();
-    final termsText = 'landing.terms'.tr();
-    final privacyText = 'landing.privacy'.tr();
+    final String fullText = 'landing.legal_full'.tr();
+    final String termsText = 'landing.terms'.tr();
+    final String privacyText = 'landing.privacy'.tr();
 
-    final parts = fullText.split('{terms}');
-    final secondPart = parts.length > 1 ? parts[1].split('{privacy}') : [];
+    final List<String> parts = fullText.split('{terms}');
+    final List secondPart = parts.length > 1 ? parts[1].split('{privacy}') : <dynamic>[];
 
     return RichText(
       textAlign: TextAlign.center,
       text: TextSpan(
         style: const TextStyle(color: Colors.white54, fontSize: 12, height: 1.6),
-        children: [
+        children: <InlineSpan>[
           TextSpan(text: parts[0]),
           WidgetSpan(
             alignment: PlaceholderAlignment.baseline,
@@ -275,7 +275,7 @@ class _LanguageOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isSelected = context.locale == locale;
+    final bool isSelected = context.locale == locale;
     return ListTile(
       onTap: () {
         context.setLocale(locale);

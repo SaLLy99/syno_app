@@ -6,15 +6,15 @@ import 'package:syno_app/presentation/providers/registration_provider.dart';
 import 'package:syno_app/presentation/providers/user_provider.dart';
 
 
-final backendUrlProvider = Provider<String>((ref) => throw UnimplementedError());
+final Provider<String> backendUrlProvider = Provider<String>((Ref ref) => throw UnimplementedError());
 
 
-final authServiceProvider = Provider<AuthService>((ref) { 
+final Provider<AuthService> authServiceProvider = Provider<AuthService>((Ref ref) { 
   return AuthService(ref.watch(backendUrlProvider));
 });
 
 
-final userServiceProvider = Provider<UserService>((ref) {
+final Provider<UserService> userServiceProvider = Provider<UserService>((Ref ref) {
   return UserService(
     ref.watch(backendUrlProvider),
     onUnauthorized: () {
@@ -36,7 +36,7 @@ class AuthNotifier extends AsyncNotifier<User?> {
   Future<void> login(String email, String password) async {
     state = const AsyncLoading();
     try {
-      final authService = ref.read(authServiceProvider);
+      final AuthService authService = ref.read(authServiceProvider);
       await authService.login(email, password); 
       ref.invalidate(currentUserProvider); 
       state = const AsyncData(null); 
@@ -49,7 +49,7 @@ class AuthNotifier extends AsyncNotifier<User?> {
   Future<void> logOut() async {
     state = const AsyncLoading();
     try {
-      final authService = ref.read(authServiceProvider);
+      final AuthService authService = ref.read(authServiceProvider);
       await authService.logOut();
       ref.read(registrationProvider.notifier).reset();
       ref.invalidate(currentUserProvider); 
@@ -63,7 +63,7 @@ class AuthNotifier extends AsyncNotifier<User?> {
   Future<void> register(String email, String password) async {
     state = const AsyncLoading();
     try {
-      final authService = ref.read(authServiceProvider);
+      final AuthService authService = ref.read(authServiceProvider);
       await authService.register(email, password);
       ref.invalidate(currentUserProvider);
       state = const AsyncData(null); 
@@ -76,7 +76,7 @@ class AuthNotifier extends AsyncNotifier<User?> {
   Future<void> checkEmailExists(String email) async {
      state = const AsyncLoading();
     try {
-      final authService = ref.read(authServiceProvider);
+      final AuthService authService = ref.read(authServiceProvider);
       await authService.checkEmailExists(email);
       state = const AsyncData(null); 
     } catch (e, st) {
@@ -90,7 +90,7 @@ class AuthNotifier extends AsyncNotifier<User?> {
   Future<void> registerCompleteUser(RegistrationState regState) async {
     state = const AsyncLoading();
     try {
-      final authService = ref.read(authServiceProvider);
+      final AuthService authService = ref.read(authServiceProvider);
       await authService.registerCompleteUser(regState);
       // DO NOT invalidate currentUserProvider here.
       // The calling screen (RegisterPhotosScreen) is responsible for manually
@@ -102,4 +102,4 @@ class AuthNotifier extends AsyncNotifier<User?> {
     }
   }
 }
-final authProvider = AsyncNotifierProvider<AuthNotifier, User?>(AuthNotifier.new);
+final AsyncNotifierProvider<AuthNotifier, User?> authProvider = AsyncNotifierProvider<AuthNotifier, User?>(AuthNotifier.new);

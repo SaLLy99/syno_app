@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 
@@ -21,7 +20,7 @@ class StaticDataService {
   final String _baseUrl = 'http://10.0.2.2:8000';
 
   Future<List<Sex>> getSexes() async {
-    final response = await http.get(Uri.parse('$_baseUrl/api/sexes/'));
+    final http.Response response = await http.get(Uri.parse('$_baseUrl/api/sexes/'));
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((json) => Sex.fromJson(json)).toList();
@@ -31,5 +30,5 @@ class StaticDataService {
 
 }
 
-final sexesDataServiceProvider = Provider((ref) => StaticDataService());
-final sexesProvider = FutureProvider((ref) => ref.watch(sexesDataServiceProvider).getSexes());
+final Provider<StaticDataService> sexesDataServiceProvider = Provider((Ref ref) => StaticDataService());
+final FutureProvider<List<Sex>> sexesProvider = FutureProvider((Ref ref) => ref.watch(sexesDataServiceProvider).getSexes());

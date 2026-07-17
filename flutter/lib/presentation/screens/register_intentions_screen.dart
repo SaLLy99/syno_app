@@ -18,19 +18,17 @@ class RegisterIntentionsScreen extends ConsumerStatefulWidget {
 
 class _RegisterIntentionsScreenState
     extends ConsumerState<RegisterIntentionsScreen> {
-  final Set<int> _selectedIds = {};
+  final Set<int> _selectedIds = <int>{};
 
   @override
   void initState() {
     super.initState();
-    final regState = ref.read(registrationProvider).profileData;
-    if (regState.intentionIds != null) {
-      _selectedIds.addAll(regState.intentionIds!);
+    final ProfileData regState = ref.read(registrationProvider).profileData;
+    _selectedIds.addAll(regState.intentionIds);
     }
-  }
 
   void _onNext() {
-    ref.read(registrationProvider.notifier).updateProfileData({
+    ref.read(registrationProvider.notifier).updateProfileData(<String, dynamic>{
       'intention_ids': _selectedIds.toList(),
     });
     context.push('/register-values');
@@ -38,7 +36,7 @@ class _RegisterIntentionsScreenState
 
   @override
   Widget build(BuildContext context) {
-    final intentionsAsync = ref.watch(intentionsProvider);
+    final AsyncValue<List<Intention>> intentionsAsync = ref.watch(intentionsProvider);
 
     return OnboardingScaffold(
       title: 'register.intentions_title'.tr(),
@@ -48,16 +46,16 @@ class _RegisterIntentionsScreenState
         padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: <Widget>[
             Text('register.intentions_subtitle'.tr(),
                 style: const TextStyle(color: Colors.white70)),
             const SizedBox(height: 24),
             intentionsAsync.when(
-              data: (intentions) => Wrap(
+              data: (List<Intention> intentions) => Wrap(
                 spacing: 12,
                 runSpacing: 12,
-                children: intentions.map((intention) {
-                  final isSelected = _selectedIds.contains(intention.id);
+                children: intentions.map((Intention intention) {
+                  final bool isSelected = _selectedIds.contains(intention.id);
                   return SelectableOptionCard(
                     selected: isSelected,
                     label: intention.translationKey.tr(),
@@ -74,7 +72,7 @@ class _RegisterIntentionsScreenState
                 }).toList(),
               ),
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, _) => Text('Error: $err'),
+              error: (Object err, _) => Text('Error: $err'),
             ),
           ],
         ),

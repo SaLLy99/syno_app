@@ -3,44 +3,75 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
 import 'package:syno_app/domain/entities/match.dart';
+import 'package:syno_app/domain/entities/user.dart';
+import 'package:syno_app/presentation/providers/auth_providers.dart';
+import 'package:syno_app/presentation/widgets/compatibility_meter.dart';
 import 'package:syno_app/presentation/widgets/cosmic_button.dart';
+import 'package:syno_app/presentation/widgets/match_badge.dart';
 import 'package:syno_app/presentation/widgets/match_score_badge.dart';
 import 'package:syno_app/theme.dart';
 import 'package:syno_app/presentation/providers/block_provider.dart';
 import 'package:syno_app/presentation/providers/theme_provider.dart';
 
-class MatchDetailsScreen extends ConsumerWidget {
+class MatchDetailsScreen extends ConsumerStatefulWidget {
   final Match match;
 
   const MatchDetailsScreen({super.key, required this.match});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = ref.watch(themeProvider);
+  ConsumerState<MatchDetailsScreen> createState() => _MatchDetailsScreenState();
+}
+
+class _MatchDetailsScreenState extends ConsumerState<MatchDetailsScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  late Map<String, double> _dimensions;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 5, vsync: this);
+    final Match match = widget.match;
+    _dimensions = {
+      'Romance': match.synastryData.venusMarsScore,
+      'Communication': match.synastryData.mercuryScore,
+      'Emotional': match.synastryData.moonScore,
+      'Long-term': match.synastryData.saturnScore,
+      'Chemistry': match.synastryData.venusMarsScore * 0.95,
+      'Spiritual': match.synastryData.nodesScore,
+    };
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final AppThemeData theme = ref.watch(themeProvider);
+    final Match match = widget.match;
+    final User user = match.matchedUser;
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(gradient: theme.gradient),
-        child: CustomScrollView(
-          slivers: [
-            _buildAppBar(context),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: AppSpacing.paddingLg,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildScoreSection(context),
-                    const SizedBox(height: AppSpacing.xl),
-                    _buildCosmicInsight(context),
-                    const SizedBox(height: AppSpacing.xl),
-                    _buildTopReasons(context),
-                    const SizedBox(height: AppSpacing.xl),
-                    _buildSynastryHighlights(context),
-                    const SizedBox(height: AppSpacing.xl),
-                    _buildActionButtons(context),
-                    const SizedBox(height: AppSpacing.xl),
-                  ],
-                ),
+        child: Column(
+          children: [
+            _buildHeader(context, match, user),
+            _buildScoreStrip(context, match),
+            _buildTabBar(context),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildAboutTab(user),
+                  _buildPhotosTab(user),
+                  _buildLifestyleTab(user),
+                  _buildBirthChartTab(user),
+                  _buildSynastryTab(context, match),
+                ],
               ),
             ),
           ],
@@ -49,23 +80,21 @@ class MatchDetailsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildAppBar(BuildContext context) {
-    return SliverAppBar(
-      expandedHeight: 400,
-      pinned: true,
-      backgroundColor: CosmicColors.deepSpace,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: Colors.white),
-        onPressed: () => context.pop(),
+  Widget _buildHeader(BuildContext context, Match match, User user) {
+    return Container(
+      height: 320,
+      decoration: const BoxDecoration(
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
       ),
-      flexibleSpace: FlexibleSpaceBar(
-        background: Stack(
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
+        child: Stack(
           fit: StackFit.expand,
           children: [
             Image.network(
-              match.matchedUser.photos.first.url,
+              user.photos.isNotEmpty ? user.photos.first.getFullUrl(ref.read(backendUrlProvider)) : '',
               fit: BoxFit.cover,
-              errorBuilder: (BuildContext context, Object error, StackTrace? stackTrace) => Container(
+              errorBuilder: (context, error, stackTrace) => Container(
                 color: CosmicColors.cosmicPurple,
                 child: const Icon(Icons.person, size: 100, color: Colors.white),
               ),
@@ -75,34 +104,65 @@ class MatchDetailsScreen extends ConsumerWidget {
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent, // Colors.transparent is already const
-                    CosmicColors.deepSpace.withOpacity(0.9),
-                  ],
+                  colors: [Colors.transparent, Colors.black.withOpacity(0.9)],
                 ),
               ),
             ),
             Positioned(
-              bottom: 60,
-              left: AppSpacing.lg,
-              right: AppSpacing.lg,
+              top: MediaQuery.of(context).padding.top + 8,
+              left: 8,
+              child: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () => context.pop(),
+              ),
+            ),
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 8,
+              right: 8,
+              child: Row(
+                children: [
+                  MatchScoreBadge(score: match.averageScore, size: 56),
+                  const SizedBox(width: 8),
+                  PopupMenuButton<String>(
+                    icon: Icon(Icons.more_vert, color: Colors.white.withOpacity(0.8)),
+                    onSelected: (v) => _handleMenuAction(context, v),
+                    itemBuilder: (_) => [
+                      PopupMenuItem(value: 'synastry', child: Text('Full Synastry Report')),
+                      PopupMenuItem(value: 'block', child: Text('Block User')),
+                    ],
+                    color: const Color(0xFF2D1B4E),
+                  ),
+                ],
+              ),
+            ),
+            Positioned(
+              bottom: 16,
+              left: 16,
+              right: 16,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    '${match.matchedUser.name}, ${match.matchedUser.age}',
-                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${user.name}, ${user.age}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    match.matchedUser.bio.toString(),
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Colors.white.withOpacity(0.9),
+                  if (user.location != null)
+                    Text(
+                      user.location!.localizedDisplayName,
+                      style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14),
                     ),
-                  ),
+                  const SizedBox(height: 6),
+                  _buildBadgesRow(match),
                 ],
               ),
             ),
@@ -112,36 +172,249 @@ class MatchDetailsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildScoreSection(BuildContext context) {
-    return Center(
-      child: Column(
-        children: [
-          MatchScoreBadge(score: match.finalScore, size: 100),
-          const SizedBox(height: AppSpacing.md),
-          Text(
-            'match_details.match_percentage'.tr(args: [match.finalScore.toStringAsFixed(0)]),
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildBadgesRow(Match match) {
+    final badges = MatchBadge.getBadgesForScore(match.finalScore, _dimensions);
+    if (badges.isEmpty) return const SizedBox.shrink();
+    return Wrap(
+      spacing: 6,
+      runSpacing: 4,
+      children: badges.map((b) => MatchBadge(type: b, size: 22)).toList(),
+    );
+  }
+
+  Widget _buildScoreStrip(BuildContext context, Match match) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: _dimensions.entries.take(4).map((e) {
+          final Color scoreColor = e.value >= 80
+              ? const Color(0xFF60A5FA)
+              : e.value >= 60
+                  ? const Color(0xFF3B82F6)
+                  : const Color(0xFF93C5FD);
+          return Column(
             children: [
               Text(
-                'match_details.synastry_score'.tr(args: [match.synastryScore.toStringAsFixed(0)]),
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.white.withOpacity(0.7),
+                '${e.value.toInt()}%',
+                style: TextStyle(
+                  color: scoreColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
                 ),
               ),
-              const SizedBox(width: AppSpacing.md),
               Text(
-                'match_details.behavioral_score'.tr(args: [match.behavioralScore.toStringAsFixed(0)]),
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.white.withOpacity(0.7),
-                ),
+                e.key,
+                style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 10),
               ),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildTabBar(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: TabBar(
+        controller: _tabController,
+        isScrollable: true,
+        labelColor: Colors.white,
+        unselectedLabelColor: Colors.white.withOpacity(0.5),
+        indicatorColor: const Color(0xFF3B82F6),
+        indicatorSize: TabBarIndicatorSize.label,
+        labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+        unselectedLabelStyle: const TextStyle(fontSize: 12),
+        dividerColor: Colors.transparent,
+        tabs: const [
+          Tab(text: 'About'),
+          Tab(text: 'Photos'),
+          Tab(text: 'Lifestyle'),
+          Tab(text: 'Chart'),
+          Tab(text: 'Synastry'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAboutTab(User user) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (user.bio != null && user.bio!.isNotEmpty) ...[
+            _sectionTitle('About Me'),
+            const SizedBox(height: 8),
+            Text(
+              user.bio!,
+              style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 15, height: 1.5),
+            ),
+            const SizedBox(height: 20),
+          ],
+          if (user.hobbies.isNotEmpty) ...[
+            _sectionTitle('Interests'),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: user.hobbies.map((h) => Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                decoration: BoxDecoration(
+                  color: CosmicColors.cosmicPurple.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: CosmicColors.cosmicPurple.withOpacity(0.3)),
+                ),
+                child: Text(h.name, style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 13)),
+              )).toList(),
+            ),
+            const SizedBox(height: 20),
+          ],
+          if (user.coreValues.isNotEmpty) ...[
+            _sectionTitle('Core Values'),
+            const SizedBox(height: 8),
+            ...user.coreValues.map((v) => Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                children: [
+                  Icon(Icons.check_circle, color: CosmicColors.cosmicPink, size: 16),
+                  const SizedBox(width: 8),
+                  Text(v.key, style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 14)),
+                ],
+              ),
+            )),
+          ],
+          if (user.intentions.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            _sectionTitle('Looking For'),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: user.intentions.map((i) => Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                decoration: BoxDecoration(
+                  color: CosmicColors.cosmicPink.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: CosmicColors.cosmicPink.withOpacity(0.3)),
+                ),
+                child: Text(i.key, style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 13)),
+              )).toList(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPhotosTab(User user) {
+    return GridView.builder(
+      padding: const EdgeInsets.all(12),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+      ),
+      itemCount: user.photos.length,
+      itemBuilder: (context, index) {
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          child: Image.network(
+            user.photos[index].getFullUrl(ref.read(backendUrlProvider)),
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => Container(
+              color: CosmicColors.cosmicPurple.withOpacity(0.3),
+              child: const Icon(Icons.person, color: Colors.white38, size: 40),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLifestyleTab(User user) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          _lifestyleRow(Icons.cake, 'Age', '${user.age}'),
+          _lifestyleRow(Icons.straighten, 'Height', user.height != null ? '${user.height!.toInt()} cm' : 'Not specified'),
+          if (user.sex != null) _lifestyleRow(Icons.person, 'Gender', user.sex!.name),
+          if (user.orientation != null) _lifestyleRow(Icons.favorite, 'Orientation', user.orientation!.name),
+          if (user.professions.isNotEmpty)
+            _lifestyleRow(Icons.work, 'Occupation', user.professions.first.name),
+          if (user.educations.isNotEmpty)
+            _lifestyleRow(Icons.school, 'Education', user.educations.first.name),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBirthChartTab(User user) {
+    final String? zodiac = user.zodiacSign;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          if (zodiac != null) ...[
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    CosmicColors.cosmicPurple.withOpacity(0.2),
+                    CosmicColors.cosmicPink.withOpacity(0.2),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                border: Border.all(color: CosmicColors.cosmicPurple.withOpacity(0.3)),
+              ),
+              child: Column(
+                children: [
+                  Text(_getZodiacEmoji(zodiac), style: const TextStyle(fontSize: 48)),
+                  const SizedBox(height: 12),
+                  Text(
+                    zodiac,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Sun Sign',
+                    style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 14),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
+          _sectionTitle('Planet Positions'),
+          const SizedBox(height: 8),
+          _planetRow('Sun', zodiac ?? 'Unknown', '☉'),
+          _planetRow('Moon', 'Scorpio', '☽'),
+          _planetRow('Mercury', 'Gemini', '☿'),
+          _planetRow('Venus', 'Taurus', '♀'),
+          _planetRow('Mars', 'Aries', '♂'),
+          const SizedBox(height: 20),
+          _sectionTitle('Elements'),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              _elementBar('Fire', 0.3, const Color(0xFFEF4444)),
+              const SizedBox(width: 8),
+              _elementBar('Earth', 0.25, const Color(0xFF10B981)),
+              const SizedBox(width: 8),
+              _elementBar('Air', 0.25, CosmicColors.cosmicBlue),
+              const SizedBox(width: 8),
+              _elementBar('Water', 0.2, CosmicColors.cosmicPurple),
             ],
           ),
         ],
@@ -149,262 +422,219 @@ class MatchDetailsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildCosmicInsight(BuildContext context) {
+  Widget _buildSynastryTab(BuildContext context, Match match) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Column(
+              children: [
+                Text(
+                  'Overall Compatibility',
+                  style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 14),
+                ),
+                const SizedBox(height: 8),
+                MatchScoreBadge(score: match.averageScore, size: 80),
+                const SizedBox(height: 8),
+                Text(
+                  '${match.averageScore.toInt()}% Match',
+                  style: const TextStyle(
+                    color: Color(0xFF60A5FA),
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          _sectionTitle('Compatibility Breakdown'),
+          const SizedBox(height: 12),
+          CompatibilityMeter(label: 'Romance', emoji: '❤️', score: match.synastryData.romanceScore),
+          CompatibilityMeter(label: 'Communication', emoji: '🧠', score: match.synastryData.communicationScore),
+          CompatibilityMeter(label: 'Emotional', emoji: '🌙', score: match.synastryData.emotionalScore),
+          CompatibilityMeter(label: 'Long-term', emoji: '💍', score: match.synastryData.longTermScore),
+          CompatibilityMeter(label: 'Chemistry', emoji: '⚡', score: match.synastryData.chemistryScore),
+          CompatibilityMeter(label: 'Spiritual', emoji: '✨', score: match.synastryData.spiritualScore),
+          const SizedBox(height: 24),
+          _buildInsightCard(context, match),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF3B82F6),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              onPressed: () => context.push('/synastry-detail', extra: match),
+              icon: const Icon(Icons.auto_awesome),
+              label: const Text('View Full Synastry Report'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInsightCard(BuildContext context, Match match) {
     return Container(
-      padding: AppSpacing.paddingLg,
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient( // Restored const
+        gradient: LinearGradient(
           colors: [
-            CosmicColors.cosmicPurple30,
-            CosmicColors.cosmicPink30,
+            const Color(0xFF3B82F6).withOpacity(0.15),
+            const Color(0xFF1D4ED8).withOpacity(0.15),
           ],
         ),
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(
-          color: CosmicColors.cosmicPurple50,
-          width: 1,
-        ),
+        border: Border.all(color: const Color(0xFF3B82F6).withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.auto_awesome, color: CosmicColors.cosmicPink, size: 24),
-              const SizedBox(width: AppSpacing.sm),
+              const Icon(Icons.auto_awesome, color: Color(0xFF60A5FA), size: 20),
+              const SizedBox(width: 8),
               Text(
-                'match_details.cosmic_insight'.tr(),
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                'Cosmic Insight',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.md),
+          const SizedBox(height: 8),
           Text(
             match.cosmicInsight,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-              color: Colors.white.withOpacity(0.9),
-              height: 1.5,
-            ),
+            style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 14, height: 1.5),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTopReasons(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'match_details.top_reasons'.tr(),
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        ...match.topReasons.map((String reason) => Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.md),
-              child: Container(
-                padding: AppSpacing.paddingMd,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                ),
-                child: Text(
-                  reason,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Colors.white.withOpacity(0.9),
-                  ),
-                ),
-              ),
-            )),
-      ],
+  Widget _sectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+      ),
     );
   }
 
-  Widget _buildSynastryHighlights(BuildContext context) {
-    final List<Map<String, dynamic>> highlights = <Map<String, dynamic>>[
-      <String, dynamic>{'label': 'match_details.highlights.emotional'.tr(), 'score': match.synastryData.moonScore},
-      <String, dynamic>{'label': 'match_details.highlights.communication'.tr(), 'score': match.synastryData.mercuryScore},
-      <String, dynamic>{'label': 'match_details.highlights.romantic'.tr(), 'score': match.synastryData.venusMarsScore},
-      <String, dynamic>{'label': 'match_details.highlights.soul_bond'.tr(), 'score': match.synastryData.nodesScore},
-      <String, dynamic>{'label': 'match_details.highlights.long_term'.tr(), 'score': match.synastryData.saturnScore},
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'match_details.synastry_breakdown'.tr(),
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        ...highlights.map((Map<String, dynamic> h) => Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.md),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        h['label'] as String,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white.withOpacity(0.8),
-                        ),
-                      ),
-                      Text(
-                        '${(h['score'] as double).toStringAsFixed(0)}%',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                    child: LinearProgressIndicator(
-                      value: (h['score'] as double) / 100,
-                      backgroundColor: Colors.white.withOpacity(0.2),
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        (h['score'] as double) >= 75
-                            ? CosmicColors.cosmicPurple
-                            : (h['score'] as double) >= 60
-                                ? CosmicColors.cosmicPink
-                                : CosmicColors.cosmicBlue,
-                      ),
-                      minHeight: 8,
-                    ),
-                  ),
-                ],
-              ),
-            )),
-      ],
-    );
-  }
-
-  Widget _buildActionButtons(BuildContext context) {
-    return Consumer(builder: (BuildContext context, WidgetRef ref, _) {
-      final AsyncValue<bool> isBlockedAsync = ref.watch(isUserBlockedProvider(match.matchedUserId));
-      return Column(
+  Widget _lifestyleRow(IconData icon, String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+      ),
+      child: Row(
         children: [
-          SizedBox(
-            width: double.infinity,
-            child: CosmicButton(
-              text: 'match_details.view_full_report'.tr(),
-              icon: Icons.article,
-              onPressed: () => context.push('/synastry-report', extra: match),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          SizedBox(
-            width: double.infinity,
-            child: CosmicButton(
-              text: 'match_details.send_message'.tr(),
-              icon: Icons.chat,
-              isOutlined: true,
-              onPressed: () => context.push('/chat', extra: match),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          isBlockedAsync.when(
-            data: (bool isBlocked) => SizedBox(
-              width: double.infinity,
-              child: CosmicButton(
-                text: isBlocked ? 'match_details.unblock_user'.tr() : 'match_details.block_user'.tr(),
-                icon: isBlocked ? Icons.lock_open : Icons.block,
-                isOutlined: true,
-                onPressed: () => _showBlockSheet(context, ref, isBlocked),
-              ),
-            ),
-            loading: () => const SizedBox.shrink(),
-            error: (Object e, _) => const SizedBox.shrink(),
-          ),
+          Icon(icon, color: CosmicColors.cosmicPink, size: 20),
+          const SizedBox(width: 12),
+          Text(label, style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 14)),
+          const Spacer(),
+          Text(value, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
         ],
-      );
-    });
+      ),
+    );
   }
 
-  void _showBlockSheet(BuildContext context, WidgetRef ref, bool isBlocked) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: CosmicColors.deepSpace,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+  Widget _planetRow(String planet, String sign, String symbol) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      margin: const EdgeInsets.only(bottom: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
       ),
-      builder: (BuildContext context) {
-        return SafeArea(
-          child: Padding(
-            padding: AppSpacing.paddingLg,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.security, color: Colors.white),
-                    const SizedBox(width: AppSpacing.sm),
-                    Text(
-                      isBlocked ? 'match_details.unblock_sheet_title'.tr() : 'match_details.block_sheet_title'.tr(),
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Text(
-                  isBlocked
-                      ? 'match_details.unblock_sheet_subtitle'.tr()
-                      : 'match_details.block_sheet_subtitle'.tr(),
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Colors.white.withOpacity(0.7),
-                      ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: Text('match_details.cancel'.tr(), style: const TextStyle(color: Colors.white)),
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: isBlocked ? CosmicColors.cosmicBlue : Colors.red,
-                        ),
-                        onPressed: () async {
-                          Navigator.of(context).pop();
-                          if (isBlocked) {
-                            await ref.read(blockActionsProvider).unblock(match.matchedUserId);
-                          } else {
-                            await ref.read(blockActionsProvider).block(match.matchedUserId);
-                          }
-                        },
-                        icon: Icon(isBlocked ? Icons.lock_open : Icons.block, color: Colors.white),
-                        label: Text(isBlocked ? 'match_details.unblock'.tr() : 'match_details.block'.tr(), style: const TextStyle(color: Colors.white)),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+      child: Row(
+        children: [
+          Text(symbol, style: const TextStyle(fontSize: 20)),
+          const SizedBox(width: 12),
+          Text(planet, style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 14)),
+          const Spacer(),
+          Text(sign, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
+
+  Widget _elementBar(String label, double value, Color color) {
+    return Expanded(
+      child: Column(
+        children: [
+          Text(label, style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 11)),
+          const SizedBox(height: 4),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: value,
+              backgroundColor: Colors.white.withOpacity(0.1),
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+              minHeight: 60,
             ),
           ),
-        );
-      },
+        ],
+      ),
+    );
+  }
+
+  String _getZodiacEmoji(String sign) {
+    const emojis = {
+      'Aries': '♈', 'Taurus': '♉', 'Gemini': '♊', 'Cancer': '♋',
+      'Leo': '♌', 'Virgo': '♍', 'Libra': '♎', 'Scorpio': '♏',
+      'Sagittarius': '♐', 'Capricorn': '♑', 'Aquarius': '♒', 'Pisces': '♓',
+    };
+    return emojis[sign] ?? '⭐';
+  }
+
+  void _handleMenuAction(BuildContext context, String action) {
+    switch (action) {
+      case 'synastry':
+        context.push('/synastry-detail', extra: widget.match);
+        break;
+      case 'block':
+        _showBlockDialog(context);
+        break;
+    }
+  }
+
+  void _showBlockDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF2D1B4E),
+        title: const Text('Block User', style: TextStyle(color: Colors.white)),
+        content: Text(
+          'Are you sure you want to block ${widget.match.matchedUser.name}?',
+          style: TextStyle(color: Colors.white.withOpacity(0.8)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await ref.read(blockActionsProvider).block(widget.match.matchedUserId);
+              if (context.mounted) context.pop();
+            },
+            child: const Text('Block', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
     );
   }
 }
