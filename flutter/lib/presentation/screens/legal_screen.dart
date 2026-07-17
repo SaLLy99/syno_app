@@ -15,13 +15,13 @@ class LegalScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final appTheme = ref.watch(themeProvider);
+    final AppThemeData appTheme = ref.watch(themeProvider);
 
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(gradient: appTheme.gradient),
         child: CustomScrollView(
-          slivers: [
+          slivers: <Widget>[
             SliverAppBar(
               backgroundColor: Colors.transparent,
               elevation: 0,

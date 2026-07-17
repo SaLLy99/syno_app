@@ -1,7 +1,7 @@
 import 'package:syno_app/domain/entities/synastry_data.dart';
 import 'package:syno_app/domain/entities/user.dart';
 
-enum MatchStatus { pending, accepted, declined }
+enum MatchStatus { pending, accepted, declined, saved, hidden }
 
 class Match {
   final String id;
@@ -16,6 +16,8 @@ class Match {
   final SynastryData synastryData;
   final MatchStatus status;
   final DateTime createdAt;
+  final double? weightedScore;
+  final int? backendMatchId;
 
   Match({
     required this.id,
@@ -30,7 +32,19 @@ class Match {
     required this.synastryData,
     required this.status,
     required this.createdAt,
+    this.weightedScore,
+    this.backendMatchId,
   });
+
+  double get averageScore {
+    final List<double> dims = [
+      synastryData.romanceScore,
+      synastryData.emotionalScore,
+      synastryData.chemistryScore,
+    ];
+    if (dims.isEmpty) return finalScore;
+    return dims.reduce((a, b) => a + b) / dims.length;
+  }
 
   Map<String, dynamic> toJson() => <String, dynamic>{
         'id': id,
@@ -45,6 +59,8 @@ class Match {
         'synastryData': synastryData.toJson(),
         'status': status.name,
         'createdAt': createdAt.toIso8601String(),
+        'weightedScore': weightedScore,
+        'backendMatchId': backendMatchId,
       };
 
   factory Match.fromJson(Map<String, dynamic> json) => Match(
@@ -60,6 +76,8 @@ class Match {
         synastryData: SynastryData.fromJson(json['synastryData'] as Map<String, dynamic>),
         status: MatchStatus.values.firstWhere((MatchStatus e) => e.name == json['status']),
         createdAt: DateTime.parse(json['createdAt'] as String),
+        weightedScore: (json['weightedScore'] as num?)?.toDouble(),
+        backendMatchId: json['backendMatchId'] as int?,
       );
 
   Match copyWith({
@@ -75,6 +93,8 @@ class Match {
     SynastryData? synastryData,
     MatchStatus? status,
     DateTime? createdAt,
+    double? weightedScore,
+    int? backendMatchId,
   }) =>
       Match(
         id: id ?? this.id,
@@ -89,5 +109,7 @@ class Match {
         synastryData: synastryData ?? this.synastryData,
         status: status ?? this.status,
         createdAt: createdAt ?? this.createdAt,
+        weightedScore: weightedScore ?? this.weightedScore,
+        backendMatchId: backendMatchId ?? this.backendMatchId,
       );
 }

@@ -27,8 +27,8 @@ class CosmicButton extends StatelessWidget {
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
+          children: <Widget>[
+            if (icon != null) ...<Widget>[
               Icon(icon, color: CosmicColors.cosmicPurple),
               const SizedBox(width: AppSpacing.sm),
             ],
@@ -44,15 +44,15 @@ class CosmicButton extends StatelessWidget {
       );
     }
 
-    return Container(
+  return Container(
       decoration: BoxDecoration(
         gradient: CosmicColors.cosmicGradient,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color: CosmicColors.cosmicPurple30, // Use const color
+            color: CosmicColors.cosmicPurple30,
             blurRadius: 8,
-            offset: const Offset(0, 4),
+            offset: Offset(0, 4),
           ),
         ],
       ),
@@ -61,7 +61,9 @@ class CosmicButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+          ),
           padding: AppSpacing.paddingMd,
         ),
         child: Row(

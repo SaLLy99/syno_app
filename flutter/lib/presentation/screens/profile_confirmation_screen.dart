@@ -1,22 +1,26 @@
+import 'package:cross_file/src/types/interface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:syno_app/data/services/user_service.dart';
 import 'package:syno_app/presentation/providers/registration_provider.dart';
 import 'package:syno_app/presentation/providers/theme_provider.dart';
 import 'package:syno_app/presentation/providers/theme_update_provider.dart';
 import 'package:syno_app/presentation/providers/user_provider.dart';
 import 'package:syno_app/presentation/providers/loading_provider.dart';
+import 'package:syno_app/presentation/providers/user_state_notifier.dart';
 import 'package:syno_app/presentation/widgets/app_dialogs.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:syno_app/presentation/utils/error_localization.dart';
 
 class ProfileConfirmationScreen extends ConsumerWidget {
   const ProfileConfirmationScreen({super.key});
 
   Future<void> _onConfirm(BuildContext context, WidgetRef ref) async {
-    final loadingNotifier = ref.read(loadingStateProvider.notifier);
-    final registrationState = ref.read(registrationProvider);
-    final userService = ref.read(userServiceProvider);
-    final currentUserNotifier = ref.read(currentUserProvider.notifier);
+    final LoadingStateNotifier loadingNotifier = ref.read(loadingStateProvider.notifier);
+    final RegistrationState registrationState = ref.read(registrationProvider);
+    final UserService userService = ref.read(userServiceProvider);
+    final UserStateNotifier currentUserNotifier = ref.read(currentUserProvider.notifier);
 
     loadingNotifier.show();
     try {
@@ -37,7 +41,7 @@ class ProfileConfirmationScreen extends ConsumerWidget {
       );
 
       if (themeData.isNotEmpty) {
-        final newTheme = AppThemeData.fromJson(themeData);
+        final AppThemeData newTheme = AppThemeData.fromJson(themeData);
         await ref.read(themeUpdateProvider.notifier).updateTheme(newTheme);
       } else {
         await currentUserNotifier.refreshUser();
@@ -45,7 +49,7 @@ class ProfileConfirmationScreen extends ConsumerWidget {
 
       if (context.mounted) context.goNamed('discover');
     } catch (e) {
-      if (context.mounted) AppDialogs.showErrorDialog(context, 'register.error_title'.tr(), e.toString());
+      if (context.mounted) AppDialogs.showErrorDialog(context, 'register.error_title'.tr(), resolveLocalizedMessage(e.toString(), context: context));
     } finally {
       loadingNotifier.hide();
     }
@@ -53,7 +57,7 @@ class ProfileConfirmationScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = ref.watch(themeProvider);
+    final AppThemeData theme = ref.watch(themeProvider);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -70,11 +74,11 @@ class ProfileConfirmationScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(24.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [
+              children: <Widget>[
                 const Icon(Icons.check_circle_outline, size: 80, color: Colors.green),
                 const SizedBox(height: 24),
                 Text(
-                  'Your profile looks amazing!',
+                  'register.profile_ready_message'.tr(),
                   style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: theme.primaryTextColor),
                   textAlign: TextAlign.center,
                 ),

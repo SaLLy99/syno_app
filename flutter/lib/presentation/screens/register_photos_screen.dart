@@ -4,11 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
-import 'package:syno_app/presentation/providers/auth_providers.dart';
-import 'package:syno_app/presentation/providers/loading_provider.dart';
 import 'package:syno_app/presentation/providers/registration_provider.dart';
-import 'package:syno_app/presentation/providers/user_provider.dart'
-    hide userServiceProvider;
 import 'package:syno_app/presentation/screens/theme.dart';
 import 'package:syno_app/presentation/widgets/app_dialogs.dart';
 import 'package:syno_app/presentation/widgets/onboarding_scaffold.dart';
@@ -32,7 +28,7 @@ class _RegisterPhotosScreenState extends ConsumerState<RegisterPhotosScreen> {
     super.initState();
     // going through the flow.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final regState = ref.read(registrationProvider);
+      final RegistrationState regState = ref.read(registrationProvider);
       if (regState.profileData.name == null) {
         // If name is missing, the user shouldn't be here. Redirect them back to the name step.
         if (mounted) context.go('/register-name');
@@ -41,11 +37,12 @@ class _RegisterPhotosScreenState extends ConsumerState<RegisterPhotosScreen> {
   }
 
   Future<void> _pickPhotos() async {
-    final photos = ref.read(registrationProvider).photos;
+    final List<XFile> photos = ref.read(registrationProvider).photos;
     if (photos.length >= _maxPhotos) {
-      if (mounted)
+      if (mounted) {
         AppDialogs.showErrorDialog(context, "register.limit_reached".tr(),
-            "register.limit_message".tr(namedArgs: {'max': '$_maxPhotos'}));
+            "register.limit_message".tr(namedArgs: <String, String>{'max': '$_maxPhotos'}));
+      }
       return;
     }
 
@@ -76,7 +73,7 @@ class _RegisterPhotosScreenState extends ConsumerState<RegisterPhotosScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final photos = ref.watch(registrationProvider).photos;
+    final List<XFile> photos = ref.watch(registrationProvider).photos;
     final bool canComplete = photos.length >= 2;
 
     return OnboardingScaffold(
@@ -90,7 +87,7 @@ class _RegisterPhotosScreenState extends ConsumerState<RegisterPhotosScreen> {
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(24.0, 20.0, 24.0, 24.0),
         child: Column(
-          children: [
+          children: <Widget>[
             Text('register.photos_subtitle'.tr(),
                 style: const TextStyle(color: Colors.white70)),
             const SizedBox(height: 30),
@@ -117,8 +114,8 @@ class _RegisterPhotosScreenState extends ConsumerState<RegisterPhotosScreen> {
                       scrollDirection: Axis.horizontal,
                       itemCount: photos.length - 1,
                       onReorder: _onReorder,
-                      itemBuilder: (context, index) {
-                        final actualIdx = index + 1;
+                      itemBuilder: (BuildContext context, int index) {
+                        final int actualIdx = index + 1;
                         return _buildGalleryItem(photos[actualIdx], actualIdx);
                       },
                     ),
@@ -132,7 +129,7 @@ class _RegisterPhotosScreenState extends ConsumerState<RegisterPhotosScreen> {
                 icon: const Icon(Icons.add_a_photo,
                     color: CosmicColors.cosmicPink),
                 label: Text(
-                    "register.add_more".tr(namedArgs: {
+                    "register.add_more".tr(namedArgs: <String, String>{
                       'current': '${photos.length}',
                       'max': '$_maxPhotos'
                     }),
@@ -176,12 +173,12 @@ class _RegisterPhotosScreenState extends ConsumerState<RegisterPhotosScreen> {
                 : null,
           ),
           child: Stack(
-            children: [
+            children: <Widget>[
               if (!hasPhoto)
                 const Center(
                     child: Icon(Icons.star_border,
                         size: 40, color: Colors.white24)),
-              if (hasPhoto) ...[
+              if (hasPhoto) ...<Widget>[
                 Positioned(
                   top: 10,
                   left: 10,
@@ -221,7 +218,7 @@ class _RegisterPhotosScreenState extends ConsumerState<RegisterPhotosScreen> {
             image: FileImage(File(photo.path)), fit: BoxFit.cover),
       ),
       child: Stack(
-        children: [
+        children: <Widget>[
           Positioned(
             right: 2,
             top: 2,
@@ -239,7 +236,7 @@ class _RegisterPhotosScreenState extends ConsumerState<RegisterPhotosScreen> {
             child: Padding(
               padding: const EdgeInsets.only(bottom: 4),
               child:
-                  _badge('register.photo_index'.tr(args: [index.toString()])),
+                  _badge('register.photo_index'.tr(args: <String>[index.toString()])),
             ),
           )
         ],

@@ -36,13 +36,13 @@ class _MultiSelectDialogState<T> extends State<MultiSelectDialog<T>> {
       content: SingleChildScrollView(
         child: ListBody(
           children: widget.items.map((item) {
-            final isSelected = _selectedItems.contains(item);
+            final bool isSelected = _selectedItems.contains(item);
             return CheckboxListTile(
               value: isSelected,
               title: Text(widget.itemLabel(item), style: const TextStyle(color: Colors.white)),
               activeColor: CosmicColors.cosmicPink,
               checkColor: Colors.white,
-              onChanged: (checked) {
+              onChanged: (bool? checked) {
                 setState(() {
                   if (checked == true) {
                     _selectedItems.add(item);
@@ -55,7 +55,7 @@ class _MultiSelectDialogState<T> extends State<MultiSelectDialog<T>> {
           }).toList(),
         ),
       ),
-      actions: [
+      actions: <Widget>[
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Cancel', style: TextStyle(color: Colors.white54)),

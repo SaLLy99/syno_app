@@ -42,7 +42,7 @@ class CosmicColors {
       Color(0xFF581C87), // purple-900
       Color(0xFF0F172A), // slate-950
     ],
-    stops: [0.0, 0.4, 1.0],
+    stops: <double>[0.0, 0.4, 1.0],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );

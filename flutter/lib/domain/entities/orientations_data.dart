@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 
@@ -13,8 +12,8 @@ class Orientations {
   Orientations({required this.id, required this.name, required this.translationKey});
   factory Orientations.fromJson(Map<String, dynamic> json) => Orientations(
         id: json['id'],
-        translationKey: 'orientation',
-        name: json['name']
+        name: json['name'],
+        translationKey: json['translation_key'] as String? ?? json['translationKey'] as String? ?? '',
       );
 }
 class StaticDataService {
@@ -22,7 +21,7 @@ class StaticDataService {
 
 
   Future<List<Orientations>> getOrientations() async {
-    final response = await http.get(Uri.parse('$_baseUrl/api/orientations/'));
+    final http.Response response = await http.get(Uri.parse('$_baseUrl/api/orientations/'));
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((json) => Orientations.fromJson(json)).toList();
@@ -31,5 +30,5 @@ class StaticDataService {
   }
 
 }
-final OrientationProvider = Provider((ref) => StaticDataService());
-final orientationsProvider = FutureProvider((ref) => ref.watch(OrientationProvider).getOrientations());
+final Provider<StaticDataService> OrientationProvider = Provider((Ref ref) => StaticDataService());
+final FutureProvider<List<Orientations>> orientationsProvider = FutureProvider((Ref ref) => ref.watch(OrientationProvider).getOrientations());

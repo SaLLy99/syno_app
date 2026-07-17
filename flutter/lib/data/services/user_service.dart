@@ -1,10 +1,8 @@
 import 'dart:convert';
 import 'package:dio/dio.dart' as dio;
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'package:syno_app/domain/entities/user.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http_parser/http_parser.dart';
 
 class UserService {
   final String backendUrl;
@@ -14,7 +12,7 @@ class UserService {
   UserService(this.backendUrl, {this.onUnauthorized}) {
     _dio.interceptors.add(
       dio.InterceptorsWrapper(
-        onError: (e, handler) {
+        onError: (dio.DioException e, dio.ErrorInterceptorHandler handler) {
           // If the server returns a 401 Unauthorized, it means the token
           // is expired or invalid. Trigger the onUnauthorized callback to
           // initiate a global logout.
@@ -36,9 +34,9 @@ class UserService {
 
   Future<User?> fetchCurrentUser() async {
     debugPrint("[UserService] Attempting to fetch current user...");
-    final prefs = await SharedPreferences.getInstance();
-    final tokenRaw = prefs.getString('auth_token');
-    final token = _normalizeToken(tokenRaw);
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? tokenRaw = prefs.getString('auth_token');
+    final String token = _normalizeToken(tokenRaw);
 
     debugPrint('[UserService] fetchCurrentUser using token: ${token.isEmpty ? '<empty>' : '${token.substring(0, token.length > 8 ? 8 : token.length)}...'}');
 
@@ -47,11 +45,11 @@ class UserService {
       return null;
     }
 
-    final url = '$backendUrl/api/users/me/';
+    final String url = '$backendUrl/api/users/me/';
     try {
-      final response = await _dio.get(
+      final dio.Response response = await _dio.get(
         url,
-        options: dio.Options(headers: {'Authorization': 'Bearer $token'}),
+        options: dio.Options(headers: <String, dynamic>{'Authorization': 'Bearer $token'}),
       );
       debugPrint("[UserService] Current user fetched successfully.");
   
@@ -71,30 +69,30 @@ class UserService {
 
 
   Future<User> createProfileWithPhotos(Map<String, dynamic> profileData, List<String> photoPaths, {bool firstIsPrimary = false}) async {
-    final prefs = await SharedPreferences.getInstance();
-    final tokenRaw = prefs.getString('auth_token');
-    final token = _normalizeToken(tokenRaw);
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? tokenRaw = prefs.getString('auth_token');
+    final String token = _normalizeToken(tokenRaw);
 
     if (token.isEmpty) {
       throw Exception('Authentication token not found. User must be logged in.');
     }
 
-    final Map<String, dynamic> formDataMap = {};
+    final Map<String, dynamic> formDataMap = <String, dynamic>{};
     
     // Create a copy and explicitly remove 'uploaded_photos' to prevent it from being sent as a text field
-    final data = Map<String, dynamic>.from(profileData);
+    final Map<String, dynamic> data = Map<String, dynamic>.from(profileData);
     data.remove('uploaded_photos');
 
     // Explicitly remove keys that are handled by other endpoints or are deprecated.
     // This separates profile data saving from other concerns like themes or old field structures.
-    final themeKeys = ['theme_id', 'background_color', 'accent_color', 'layout', 'theme_preferences',
+    final List<String> themeKeys = <String>['theme_id', 'background_color', 'accent_color', 'layout', 'theme_preferences',
                        'intention', 'core_values' // Deprecated fields
                       ];
-    for (final key in themeKeys) {
+    for (final String key in themeKeys) {
       data.remove(key);
     }
 
-    data.forEach((key, value) {
+    data.forEach((String key, value) {
       if (value is DateTime) {
         // Convert DateTime objects to ISO 8601 string format
         formDataMap[key] = value.toIso8601String();
@@ -119,24 +117,24 @@ class UserService {
       }
 
       // 2. Handle Additional Photos
-      final startIndex = firstIsPrimary ? 1 : 0;
+      final int startIndex = firstIsPrimary ? 1 : 0;
       if (photoPaths.length > startIndex) {
-        final additionalFiles = <dio.MultipartFile>[];
+        final List<dio.MultipartFile> additionalFiles = <dio.MultipartFile>[];
         for (int i = startIndex; i < photoPaths.length; i++) {
           additionalFiles.add(await dio.MultipartFile.fromFile(photoPaths[i], filename: photoPaths[i].split('/').last));
         }
         formDataMap['uploaded_photos'] = additionalFiles;
       }
     }
-    final formData = dio.FormData.fromMap(formDataMap);
+    final dio.FormData formData = dio.FormData.fromMap(formDataMap);
 
-    final url = '$backendUrl/api/users/me';
+    final String url = '$backendUrl/api/users/me';
     try {
       debugPrint('[UserService] createProfileWithPhotos sending to $url with token present');
-      final response = await _dio.patch(
+      final dio.Response response = await _dio.patch(
         url,
         data: formData,
-        options: dio.Options(headers: {'Authorization': 'Bearer $token'}),
+        options: dio.Options(headers: <String, dynamic>{'Authorization': 'Bearer $token'}),
       );
 
       return User.fromJson(response.data);
@@ -150,19 +148,19 @@ class UserService {
   }
 
   Future<void> deletePhoto(int photoId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final tokenRaw = prefs.getString('auth_token');
-    final token = _normalizeToken(tokenRaw);
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? tokenRaw = prefs.getString('auth_token');
+    final String token = _normalizeToken(tokenRaw);
 
     if (token.isEmpty) {
       throw Exception('Authentication token not found.');
     }
 
-    final url = '$backendUrl/api/photos/$photoId';
+    final String url = '$backendUrl/api/photos/$photoId';
     try {
-      final response = await _dio.delete(
+      final dio.Response response = await _dio.delete(
         url,
-        options: dio.Options(headers: {'Authorization': 'Bearer $token'}),
+        options: dio.Options(headers: <String, dynamic>{'Authorization': 'Bearer $token'}),
       );
 
       // A 204 No Content status code indicates success.
@@ -175,30 +173,30 @@ class UserService {
   }
 
   Future<User> updateTheme(Map<String, dynamic> themeData) async {
-    final prefs = await SharedPreferences.getInstance();
-    final tokenRaw = prefs.getString('auth_token');
-    final token = _normalizeToken(tokenRaw);
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? tokenRaw = prefs.getString('auth_token');
+    final String token = _normalizeToken(tokenRaw);
 
     if (token.isEmpty) {
       throw Exception('Authentication token not found.');
     }
 
     // Construct payload ensuring all values are strings as expected by the backend
-    final Map<String, dynamic> payload = {};
-    final allowedKeys = ['theme_id', 'background_color', 'accent_color', 'layout'];
+    final Map<String, dynamic> payload = <String, dynamic>{};
+    final List<String> allowedKeys = <String>['theme_id', 'background_color', 'accent_color', 'layout'];
 
-    for (final key in allowedKeys) {
+    for (final String key in allowedKeys) {
       if (themeData.containsKey(key) && themeData[key] != null) {
         payload[key] = themeData[key].toString();
       }
     }
 
-    final url = '$backendUrl/api/users/me/settings';
+    final String url = '$backendUrl/api/users/me/settings';
     try {
-      final response = await _dio.put(
+      final dio.Response response = await _dio.put(
         url,
         data: payload,
-        options: dio.Options(headers: {'Authorization': 'Bearer $token'}),
+        options: dio.Options(headers: <String, dynamic>{'Authorization': 'Bearer $token'}),
       );
 
       return User.fromJson(response.data);
@@ -209,25 +207,25 @@ class UserService {
   }
 
   Future<void> updateCoreValues(int profileId, List<int> coreValueIds) async {
-    final prefs = await SharedPreferences.getInstance();
-    final tokenRaw = prefs.getString('auth_token');
-    final token = _normalizeToken(tokenRaw);
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? tokenRaw = prefs.getString('auth_token');
+    final String token = _normalizeToken(tokenRaw);
 
     if (token.isEmpty) {
       throw Exception('Authentication token not found.');
     }
 
-    final url = '$backendUrl/api/post/core-values';
-    final payload = {
+    final String url = '$backendUrl/api/post/core-values';
+    final Map<String, Object> payload = <String, Object>{
       'profile_id': profileId,
       'core_value_id': coreValueIds,
     };
 
     try {
-      final response = await _dio.post(
+      final dio.Response response = await _dio.post(
         url,
         data: payload,
-        options: dio.Options(headers: {'Authorization': 'Bearer $token'}),
+        options: dio.Options(headers: <String, dynamic>{'Authorization': 'Bearer $token'}),
       );
 
       if (response.statusCode != 200) {
@@ -239,25 +237,25 @@ class UserService {
   }
 
   Future<void> updateIntentions(int profileId, List<int> intentionIds) async {
-    final prefs = await SharedPreferences.getInstance();
-    final tokenRaw = prefs.getString('auth_token');
-    final token = _normalizeToken(tokenRaw);
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? tokenRaw = prefs.getString('auth_token');
+    final String token = _normalizeToken(tokenRaw);
 
     if (token.isEmpty) {
       throw Exception('Authentication token not found.');
     }
 
-    final url = '$backendUrl/api/post/intentions';
-    final payload = {
+    final String url = '$backendUrl/api/post/intentions';
+    final Map<String, Object> payload = <String, Object>{
       'profile_id': profileId,
       'intention_id': intentionIds,
     };
 
     try {
-      final response = await _dio.post(
+      final dio.Response response = await _dio.post(
         url,
         data: payload,
-        options: dio.Options(headers: {'Authorization': 'Bearer $token'}),
+        options: dio.Options(headers: <String, dynamic>{'Authorization': 'Bearer $token'}),
       );
 
       if (response.statusCode != 200) {
@@ -269,17 +267,17 @@ class UserService {
   }
 
   Future<void> unblockUser(int userId) async {
-    final prefs = await SharedPreferences.getInstance();
-    final tokenRaw = prefs.getString('auth_token');
-    final token = _normalizeToken(tokenRaw);
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? tokenRaw = prefs.getString('auth_token');
+    final String token = _normalizeToken(tokenRaw);
 
     if (token.isEmpty) throw Exception('Authentication token not found.');
 
-    final url = '$backendUrl/api/users/$userId/unblock';
+    final String url = '$backendUrl/api/users/$userId/unblock';
     try {
-      final response = await _dio.delete(
+      final dio.Response response = await _dio.delete(
         url,
-        options: dio.Options(headers: {'Authorization': 'Bearer $token'}),
+        options: dio.Options(headers: <String, dynamic>{'Authorization': 'Bearer $token'}),
       );
 
       if (response.statusCode != 204 && response.statusCode != 200) {
@@ -291,17 +289,17 @@ class UserService {
   }
 
   Future<void> deleteAccount() async {
-    final prefs = await SharedPreferences.getInstance();
-    final tokenRaw = prefs.getString('auth_token');
-    final token = _normalizeToken(tokenRaw);
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? tokenRaw = prefs.getString('auth_token');
+    final String token = _normalizeToken(tokenRaw);
 
     if (token.isEmpty) throw Exception('Authentication token not found.');
 
-    final url = '$backendUrl/api/users/me';
+    final String url = '$backendUrl/api/users/me';
     try {
-      final response = await _dio.delete(
+      final dio.Response response = await _dio.delete(
         url,
-        options: dio.Options(headers: {'Authorization': 'Bearer $token'}),
+        options: dio.Options(headers: <String, dynamic>{'Authorization': 'Bearer $token'}),
       );
 
       if (response.statusCode != 204 && response.statusCode != 200) {
@@ -313,18 +311,18 @@ class UserService {
   }
 
   Future<void> blockUserByName(String name) async {
-    final prefs = await SharedPreferences.getInstance();
-    final tokenRaw = prefs.getString('auth_token');
-    final token = _normalizeToken(tokenRaw);
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? tokenRaw = prefs.getString('auth_token');
+    final String token = _normalizeToken(tokenRaw);
 
     if (token.isEmpty) throw Exception('Authentication token not found.');
 
-    final url = '$backendUrl/api/users/block-by-name';
+    final String url = '$backendUrl/api/users/block-by-name';
     try {
-      final response = await _dio.post(
+      final dio.Response response = await _dio.post(
         url,
-        data: {'name': name},
-        options: dio.Options(headers: {'Authorization': 'Bearer $token'}),
+        data: <String, String>{'name': name},
+        options: dio.Options(headers: <String, dynamic>{'Authorization': 'Bearer $token'}),
       );
 
       if (response.statusCode != 204 && response.statusCode != 200) {
@@ -336,23 +334,23 @@ class UserService {
   }
 
   Future<List<User>> fetchBlockedUsers() async {
-    final prefs = await SharedPreferences.getInstance();
-    final tokenRaw = prefs.getString('auth_token');
-    final token = _normalizeToken(tokenRaw);
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? tokenRaw = prefs.getString('auth_token');
+    final String token = _normalizeToken(tokenRaw);
 
     if (token.isEmpty) throw Exception('Authentication token not found.');
 
-    final url = '$backendUrl/api/users/me/blocked';
+    final String url = '$backendUrl/api/users/me/blocked';
     try {
-      final response = await _dio.get(
+      final dio.Response response = await _dio.get(
         url,
-        options: dio.Options(headers: {'Authorization': 'Bearer $token'}),
+        options: dio.Options(headers: <String, dynamic>{'Authorization': 'Bearer $token'}),
       );
 
       if (response.data is List) {
         return (response.data as List).map((u) => User.fromJson(u)).toList();
       }
-      return [];
+      return <User>[];
     } on dio.DioException catch (e) {
       debugPrint("[UserService] Fetch blocked users failed: ${e.response?.statusCode}");
       throw Exception('Failed to fetch blocked users: ${e.response?.data ?? e.message}');
@@ -363,19 +361,19 @@ class UserService {
   /// Returns a [User] if found, or null if the backend returns a 404.
   /// Throws an exception for other errors.
   Future<User?> searchUserByName(String name) async {
-    final prefs = await SharedPreferences.getInstance();
-    final tokenRaw = prefs.getString('auth_token');
-    final token = _normalizeToken(tokenRaw);
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final String? tokenRaw = prefs.getString('auth_token');
+    final String token = _normalizeToken(tokenRaw);
 
     if (token.isEmpty) {
       throw Exception('Authentication token not found.');
     }
 
-    final url = '$backendUrl/api/users/profile-search/$name';
+    final String url = '$backendUrl/api/users/profile-search/$name';
     try {
-      final response = await _dio.get(
+      final dio.Response response = await _dio.get(
         url,
-        options: dio.Options(headers: {'Authorization': 'Bearer $token'}),
+        options: dio.Options(headers: <String, dynamic>{'Authorization': 'Bearer $token'}),
       );
 
       return User.fromJson(response.data);

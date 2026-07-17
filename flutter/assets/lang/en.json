@@ -1,507 +1,619 @@
 {
-    "synastry": {
-        "moon": {
-            "high": "Your emotional worlds align beautifully. Deep understanding and intuitive connection.",
-            "good": "Strong emotional resonance. You understand each other's needs naturally.",
-            "medium": "Moderate emotional compatibility. Some adjustments needed for deeper connection.",
-            "low": "Emotional patterns differ. Growth through understanding required."
-        },
-        "mercury": {
-            "high": "Exceptional mental rapport. Conversations flow effortlessly and ideas sync perfectly.",
-            "good": "Great communication compatibility. You enjoy talking and thinking together.",
-            "medium": "Good intellectual connection with some communication style differences.",
-            "low": "Communication approaches differ. Patience and clarity will strengthen connection."
-        },
-        "venus_mars": {
-            "high": "Magnetic attraction and romantic harmony. Chemistry is undeniable.",
-            "good": "Strong romantic and physical attraction. Natural chemistry flows between you.",
-            "medium": "Moderate attraction with potential for growth. Connection deepens over time.",
-            "low": "Different love languages. Understanding each other's desires is key."
-        },
-        "nodes": {
-            "high": "Profound karmic connection. You're meant to meet and grow together.",
-            "good": "Strong soul connection. This relationship serves a higher purpose.",
-            "medium": "Meaningful karmic link. There's a reason you crossed paths.",
-            "low": "Individual paths with potential for mutual growth through conscious effort."
-        },
-        "saturn": {
-            "high": "Exceptional long-term potential. Commitment and stability come naturally.",
-            "good": "Strong foundation for lasting connection. You can build something enduring.",
-            "medium": "Good stability potential with work. Commitment requires mutual effort.",
-            "low": "Different approaches to commitment. Clear expectations needed."
-        },
-        "interpretation": {
-            "high": "This is a rare and extraordinary cosmic alignment. Your charts show exceptional compatibility across all major areas: emotional, mental, romantic, karmic, and long-term. This connection has the potential to be truly transformative and enduring.",
-            "good": "Your cosmic connection is strong and promising. There's natural harmony in multiple dimensions of your relationship, suggesting deep compatibility and excellent potential for growth together.",
-            "medium": "You share a balanced cosmic connection with both harmonious and challenging aspects. This creates opportunity for growth and deeper understanding as you navigate your differences together.",
-            "low": "Your charts show contrasting energies that invite conscious growth. While challenges exist, they offer profound opportunities for expansion if both partners are willing to understand and embrace differences."
-        }
-    },
-    "explanation": {
-        "top_reasons": {
-            "moon_high": "🌙 Deep emotional understanding and intuitive connection",
-            "moon_good": "🌙 Strong emotional resonance",
-            "mercury_high": "💬 Exceptional communication and mental rapport",
-            "mercury_good": "💬 Natural conversational flow",
-            "venus_mars_high": "💫 Magnetic romantic and physical chemistry",
-            "venus_mars_good": "💫 Strong attraction and romantic harmony",
-            "nodes_high": "✨ Profound karmic soul connection",
-            "nodes_good": "✨ Meaningful spiritual alignment",
-            "saturn_high": "🔒 Exceptional long-term commitment potential",
-            "saturn_good": "🔒 Strong foundation for lasting bond"
-        },
-        "cosmic_insight": {
-            "high": [
-                "The stars have aligned in your favor—this is destiny calling",
-                "A cosmic match written in the constellations",
-                "Your souls dance to the same celestial rhythm",
-                "The universe conspires to bring you together",
-                "A rare alignment that transcends ordinary connection"
-            ],
-            "good": [
-                "The cosmos sees great potential in your union",
-                "Your energies harmonize across multiple dimensions",
-                "A connection blessed by the celestial spheres",
-                "The planets smile upon this pairing",
-                "Your charts reveal a promising cosmic journey together"
-            ],
-            "medium": [
-                "The universe offers opportunities for beautiful growth",
-                "Your paths cross for meaningful reasons",
-                "A balanced cosmic connection awaits exploration",
-                "The stars guide you toward mutual discovery",
-                "Your energies can create something special together"
-            ],
-            "low": [
-                "Every connection teaches us something profound",
-                "The cosmos challenges you to grow beyond comfort",
-                "Different energies can spark unexpected transformation",
-                "Your journey together offers valuable lessons",
-                "The universe presents opportunities for conscious evolution"
-            ],
-            "nodes_special": "Your karmic bond transcends this lifetime",
-            "venus_mars_special": "The chemistry between you ignites like stardust"
-        },
-        "highlights": {
-            "emotional_connection": "Emotional Connection",
-            "communication": "Communication",
-            "romantic_chemistry": "Romantic Chemistry",
-            "soul_bond": "Soul Bond",
-            "long_term_potential": "Long-term Potential"
-        }
-    },
-    "register": {
-        "error_title": "Registration Error",
-        "profession_label": "Your Profession",
-        "education_label": "Your Education",
-        "identity_label": "Your Identity",
-        "identity_subtitle": "This helps us understand who you are and what you're seeking.",
-        "birth_subtitle": "This is required to calculate your natal chart.",
-        "continue": "Let's Go",
-        "name_title": "Set Up Your Account",
-        "name": "Your Name",
-        "last_name": "Your Last Name",
-        "height": "Your Height",
-        "done": "Done",
-        "subtitle": "Enter your email and password",
-        "already_have_account":"Already have an account? ",
-        "login":"login",
-        "step2_title": "Register (Step 2 of 2)",
-        "natal_chart_title": "Your Natal Chart",
-        "natal_chart_subtitle": "This is vital for calculating your cosmic blueprint.",
-        "dob_label": "Date of Birth",
-        "dob_hint": "YYYY-MM-DD",
-        "tob_label": "Time of Birth",
-        "tob_hint": "HH:mm (24-hour)",
-        "birth_location_label": "Birth Location",
-        "birth_location_hint": "City, Country",
-        "identity_title": "Your Identity & Intentions",
-        "gender_label": "Gender",
-        "orientation_label": "Orientation",
-        "gender_hint": "How do you identify?",
-        "orientation_hint": "How do you identify romantically?",
-        "intentions_title": "Your Intentions",
-        "intentions_subtitle": "Pick what you are seeking.",
-        "looking_for": "I'm looking for...",
-        "intention_label": "Relationship Intention",
-        "intention_hint": "What are you seeking?",
-        "core_values_title": "Your Core Values",
-        "core_values_subtitle": "Select up to 5 values that guide you.",
-        "bio_label": "Short Bio",
-        "bio_hint": "A glimpse of your soul...",
-        "finish_button": "Finish Registration",
-        "success_message": "Registration Successful! ✨",
-        "hobbies_title": "Your Hobbies",
-        "hobbies_subtitle": "Choose activities that make you feel alive.",
-        "career_title": "Career & Education",
-        "career_subtitle": "Share your work and learning history.",
-        "bio_title": "Your Bio",
-        "bio_subtitle": "Tell others who you are in a few sentences.",
-        "photos_title": "Gallery",
-        "photos_subtitle": "Upload at least 2 photos to continue.",
-        "additional_photos": "Additional Photos",
-        "add_more": "Add More ({current}/{max})",
-        "complete_registration": "Complete Registration",
-        "min_photos_required": "Minimum 2 Photos Required",
-        "primary_badge": "PRIMARY",
-        "photo_index": "Photo #{0}",
-        "drag_placeholder": "Drag additional photos here",
-        "limit_reached": "Limit Reached",
-        "limit_message": "You can only upload up to {max} photos.",
-        "no_cities_found": "No cities found.",
-        "missing_data": "Missing Data",
-        "missing_name_error": "Profile name is missing. Please restart the registration process.",
-        "missing_creds_error": "Registration credentials missing. Please restart.",
-        "welcome_title": "Welcome!",
-        "welcome_message": "Registration complete.",
-        "failed_title": "Registration Failed",
-        "email": "Email",
-        "password":"Password",
-        "email_required":"Email is required.",
-        "email_invalid":"Please enter a valid email.",
-        "password_length":"Password must be at least 8 characters.",
-        "confirm_password":"Confirm Password",
-        "passwords_no_match":"Passwords do not match.",
-        "options": {
-            "genders": {
-                "man": "Man",
-                "woman": "Woman",
-                "non_binary": "Non-binary"
-            },
-            "intentions": {
-                "soulmate": "Soulmate",
-                "casual_relationship": "Casual Relationship",
-                "exploring": "Exploring",
-                "friendship": "Friendship"
-            },
-            "core_values": {
-                "spirituality": "Spirituality",
-                "kindness": "Kindness",
-                "creativity": "Creativity",
-                "authenticity": "Authenticity",
-                "growth": "Growth",
-                "adventure": "Adventure"
+   "synastry":{
+      "moon":{
+         "high":"Your emotional worlds align beautifully. Deep understanding and intuitive connection.",
+         "good":"Strong emotional resonance. You understand each other's needs naturally.",
+         "medium":"Moderate emotional compatibility. Some adjustments needed for deeper connection.",
+         "low":"Emotional patterns differ. Growth through understanding required."
+      },
+      "mercury":{
+         "high":"Exceptional mental rapport. Conversations flow effortlessly and ideas sync perfectly.",
+         "good":"Great communication compatibility. You enjoy talking and thinking together.",
+         "medium":"Good intellectual connection with some communication style differences.",
+         "low":"Communication approaches differ. Patience and clarity will strengthen connection."
+      },
+      "venus_mars":{
+         "high":"Magnetic attraction and romantic harmony. Chemistry is undeniable.",
+         "good":"Strong romantic and physical attraction. Natural chemistry flows between you.",
+         "medium":"Moderate attraction with potential for growth. Connection deepens over time.",
+         "low":"Different love languages. Understanding each other's desires is key."
+      },
+      "nodes":{
+         "high":"Profound karmic connection. You're meant to meet and grow together.",
+         "good":"Strong soul connection. This relationship serves a higher purpose.",
+         "medium":"Meaningful karmic link. There's a reason you crossed paths.",
+         "low":"Individual paths with potential for mutual growth through conscious effort."
+      },
+      "saturn":{
+         "high":"Exceptional long-term potential. Commitment and stability come naturally.",
+         "good":"Strong foundation for lasting connection. You can build something enduring.",
+         "medium":"Good stability potential with work. Commitment requires mutual effort.",
+         "low":"Different approaches to commitment. Clear expectations needed."
+      },
+      "interpretation":{
+         "high":"This is a rare and extraordinary cosmic alignment. Your charts show exceptional compatibility across all major areas: emotional, mental, romantic, karmic, and long-term. This connection has the potential to be truly transformative and enduring.",
+         "good":"Your cosmic connection is strong and promising. There's natural harmony in multiple dimensions of your relationship, suggesting deep compatibility and excellent potential for growth together.",
+         "medium":"You share a balanced cosmic connection with both harmonious and challenging aspects. This creates opportunity for growth and deeper understanding as you navigate your differences together.",
+         "low":"Your charts show contrasting energies that invite conscious growth. While challenges exist, they offer profound opportunities for expansion if both partners are willing to understand and embrace differences."
+      }
+   },
+   "explanation":{
+      "top_reasons":{
+         "moon_high":"🌙 Deep emotional understanding and intuitive connection",
+         "moon_good":"🌙 Strong emotional resonance",
+         "mercury_high":"💬 Exceptional communication and mental rapport",
+         "mercury_good":"💬 Natural conversational flow",
+         "venus_mars_high":"💫 Magnetic romantic and physical chemistry",
+         "venus_mars_good":"💫 Strong attraction and romantic harmony",
+         "nodes_high":"✨ Profound karmic soul connection",
+         "nodes_good":"✨ Meaningful spiritual alignment",
+         "saturn_high":"🔒 Exceptional long-term commitment potential",
+         "saturn_good":"🔒 Strong foundation for lasting bond"
+      },
+      "cosmic_insight":{
+         "high":[
+            "The stars have aligned in your favor—this is destiny calling",
+            "A cosmic match written in the constellations",
+            "Your souls dance to the same celestial rhythm",
+            "The universe conspires to bring you together",
+            "A rare alignment that transcends ordinary connection"
+         ],
+         "good":[
+            "The cosmos sees great potential in your union",
+            "Your energies harmonize across multiple dimensions",
+            "A connection blessed by the celestial spheres",
+            "The planets smile upon this pairing",
+            "Your charts reveal a promising cosmic journey together"
+         ],
+         "medium":[
+            "The universe offers opportunities for beautiful growth",
+            "Your paths cross for meaningful reasons",
+            "A balanced cosmic connection awaits exploration",
+            "The stars guide you toward mutual discovery",
+            "Your energies can create something special together"
+         ],
+         "low":[
+            "Every connection teaches us something profound",
+            "The cosmos challenges you to grow beyond comfort",
+            "Different energies can spark unexpected transformation",
+            "Your journey together offers valuable lessons",
+            "The universe presents opportunities for conscious evolution"
+         ],
+         "nodes_special":"Your karmic bond transcends this lifetime",
+         "venus_mars_special":"The chemistry between you ignites like stardust"
+      },
+      "highlights":{
+         "emotional_connection":"Emotional Connection",
+         "communication":"Communication",
+         "romantic_chemistry":"Romantic Chemistry",
+         "soul_bond":"Soul Bond",
+         "long_term_potential":"Long-term Potential"
+      }
+   },
+   "register":{
+      "error_title":"Registration Error",
+      "profession_label":"Your Profession",
+      "profession_hint":"Type to search...",
+      "no_professions_found":"No professions found.",
+      "education_label":"Your Education",
+      "no_education_found":"No education found.",
+      "identity_label":"Your Identity",
+      "identity_subtitle":"This helps us understand who you are and what you're seeking.",
+      "birth_subtitle":"This is required to calculate your natal chart.",
+      "continue":"Let's Go",
+      "name_title":"Set Up Your Account",
+      "name":"Your Name",
+      "last_name":"Your Last Name",
+      "height":"Your Height",
+      "done":"Done",
+      "subtitle":"Enter your email and password",
+      "already_have_account":"Already have an account? ",
+      "login":"login",
+      "step2_title":"Register (Step 2 of 2)",
+      "natal_chart_title":"Your Natal Chart",
+      "natal_chart_subtitle":"This is vital for calculating your cosmic blueprint.",
+      "dob_label":"Date of Birth",
+      "dob_hint":"YYYY-MM-DD",
+      "tob_label":"Time of Birth",
+      "tob_hint":"HH:mm (24-hour)",
+      "birth_location_label":"Birth Location",
+      "birth_location_hint":"City, Country",
+      "identity_title":"Your Identity & Orientation",
+      "gender_label":"Gender",
+      "orientation_label":"Orientation",
+      "gender_hint":"How do you identify?",
+      "orientation_hint":"How do you identify romantically?",
+      "intentions_title":"Your Intentions",
+      "intentions_subtitle":"Pick what you are seeking.",
+      "looking_for":"I'm looking for...",
+      "intention_label":"Relationship Intention",
+      "intention_hint":"What are you seeking?",
+      "core_values_title":"Your Core Values",
+      "core_values_subtitle":"Select up to 5 values that guide you.",
+      "bio_label":"Short Bio",
+      "bio_hint":"A glimpse of your soul...",
+      "finish_button":"Finish Registration",
+      "success_message":"Registration Successful! ✨",
+      "hobbies_title":"Your Hobbies",
+      "hobbies_subtitle":"Choose activities that make you feel alive.",
+      "career_title":"Career & Education",
+      "career_subtitle":"Share your work and learning history.",
+      "bio_title":"Your Bio",
+      "bio_subtitle":"Tell others who you are in a few sentences.",
+      "photos_title":"Gallery",
+      "photos_subtitle":"Upload at least 2 photos to continue.",
+      "additional_photos":"Additional Photos",
+      "add_more":"Add More ({current}/{max})",
+      "complete_registration":"Complete Registration",
+      "min_photos_required":"Minimum 2 Photos Required",
+      "primary_badge":"PRIMARY",
+      "photo_index":"Photo #{0}",
+      "drag_placeholder":"Drag additional photos here",
+      "limit_reached":"Limit Reached",
+      "limit_message":"You can only upload up to {max} photos.",
+      "no_cities_found":"No cities found.",
+      "missing_data":"Missing Data",
+      "missing_name_error":"Profile name is missing. Please restart the registration process.",
+      "missing_creds_error":"Registration credentials missing. Please restart.",
+      "welcome_title":"Welcome!",
+      "welcome_message":"Registration complete.",
+      "failed_title":"Registration Failed",
+      "email":"Email",
+      "password":"Password",
+      "email_required":"Email is required.",
+      "email_invalid":"Please enter a valid email.",
+      "password_length":"Password must be at least 8 characters.",
+      "profile_ready_message":"Your profile looks amazing!",
+      "confirm_password":"Confirm Password",
+      "passwords_no_match":"Passwords do not match.",
+      "options":{
+         "genders":{
+            "man":"Man",
+            "woman":"Woman",
+            "non_binary":"Non-binary"
+         },
+         "intentions":{
+            "soulmate":"Soulmate",
+            "casual_relationship":"Casual Relationship",
+            "exploring":"Exploring",
+            "friendship":"Friendship"
+         },
+         "core_values":{
+            "spirituality":"Spirituality",
+            "kindness":"Kindness",
+            "creativity":"Creativity",
+            "authenticity":"Authenticity",
+            "growth":"Growth",
+            "adventure":"Adventure"
+         }
+      },
+      "errors":{
+         "fill_preferences":"Please fill out all preference fields.",
+         "dob_required":"Birth date is required.",
+         "tob_required":"Birth time is required.",
+         "birth_location_required":"Birth location is required.",
+         "gender_required":"Please select your gender.",
+         "intention_required":"Please state your intention.",
+         "bio_required":"A bio is required to introduce yourself.",
+         "orientation_required":"Please select your orientation.",
+         "name_required":"Please enter your name.",
+         "height_required":"Please select your height."
+      }
+   },
+   "login":{
+      "title":"Let's find your soulmate",
+      "email_hint":"Email",
+      "email_required":"Email is required.",
+      "password_hint":"Password",
+      "password_required":"Password is required.",
+      "forgot_password":"Forgot Password?",
+      "login_button":"Log In",
+      "or_divider":"OR",
+      "continue_with_facebook":"Continue with Facebook",
+      "signup_prompt":"Don't have an account? Sign up",
+      "logging_in":"Logging in...",
+      "redirecting_to_facebook":"Redirecting to Facebook...",
+      "redirecting_to_mobile":"Redirecting to mobile login...",
+      "success_title":"Login Successful!",
+      "success_message":"Welcome back! You have logged in successfully.",
+      "email_toggle":"Email",
+      "mobile_toggle":"Mobile",
+      "phone_hint":"000 000 000",
+      "no_account_prompt":"Don't have an account? ",
+      "signup_link":"Sign up"
+   },
+   "onboarding":{
+      "welcome":"Welcome to SYNO",
+      "tagline":"Meet Who You Are Meant To",
+      "description":"Discover your cosmic match through the perfect blend of astrology and AI-powered compatibility",
+      "get_started":"Get Started",
+      "demo_notice":"For demo: Using first available profile"
+   },
+   "match_details":{
+      "match_percentage":"{score}% Match",
+      "synastry_score":"Synastry: {score}%",
+      "behavioral_score":"Behavioral: {score}%",
+      "cosmic_insight":"Cosmic Insight",
+      "top_reasons":"Top Compatibility Reasons",
+      "synastry_breakdown":"Synastry Breakdown",
+      "view_full_report":"View Full Synastry Report",
+      "send_message":"Send Message",
+      "block_user":"Block User",
+      "unblock_user":"Unblock User",
+      "block_sheet_title":"Block user?",
+      "unblock_sheet_title":"Unblock user?",
+      "block_sheet_subtitle":"You will not see or receive messages from this user. You can unblock anytime.",
+      "unblock_sheet_subtitle":"They will be able to match and message you again.",
+      "cancel":"Cancel",
+      "block":"Block",
+      "unblock":"Unblock",
+      "highlights":{
+         "emotional":"Emotional",
+         "communication":"Communication",
+         "romantic":"Romantic",
+         "soul_bond":"Soul Bond",
+         "long_term":"Long-term"
+      }
+   },
+   "chat":{
+      "no_user":"No user",
+      "error":"Error: {error}",
+      "safety_options":"Safety options",
+      "unblock_user":"Unblock {name}",
+      "block_user":"Block {name}",
+      "unblock_subtitle":"They will be able to message you again.",
+      "block_subtitle":"You will not see or receive messages from this user.",
+      "close":"Close",
+      "blocked_banner":"You blocked this user. You won't receive new messages.",
+      "blocked_footer":"Messaging disabled for this chat",
+      "unblock_button":"Unblock",
+      "start_conversation":"Start the conversation!",
+      "say_hello":"Say hello to {name}",
+      "message_hint":"Type a message..."
+   },
+   "discover":{
+      "title":"Discover",
+      "no_matches_title":"Cosmic Silence",
+      "no_matches_subtitle":"There are no new profiles matching your preferences right now. The universe is taking its time to align your stars. Please check back later!",
+      "error_title":"Cosmic Interference",
+      "error_subtitle":"We've encountered an issue while searching for your cosmic matches. Please try again.",
+      "loading":"Searching the cosmos for you..."
+   },
+   "chats_list":{
+      "title":"Chats",
+      "no_chats_title":"No Conversations Yet",
+      "no_chats_subtitle":"When you match with someone, your conversation will appear here. Go to Discover to find your cosmic connection!",
+      "error_title":"Error Loading Chats",
+      "error_subtitle":"There was a problem fetching your conversations. Please try again.",
+      "loading":"Loading conversations..."
+   },
+   "matches_list":{
+      "title":"Matches",
+      "no_matches_title":"No Matches Yet",
+      "no_matches_subtitle":"Your cosmic matches will appear here once you've connected with someone. Keep exploring!",
+      "error_title":"Error Loading Matches",
+      "error_subtitle":"There was a problem fetching your matches. Please try again.",
+      "loading":"Loading matches..."
+   },
+   "profile":{
+      "title":"Profile",
+      "name":"Name",
+      "edit_profile":"Edit Profile",
+      "preview_profile":"Profile Preview",
+      "edit_limited_message":"You can edit your profile in {days} days.",
+      "logout":"Log Out",
+      "logout_confirm_title":"Log Out?",
+      "logout_confirm_subtitle":"Are you sure you want to log out?",
+      "cancel":"Cancel",
+      "about":"About",
+      "gallery":"Gallery",
+      "no_bio":"No bio provided.",
+      "no_hobbies":"No hobbies provided.",
+      "no_core_values":"No core values provided.",
+      "no_intentions":"No intentions provided.",
+      "birth_info":"Birth Info",
+      "preferences":"Preferences",
+      "profession":"Profession",
+      "education":"Education",
+      "careerandeducation":"Career & Education",
+      "error":"Error",
+      "blocked_users":"Block/Unblock User",
+      "bio":"Bio",
+      "no_blocked_users":"No blocked users",
+      "log_out":"Log Out",
+      "birth_location":"Birth Location",
+      "zodiac_sign":"Zodiac Sign",
+      "intention":"Intention",
+      "sex":"Sex",
+      "orientation":"Orientation",
+      "hobbies_title":"Hobbies",
+      "update_success_title":"Profile Updated",
+      "update_success_message":"Your changes have been saved successfully.",
+      "save":"Save",
+      "photo_dialog_title":"Update Your Profile Photo",
+      "photo_dialog_body":"Tap below to choose a new photo for your profile. You can take a new picture or select one from your gallery.",
+      "photo_dialog_gallery":"Choose from Gallery",
+      "first_name":"First Name",
+      "last_name":"Last Name",
+      "birth_date":"Birth Date",
+      "birth_time":"Birth Time",
+      "select_date":"Select Date",
+      "select_time":"Select Time",
+      "name_required":"Name is required",
+      "bio_required":"Bio is required",
+      "user_not_found":"User not found",
+      "photo_limit_reached":"Photo Limit Reached",
+      "photo_limit_message":"You can upload a maximum of 6 additional photos.",
+      "photo_updated_title":"Success",
+      "photo_updated_message":"Profile photo updated successfully.",
+      "delete_photo":"Delete Photo",
+      "delete_photo_confirm":"Are you sure you want to delete this photo?",
+      "delete":"Delete",
+      "photo_deleted_title":"Success",
+      "photo_deleted_message":"Photo deleted successfully.",
+      "educations":{
+         "high_school":"High School",
+         "associate":"Associate Degree",
+         "bachelor":"Bachelor's Degree",
+         "master":"Master's Degree",
+         "phd":"Doctorate (PhD)",
+         "trade_school":"Trade School"
+      },
+      "professions":{
+         "engineer":"Engineer",
+         "doctor":"Doctor",
+         "artist":"Artist",
+         "teacher":"Teacher",
+         "developer":"Software Developer",
+         "manager":"Manager",
+         "student":"Student"
+      },
+      "hobbies":{
+         "yoga":"Yoga",
+         "meditation":"Meditation",
+         "astrology":"Astrology",
+         "hiking":"Hiking",
+         "reading":"Reading",
+         "music":"Music",
+         "traveling":"traveling"
+      },
+      "sexes":{
+         "male":"Male",
+         "female":"Female",
+         "non_binary":"Non-binary",
+         "other":"Other"
+      },
+      "orientations":{
+         "straight":"Straight",
+         "gay":"Gay",
+         "bisexual":"Bisexual",
+         "pansexual":"Pansexual",
+         "asexual":"Asexual",
+         "other":"Other"
+      },
+      "locations":{
+         "usa":"United States",
+         "uk":"United Kingdom",
+         "france":"France",
+         "japan":"Japan",
+         "australia":"Australia",
+         "germany":"Germany",
+         "canada":"Canada",
+         "new_york":"New York",
+         "los_angeles":"Los Angeles",
+         "london":"London",
+         "paris":"Paris",
+         "tokyo":"Tokyo",
+         "sydney":"Sydney",
+         "berlin":"Berlin",
+         "toronto":"Toronto"
+      },
+      "settings":{
+         "general":"General",
+         "theme":{
+            "title":"Theme",
+            "subtitle":"Customize your app theme",
+            "theme_selection_title":"Theme Selection",
+            "theme_selection_subtitle":"Choose from predefined themes",
+            "theme_customization_title":"Theme Customization",
+            "theme_customization_subtitle":"Create your own unique theme",
+            "save_button":"Save Changes",
+            "save_error_generic":"Failed to update your theme settings. Please try again later.",
+            "save_error_unauthorized":"Your session has expired. Please log back in.",
+            "names":{
+               "deep_space":"Deep Space",
+               "nebula_dream":"Nebula Dream",
+               "starlight":"Starlight"
             }
-        },
-        "errors": {
-            "fill_preferences": "Please fill out all preference fields.",
-            "dob_required": "Birth date is required.",
-            "tob_required": "Birth time is required.",
-            "birth_location_required": "Birth location is required.",
-            "gender_required": "Please select your gender.",
-            "intention_required": "Please state your intention.",
-            "bio_required": "A bio is required to introduce yourself.",
-            "orientation_required": "Please select your orientation.",
-            "name_required": "Please enter your name.",
-            "height_required": "Please select your height."
-        }
-    },
-    "login": {
-        "title": "Let's find your soulmate",
-        "email_hint": "Email",
-        "email_required": "Email is required.",
-        "password_hint": "Password",
-        "password_required": "Password is required.",
-        "forgot_password": "Forgot Password?",
-        "login_button": "Log In",
-        "or_divider": "OR",
-        "continue_with_facebook": "Continue with Facebook",
-        "signup_prompt": "Don't have an account? Sign up",
-        "logging_in": "Logging in...",
-        "redirecting_to_facebook": "Redirecting to Facebook...",
-        "redirecting_to_mobile": "Redirecting to mobile login...",
-        "success_title": "Login Successful!",
-        "success_message": "Welcome back! You have logged in successfully.",
-        "email_toggle": "Email",
-        "mobile_toggle": "Mobile",
-        "phone_hint": "000 000 000",
-        "no_account_prompt": "Don't have an account? ",
-        "signup_link": "Sign up"
-    },
-    "onboarding": {
-        "welcome": "Welcome to SYNO",
-        "tagline": "Meet Who You Are Meant To",
-        "description": "Discover your cosmic match through the perfect blend of astrology and AI-powered compatibility",
-        "get_started": "Get Started",
-        "demo_notice": "For demo: Using first available profile"
-    },
-    "match_details": {
-        "match_percentage": "{score}% Match",
-        "synastry_score": "Synastry: {score}%",
-        "behavioral_score": "Behavioral: {score}%",
-        "cosmic_insight": "Cosmic Insight",
-        "top_reasons": "Top Compatibility Reasons",
-        "synastry_breakdown": "Synastry Breakdown",
-        "view_full_report": "View Full Synastry Report",
-        "send_message": "Send Message",
-        "block_user": "Block User",
-        "unblock_user": "Unblock User",
-        "block_sheet_title": "Block user?",
-        "unblock_sheet_title": "Unblock user?",
-        "block_sheet_subtitle": "You will not see or receive messages from this user. You can unblock anytime.",
-        "unblock_sheet_subtitle": "They will be able to match and message you again.",
-        "cancel": "Cancel",
-        "block": "Block",
-        "unblock": "Unblock",
-        "highlights": {
-            "emotional": "Emotional",
-            "communication": "Communication",
-            "romantic": "Romantic",
-            "soul_bond": "Soul Bond",
-            "long_term": "Long-term"
-        }
-    },
-    "chat": {
-        "no_user": "No user",
-        "error": "Error: {error}",
-        "safety_options": "Safety options",
-        "unblock_user": "Unblock {name}",
-        "block_user": "Block {name}",
-        "unblock_subtitle": "They will be able to message you again.",
-        "block_subtitle": "You will not see or receive messages from this user.",
-        "close": "Close",
-        "blocked_banner": "You blocked this user. You won't receive new messages.",
-        "blocked_footer": "Messaging disabled for this chat",
-        "unblock_button": "Unblock",
-        "start_conversation": "Start the conversation!",
-        "say_hello": "Say hello to {name}",
-        "message_hint": "Type a message..."
-    },
-    "discover": {
-        "title": "Discover",
-        "no_matches_title": "Cosmic Silence",
-        "no_matches_subtitle": "There are no new profiles matching your preferences right now. The universe is taking its time to align your stars. Please check back later!",
-        "error_title": "Cosmic Interference",
-        "error_subtitle": "We've encountered an issue while searching for your cosmic matches. Please try again.",
-        "loading": "Searching the cosmos for you..."
-    },
-    "chats_list": {
-        "title": "Chats",
-        "no_chats_title": "No Conversations Yet",
-        "no_chats_subtitle": "When you match with someone, your conversation will appear here. Go to Discover to find your cosmic connection!",
-        "error_title": "Error Loading Chats",
-        "error_subtitle": "There was a problem fetching your conversations. Please try again.",
-        "loading": "Loading conversations..."
-    },
-    "matches_list": {
-        "title": "Matches",
-        "no_matches_title": "No Matches Yet",
-        "no_matches_subtitle": "Your cosmic matches will appear here once you've connected with someone. Keep exploring!",
-        "error_title": "Error Loading Matches",
-        "error_subtitle": "There was a problem fetching your matches. Please try again.",
-        "loading": "Loading matches..."
-    },
-    "profile": {
-        "title": "Profile",
-        "name": "Name",
-        "edit_profile": "Edit Profile",
-        "preview_profile": "Profile Preview",
-        "edit_limited_message": "You can edit your profile in {days} days.",
-        "logout": "Log Out",
-        "logout_confirm_title": "Log Out?",
-        "logout_confirm_subtitle": "Are you sure you want to log out?",
-        "cancel": "Cancel",
-        "about": "About",
-        "gallery": "Gallery",
-        "no_bio": "No bio provided.",
-        "no_hobbies": "No hobbies provided.",
-        "no_core_values": "No core values provided.",
-        "no_intentions": "No intentions provided.",
-        "birth_info": "Birth Info",
-        "preferences": "Preferences",
-        "profession": "Profession",
-        "education": "Education",
-        "careerandeducation":"Career & Education",
-        "error": "Error",
-        "blocked_users": "Block/Unblock User",
-        "bio": "Bio",
-        "no_blocked_users": "No blocked users",
-        "log_out": "Log Out",
-        "birth_location": "Birth Location",
-        "zodiac_sign": "Zodiac Sign",
-        "intention": "Intention",
-        "sex": "Sex",
-        "orientation": "Orientation",
-        "hobbies": "Hobbies",
-        "update_success_title": "Profile Updated",
-        "update_success_message": "Your changes have been saved successfully.",
-        "save": "Save",
-        "photo_dialog_title": "Update Your Profile Photo",
-        "photo_dialog_body": "Tap below to choose a new photo for your profile. You can take a new picture or select one from your gallery.",
-        "photo_dialog_gallery": "Choose from Gallery",
-        "settings":{
-            "general":"General",
-            "theme":{
-                "title":"Theme",
-                "subtitle":"Customize your app theme",
-                "theme_selection_title":"Theme Selection",
-                "theme_selection_subtitle":"Choose from predefined themes",
-                "theme_customization_title":"Theme Customization",
-                "theme_customization_subtitle":"Create your own unique theme",
-                "save_button": "Save Changes",
-                "save_error_generic": "Failed to update your theme settings. Please try again later.",
-                "save_error_unauthorized": "Your session has expired. Please log back in."
-            },
-            "title": "Settings",
-            "account": "Account",
-            "blocked_users": {
-                "title": "Block/Unblock User",
-                "subtitle": "Manage users you have blocked",
-                "input_placeholder": "Enter profile name to block...",
-                "success_blocked": "User {} blocked",
-                "success_title": "Updated",
-                "success_unblocked": "User {} unblocked",
-                "error_not_found": "We couldn't find that user. Please check the spelling and try again.",
-                "error_already_blocked": "This user is already in your blocked list.",
-                "error_self_block": "The stars say you should be your own best friend! You cannot block yourself.",
-                "unblock_confirm_title": "Unblock User",
-                "unblock_confirm_message": "Are you sure you want to unblock {}?",
-                "unblock_button": "Unblock",
-                "empty_list": "You haven't blocked any users yet."
-            },
-            "deactivate": {
-                "title": "Deactivate Account",
-                "subtitle": "Deactivate your account permanently",
-                "confirm_title": "Deactivate Account?",
-                "confirm_subtitle": "Are you sure you want to deactivate your account? This action cannot be undone.",
-                "cancel": "Cancel",
-                "deactivate": "Deactivate",
-                "confirm_message": "Your account will be deactivated immediately. You can reactivate within a month.",
-                "action": "Deactivate"
-            },
-            "cancel":"Cancel"
-
-        },
-        "core_values":{
-                "title":"Core Values",
-                "subtitle":"Select up to 5 values that guide you",
-                "spirituality":"Spirituality",
-                "kindness":"Kindness",
-                "creativity":"Creativity",
-                "authenticity":"Authenticity",
-                "growth":"Growth",
-                "adventure":"Adventure",
-                "commitment":"Commitment"
-            },
-            "updated":"Updated",
-            "changes_saved":"Changes saved successfully"
-    },
-    "zodiac": {
-        "aries": "Aries",
-        "taurus": "Taurus",
-        "gemini": "Gemini",
-        "cancer": "Cancer",
-        "leo": "Leo",
-        "virgo": "Virgo",
-        "libra": "Libra",
-        "scorpio": "Scorpio",
-        "sagittarius": "Sagittarius",
-        "capricorn": "Capricorn",
-        "aquarius": "Aquarius",
-        "pisces": "Pisces",
-        "unknown": "Unknown"
-    },
-    "register_main": {
-        "title": "Create Your Account",
-        "email_hint": "Email",
-        "email_required": "Email is required.",
-        "email_invalid": "Please enter a valid email.",
-        "password_hint": "Password",
-        "password_required": "Password is required.",
-        "password_short": "Password must be at least 6 characters.",
-        "confirm_password_hint": "Confirm Password",
-        "confirm_password_required": "Please confirm your password.",
-        "passwords_no_match": "Passwords do not match.",
-        "continue_button": "Continue",
-        "or_divider": "OR",
-        "login_prompt": "Already have an account? Log In"
-    },
-    "synastry_report": {
-        "title": "Synastry Report",
-        "report_for": "Report for {user1} & {user2}",
-        "overall_interpretation": "Overall Interpretation",
-        "compatibility_areas": "Compatibility Areas",
-        "emotional_connection": "Emotional Connection (Moon)",
-        "communication_style": "Communication Style (Mercury)",
-        "romantic_chemistry": "Romantic Chemistry (Venus & Mars)",
-        "karmic_bond": "Karmic Bond (Nodes)",
-        "long_term_potential": "Long-Term Potential (Saturn)",
-        "loading": "Generating Synastry Report...",
-        "error": "Could not generate report."
-    },
-    "splash": {
-        "loading": "Aligning the stars..."
-    },
-    "bottom_nav": {
-        "discover": "Discover",
-        "matches": "Matches",
-        "chats": "Chats",
-        "profile": "Profile"
-    },
-    "dialog":{
-        "user_not_found":"User not Found!",
-        "error_title": "Error",
-        "ok": "OK",
-        "cancel": "Cancel",
-        "close": "Close",
-        "login_failed": "Login failed.",
-        "detail":"Incorrect email or password!"
-    },
-
-     "landing": {
-        "slogan": "Find your person today.",
-        "cta": "Let's do it!",
-        "legal_full": "By continuing, you agree to Syno’s {terms} and {privacy}.",
-        "terms": "Terms and Conditions",
-        "privacy": "Privacy Policy"
-    },
-    "languages": {
-        "english": "English",
-        "russian": "Russian",
-        "georgian": "Georgian"
-    },
-    "legal": {
-      "terms": {
-        "title": "Terms and Conditions",
-        "content": "Welcome to Syno. By using our app, you agree to our terms. Full details are available on the Terms and Conditions page."
+         },
+         "title":"Settings",
+         "account":"Account",
+         "blocked_users":{
+            "title":"Block/Unblock User",
+            "subtitle":"Manage users you have blocked",
+            "input_placeholder":"Enter profile name to block...",
+            "success_blocked":"User {} blocked",
+            "success_title":"Updated",
+            "success_unblocked":"User {} unblocked",
+            "error_not_found":"We couldn't find that user. Please check the spelling and try again.",
+            "error_already_blocked":"This user is already in your blocked list.",
+            "error_self_block":"The stars say you should be your own best friend! You cannot block yourself.",
+            "unblock_confirm_title":"Unblock User",
+            "unblock_confirm_message":"Are you sure you want to unblock {}?",
+            "unblock_button":"Unblock",
+            "empty_list":"You haven't blocked any users yet."
+         },
+         "deactivate":{
+            "title":"Deactivate Account",
+            "subtitle":"Deactivate your account permanently",
+            "confirm_title":"Deactivate Account?",
+            "confirm_subtitle":"Are you sure you want to deactivate your account? This action cannot be undone.",
+            "cancel":"Cancel",
+            "deactivate":"Deactivate",
+            "confirm_message":"Your account will be deactivated immediately. You can reactivate within a month.",
+            "action":"Deactivate"
+         },
+         "cancel":"Cancel"
       },
-      "privacy": {
-        "title": "Privacy Policy",
-        "content":"Syno respects your privacy. We collect minimal data to provide matching services. Full details are available on the Privacy Policy page."
+      "core_values":{
+         "title":"Core Values",
+         "subtitle":"Select up to 5 values that guide you",
+         "spirituality":"Spirituality",
+         "kindness":"Kindness",
+         "creativity":"Creativity",
+         "authenticity":"Authenticity",
+         "growth":"Growth",
+         "adventure":"Adventure",
+         "commitment":"Commitment"
       },
-    "legal_snippet": "By continuing, you agree to Syno’s {terms} and {privacy}."
-    },
-    "otp": {
-        "otp_subject": "Your SYNO Verification Code",
-        "otp_message": "Your verification code is {code}. It expires in {minutes} minutes.",
-        "verify_title": "Verify Your Identity",
-        "verify_subtitle": "We sent a 6-digit code to {email}", 
-        "verify_subtitle_phone": "We've sent a 6-digit code to {phone_number}",
-        "verify_message": "Enter the code we sent to {}",
-        "verify_message_phone": "Enter the code we sent to your phone number {phone_number}",
-        "paste_tip": "Tip: You can paste the code directly",
-        "verify_button": "Verify Code",
-        "resend_code": "Resend Code",
-        "invalid_code": "The code you entered is incorrect.",
-        "expired_code": "This code has expired. Please request a new one.",
-        "rate_limit_error": "Please wait a moment before requesting another code.",
-        "success": "Code sent successfully"
-    },
-    "orientation":{
-        "straight":"Straight",
-        "gay":"Gay",
-        "bisexual":"Bisexual",
-        "asexual":"Asexual",
-        "pansexual":"Pansexual",
-        "lesbian":"Lesbian"
-    },
-    "sex":{
-        "male":"Male",
-        "female":"Female",
-        "non_binary":"Non-binary"
-    }
-  }
-
-    
-
-    
+      "updated":"Updated",
+      "changes_saved":"Changes saved successfully"
+   },
+   "zodiac":{
+      "aries":"Aries",
+      "taurus":"Taurus",
+      "gemini":"Gemini",
+      "cancer":"Cancer",
+      "leo":"Leo",
+      "virgo":"Virgo",
+      "libra":"Libra",
+      "scorpio":"Scorpio",
+      "sagittarius":"Sagittarius",
+      "capricorn":"Capricorn",
+      "aquarius":"Aquarius",
+      "pisces":"Pisces",
+      "unknown":"Unknown"
+   },
+   "register_main":{
+      "title":"Create Your Account",
+      "email_hint":"Email",
+      "email_required":"Email is required.",
+      "email_invalid":"Please enter a valid email.",
+      "password_hint":"Password",
+      "password_required":"Password is required.",
+      "password_short":"Password must be at least 6 characters.",
+      "confirm_password_hint":"Confirm Password",
+      "confirm_password_required":"Please confirm your password.",
+      "passwords_no_match":"Passwords do not match.",
+      "continue_button":"Continue",
+      "or_divider":"OR",
+      "login_prompt":"Already have an account? Log In"
+   },
+   "synastry_report":{
+      "title":"Synastry Report",
+      "report_for":"Report for {user1} & {user2}",
+      "overall_interpretation":"Overall Interpretation",
+      "compatibility_areas":"Compatibility Areas",
+      "emotional_connection":"Emotional Connection (Moon)",
+      "communication_style":"Communication Style (Mercury)",
+      "romantic_chemistry":"Romantic Chemistry (Venus & Mars)",
+      "karmic_bond":"Karmic Bond (Nodes)",
+      "long_term_potential":"Long-Term Potential (Saturn)",
+      "loading":"Generating Synastry Report...",
+      "error":"Could not generate report."
+   },
+   "splash":{
+      "loading":"Aligning the stars..."
+   },
+   "bottom_nav":{
+      "discover":"Discover",
+      "likes":"Likes",
+      "chats":"Chats",
+      "profile":"Profile"
+   },
+   "likes_list":{
+      "title":"Likes",
+      "loading":"Loading likes...",
+      "accept":"Accept",
+      "decline":"Decline",
+      "match_created":"It's a match! You can now message each other.",
+      "no_likes_title":"No Likes Yet",
+      "no_likes_subtitle":"When someone likes you, they'll appear here. Keep swiping!",
+      "error_title":"Error",
+      "error_subtitle":"Something went wrong loading your likes."
+   },
+   "match_found":{
+      "title":"It's a Match!",
+      "subtitle":"You and this person liked each other!",
+      "keep_swiping":"Keep Swiping",
+      "send_message":"Send Message"
+   },
+   "dialog":{
+      "user_not_found":"User not Found!",
+      "error_title":"Error",
+      "ok":"OK",
+      "cancel":"Cancel",
+      "close":"Close",
+      "login_failed":"Login failed.",
+      "detail":"Incorrect email or password!"
+   },
+   "landing":{
+      "slogan":"Find your person today.",
+      "cta":"Let's do it!",
+      "legal_full":"By continuing, you agree to Syno’s {terms} and {privacy}.",
+      "terms":"Terms and Conditions",
+      "privacy":"Privacy Policy"
+   },
+   "languages":{
+      "english":"English",
+      "russian":"Russian",
+      "georgian":"Georgian"
+   },
+   "legal":{
+      "terms":{
+         "title":"Terms and Conditions",
+         "content":"Welcome to Syno. By using our app, you agree to our terms. Full details are available on the Terms and Conditions page."
+      },
+      "privacy":{
+         "title":"Privacy Policy",
+         "content":"Syno respects your privacy. We collect minimal data to provide matching services. Full details are available on the Privacy Policy page."
+      },
+      "legal_snippet":"By continuing, you agree to Syno’s {terms} and {privacy}."
+   },
+   "otp":{
+      "otp_subject":"Your SYNO Verification Code",
+      "otp_message":"Your verification code is {code}. It expires in {minutes} minutes.",
+      "enter_code_title":"Enter Verification Code",
+      "verify_title":"Verification was successful",
+      "verification_success_title":"Verification Successful",
+      "verification_success_message":"Your account has been verified. Welcome to SYNO!",
+      "verify_subtitle":"We sent a 6-digit code to {email}",
+      "verify_subtitle_phone":"We've sent a 6-digit code to {phone_number}",
+      "verify_message":"Enter the code we sent to {}",
+      "verify_message_phone":"Enter the code we sent to your phone number {phone_number}",
+      "paste_tip":"Tip: You can paste the code directly",
+      "verify_button":"Verify Code",
+      "resend_code":"Resend Code",
+      "invalid_code":"The code you entered is incorrect.",
+      "expired_code":"This code has expired. Please request a new one.",
+      "rate_limit_error":"Please wait a moment before requesting another code.",
+      "success":"Code sent successfully"
+   },
+   "orientation":{
+      "straight":"Straight",
+      "gay":"Gay",
+      "bisexual":"Bisexual",
+      "asexual":"Asexual",
+      "pansexual":"Pansexual",
+      "lesbian":"Lesbian"
+   },
+   "sex":{
+      "male":"Male",
+      "female":"Female",
+      "non_binary":"Non-binary"
+   },
+   "months":{
+      "january":"January",
+      "february":"February",
+      "march":"March",
+      "april":"April",
+      "may":"May",
+      "june":"June",
+      "july":"July",
+      "august":"August",
+      "september":"September",
+      "october":"October",
+      "november":"November",
+      "december":"December"
+   }
+}

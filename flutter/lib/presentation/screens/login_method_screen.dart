@@ -5,10 +5,10 @@ import 'package:go_router/go_router.dart';
 import 'package:syno_app/data/services/otp_verification_args.dart';
 import 'package:syno_app/presentation/providers/auth_providers.dart';
 import 'package:syno_app/presentation/providers/theme_provider.dart';
-import 'package:syno_app/theme.dart';
 import 'package:syno_app/data/services/auth_service.dart';
 import 'package:syno_app/presentation/providers/registration_provider.dart';
 import 'package:syno_app/presentation/widgets/app_dialogs.dart';
+import 'package:syno_app/presentation/utils/error_localization.dart';
 
 class LoginMethodScreen extends ConsumerStatefulWidget {
   const LoginMethodScreen({super.key});
@@ -26,13 +26,13 @@ class _LoginMethodScreenState extends ConsumerState<LoginMethodScreen> {
   bool _isPhoneNumberValid = false;
   bool _isLoading = false;
   
-  Map<String, String> _selectedCountry = {'name': 'Georgia', 'code': '+995', 'flag': '🇬🇪'};
+  Map<String, String> _selectedCountry = <String, String>{'name': 'Georgia', 'code': '+995', 'flag': '🇬🇪'};
 
-  final List<Map<String, String>> _countries = [
-    {'name': 'Georgia', 'code': '+995', 'flag': '🇬🇪'},
-    {'name': 'Russia', 'code': '+7', 'flag': '🇷🇺'},
-    {'name': 'United States', 'code': '+1', 'flag': '🇺🇸'},
-    {'name': 'United Kingdom', 'code': '+44', 'flag': '🇬🇧'},
+  final List<Map<String, String>> _countries = <Map<String, String>>[
+    <String, String>{'name': 'Georgia', 'code': '+995', 'flag': '🇬🇪'},
+    <String, String>{'name': 'Russia', 'code': '+7', 'flag': '🇷🇺'},
+    <String, String>{'name': 'United States', 'code': '+1', 'flag': '🇺🇸'},
+    <String, String>{'name': 'United Kingdom', 'code': '+44', 'flag': '🇬🇧'},
   ];
 
   final RegExp _emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
@@ -51,9 +51,9 @@ class _LoginMethodScreenState extends ConsumerState<LoginMethodScreen> {
   }
 
   void _validatePhoneNumber(String value) {
-      final trimmedValue = value.trim();
+      final String trimmedValue = value.trim();
       
-      final phoneRegex = RegExp(r'^\+?[0-9]{7,15}$');
+      final RegExp phoneRegex = RegExp(r'^\+?[0-9]{7,15}$');
 
       setState(() {
         _isPhoneNumberValid = phoneRegex.hasMatch(trimmedValue);
@@ -64,13 +64,13 @@ class _LoginMethodScreenState extends ConsumerState<LoginMethodScreen> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
+      builder: (BuildContext context) => Container(
         decoration: const BoxDecoration(color: Color(0xFF1A1A1A), borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
         padding: const EdgeInsets.symmetric(vertical: 24),
         child: ListView.builder(
         shrinkWrap: true,
         itemCount: _countries.length,
-        itemBuilder: (context, index) => ListTile(
+        itemBuilder: (BuildContext context, int index) => ListTile(
           leading: _buildGeometricFlag(_countries[index]['flag']!, size: 28),
           title: Text(_countries[index]['name']!, style: const TextStyle(color: Colors.white)),
           trailing: Text(_countries[index]['code']!, style: const TextStyle(color: Colors.cyanAccent)),
@@ -90,8 +90,8 @@ class _LoginMethodScreenState extends ConsumerState<LoginMethodScreen> {
   setState(() => _isLoading = true);
   
   try {
-    final authService = ref.read(authServiceProvider);
-    final lang = context.locale.languageCode;
+    final AuthService authService = ref.read(authServiceProvider);
+    final String lang = context.locale.languageCode;
     
     // Determine the identifier and mode
     final String identifier = _isEmailSelected 
@@ -101,7 +101,7 @@ class _LoginMethodScreenState extends ConsumerState<LoginMethodScreen> {
     // 2. Call the API
     if (_isEmailSelected) {
       // Save identifier to mark registration in progress for the router
-      ref.read(registrationProvider.notifier).updateStep1Data({
+      ref.read(registrationProvider.notifier).updateStep1Data(<String, String>{
         'email': identifier,
         'phone_number': '',
       });
@@ -110,7 +110,7 @@ class _LoginMethodScreenState extends ConsumerState<LoginMethodScreen> {
     } else {
       // For phone registration flow, save the phone number as the primary
       // registration identifier so the router knows this flow is active.
-      ref.read(registrationProvider.notifier).updateStep1Data({
+      ref.read(registrationProvider.notifier).updateStep1Data(<String, String>{
         'phone_number': identifier,
         'email': '',
       });
@@ -130,7 +130,7 @@ class _LoginMethodScreenState extends ConsumerState<LoginMethodScreen> {
     }
   } catch (e) {
     if (mounted) {
-      AppDialogs.showErrorDialog(context, 'dialog.error_title'.tr(), e.toString());
+      AppDialogs.showErrorDialog(context, 'dialog.error_title'.tr(), resolveLocalizedMessage(e.toString(), context: context));
     }
   } finally {
     if (mounted) setState(() => _isLoading = false);
@@ -139,7 +139,7 @@ class _LoginMethodScreenState extends ConsumerState<LoginMethodScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final appTheme = ref.watch(themeProvider);
+    final AppThemeData appTheme = ref.watch(themeProvider);
 
     return Scaffold(
       body: Container(
@@ -149,7 +149,7 @@ class _LoginMethodScreenState extends ConsumerState<LoginMethodScreen> {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 32.0),
             child: Column(
-              children: [
+              children: <Widget>[
                 Align(
                   alignment: Alignment.topLeft,
                   child: IconButton(
@@ -173,7 +173,7 @@ class _LoginMethodScreenState extends ConsumerState<LoginMethodScreen> {
                     shape: BoxShape.circle,
                     color: Colors.white.withOpacity(0.05),
                     border: Border.all(color: Colors.white24, width: 1),
-                    boxShadow: [
+                    boxShadow: <BoxShadow>[
                       BoxShadow(
                         color: Colors.black.withOpacity(0.3),
                         blurRadius: 15,
@@ -198,7 +198,7 @@ class _LoginMethodScreenState extends ConsumerState<LoginMethodScreen> {
                     border: Border.all(color: Colors.white12),
                   ),
                   child: Stack(
-                    children: [
+                    children: <Widget>[
                       AnimatedAlign(
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.easeOutCubic,
@@ -208,14 +208,14 @@ class _LoginMethodScreenState extends ConsumerState<LoginMethodScreen> {
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(23),
-                            boxShadow: [
+                            boxShadow: <BoxShadow>[
                               BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 2))
                             ],
                           ),
                         ),
                       ),
                       Row(
-                        children: [
+                        children: <Widget>[
                           _toggleItem(
                             'login.email_toggle'.tr(), 
                             _isEmailSelected, 
@@ -267,7 +267,7 @@ class _LoginMethodScreenState extends ConsumerState<LoginMethodScreen> {
                 ),
                 const Spacer(flex: 2),
                 Text(
-                  'landing.legal_full'.tr(namedArgs: {'terms': 'landing.terms'.tr(), 'privacy': 'landing.privacy'.tr()}),
+                  'landing.legal_full'.tr(namedArgs: <String, String>{'terms': 'landing.terms'.tr(), 'privacy': 'landing.privacy'.tr()}),
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: Colors.white54, fontSize: 12),
                 ),
@@ -330,14 +330,14 @@ class _LoginMethodScreenState extends ConsumerState<LoginMethodScreen> {
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
+        children: <Widget>[
           GestureDetector(
             onTap: () => _showCountryPicker(appTheme),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
-                children: [
+                children: <Widget>[
                   _buildGeometricFlag(_selectedCountry['flag']!, size: 22),
                   const SizedBox(width: 8),
                   Text(_selectedCountry['code']!, style: TextStyle(color: appTheme.primaryTextColor, fontWeight: FontWeight.bold, fontSize: 16)),

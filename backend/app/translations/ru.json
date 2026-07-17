@@ -52,7 +52,7 @@
         "tob_hint": "ЧЧ:ММ (24-часовой формат)",
         "birth_location_label": "Место рождения",
         "birth_location_hint": "Город, Страна",
-        "identity_title": "Личность и намерения",
+        "identity_title": "Личность и ориентация",
         "gender_label": "Пол",
         "looking_for": "Я ищу...",
         "intention_label": "Намерения в отношениях",
@@ -124,7 +124,7 @@
     "otp": {
         "otp_subject": "Ваш код подтверждения SYNO",
         "otp_message": "Ваш код подтверждения: {code}. Он истекает через {minutes} минут.",
-        "verify_title": "Требуется код подтверждения",
+        "verify_title": "Проверка успешно пройдена",
         "verify_subtitle": "Мы отправили 6-значный код на {email}",
         "verify_button": "Подтвердить",
         "invalid_code": "Введенный код неверный.",

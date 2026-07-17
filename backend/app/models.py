@@ -1,9 +1,10 @@
 import json
-from sqlalchemy import Column, Integer, String, Date, Text, TIMESTAMP, ForeignKey, Table, LargeBinary, Boolean, func
+from sqlalchemy import Column, Integer, String, Date, Text, TIMESTAMP, ForeignKey, Table, LargeBinary, Boolean, func, Enum as SAEnum
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.types import TypeDecorator, TEXT
 from sqlalchemy.orm import relationship
 from .database import Base
+import enum
 
 # Custom type for handling ARRAY in both PostgreSQL and SQLite
 class ArrayAsJSON(TypeDecorator):
@@ -69,6 +70,7 @@ class Location(Base):
     type = Column(String(10), nullable=False) # 'country' or 'city'
     parent_id = Column(Integer, ForeignKey('locations.id'), nullable=True)
     parent = relationship("Location", remote_side=[id])
+    translation_key = Column(String, nullable=True)
 
 
 profile_hobbies = Table('profile_hobbies', Base.metadata,
@@ -100,6 +102,7 @@ class Hobby(Base):
     __tablename__ = "hobbies"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
+    translation_key = Column(String, nullable=True)
     
     profiles = relationship(
         "Profile",
@@ -111,21 +114,25 @@ class Education(Base):
     __tablename__ = "educations"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
+    translation_key = Column(String, nullable=True)
 
 class Profession(Base):
     __tablename__ = "professions"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
+    translation_key = Column(String, nullable=True)
 
 class Orientation(Base):
     __tablename__ = "orientations"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
+    translation_key = Column(String, nullable=True)
 
 class Sex(Base):
     __tablename__ = "sexes"
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
+    translation_key = Column(String, nullable=True)
 
 class CoreValue(Base):
     __tablename__ = "core_values"
@@ -206,6 +213,61 @@ class OTP(Base):
 
 
 
+class UserPreferences(Base):
+    __tablename__ = "user_preferences"
+
+    id = Column(Integer, primary_key=True, index=True)
+    profile_id = Column(Integer, ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False, unique=True)
+
+    # Basic Filters
+    min_age = Column(Integer, default=18)
+    max_age = Column(Integer, default=50)
+    max_distance = Column(Integer, default=100)
+    genders = Column(postgresql.ARRAY(String), default=[])
+    orientations = Column(postgresql.ARRAY(String), default=[])
+    looking_for = Column(postgresql.ARRAY(String), default=[])
+    verified_only = Column(Boolean, default=False)
+    online_recently = Column(Boolean, default=False)
+
+    # Astrology Preferences
+    min_compatibility = Column(Integer, default=0)
+    priority_type = Column(String(50), default='balanced')
+    weight_romance = Column(Integer, default=50)
+    weight_emotional = Column(Integer, default=50)
+    weight_communication = Column(Integer, default=50)
+    weight_long_term = Column(Integer, default=50)
+    weight_marriage = Column(Integer, default=50)
+    weight_friendship = Column(Integer, default=50)
+    weight_chemistry = Column(Integer, default=50)
+    weight_spiritual = Column(Integer, default=50)
+    birth_time_requirement = Column(String(20), default='optional')
+
+    # Lifestyle
+    wants_children = Column(String(20), nullable=True)
+    smoking = Column(String(20), nullable=True)
+    drinking = Column(String(20), nullable=True)
+    religion = Column(String(50), nullable=True)
+    political = Column(String(50), nullable=True)
+    education = Column(String(50), nullable=True)
+    languages = Column(postgresql.ARRAY(String), default=[])
+    pets = Column(String(20), nullable=True)
+    min_height = Column(Integer, nullable=True)
+    max_height = Column(Integer, nullable=True)
+
+    # Advanced
+    hide_swiped = Column(Boolean, default=True)
+    hide_inactive = Column(Boolean, default=False)
+    show_traveling = Column(Boolean, default=False)
+    global_search = Column(Boolean, default=False)
+    photos_only = Column(Boolean, default=False)
+    complete_profiles_only = Column(Boolean, default=False)
+
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+
+    profile = relationship("Profile", backref="user_preferences")
+
+
 class UserPhoto(Base):
     __tablename__ = "user_photos"
 
@@ -216,3 +278,32 @@ class UserPhoto(Base):
     upload_order = Column(Integer, default=0)
     created_at = Column(TIMESTAMP, server_default=func.now())
     profile = relationship("Profile", back_populates="photos")
+
+
+class Match(Base):
+    __tablename__ = "matches"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("syno_users.id", ondelete="CASCADE"), nullable=False)
+    matched_user_id = Column(Integer, ForeignKey("syno_users.id", ondelete="CASCADE"), nullable=False)
+    status = Column(String(20), nullable=False, default="pending")
+    compatibility_score = Column(Integer, nullable=True)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+
+    user = relationship("SynoUser", foreign_keys=[user_id])
+    matched_user = relationship("SynoUser", foreign_keys=[matched_user_id])
+
+
+class Message(Base):
+    __tablename__ = "messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    match_id = Column(Integer, ForeignKey("matches.id", ondelete="CASCADE"), nullable=False)
+    sender_id = Column(Integer, ForeignKey("syno_users.id", ondelete="CASCADE"), nullable=False)
+    content = Column(Text, nullable=False)
+    is_read = Column(Boolean, default=False)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+
+    match = relationship("Match")
+    sender = relationship("SynoUser")

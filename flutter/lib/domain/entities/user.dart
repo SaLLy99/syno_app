@@ -1,18 +1,19 @@
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:syno_app/domain/entities/profile_options.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 // --- Supporting Models ---
 
 class Hobby {
   final int id;
   final String name;
-  Hobby({required this.id, required this.name});
+  final String translationKey;
+  Hobby({required this.id, required this.name, required this.translationKey});
 
   factory Hobby.fromJson(Map<String, dynamic> json) {
     return Hobby(
       id: json['id'] as int,
       name: json['name'] as String,
+      translationKey: json['translation_key'] as String? ?? ''
     );
   }
 
@@ -30,13 +31,14 @@ class Hobby {
 class Sex {
   final int id;
   final String name;
-  Sex({required this.id, required this.name, required String translationKey});
+  final String translationKey;
+  Sex({required this.id, required this.name, required this.translationKey});
 
   factory Sex.fromJson(Map<String, dynamic> json) {
     return Sex(
       id: json['id'] as int,
-      translationKey: 'sex',
       name: json['name'] as String,
+      translationKey: json['translation_key'] as String? ?? json['translationKey'] as String? ?? '',
     );
   }
 
@@ -97,12 +99,14 @@ class Intentions {
 class OrientationModel {
   final int id;
   final String name;
-  OrientationModel({required this.id, required this.name});
+  final String translationKey;
+  OrientationModel({required this.id, required this.name, required this.translationKey});
 
   factory OrientationModel.fromJson(Map<String, dynamic> json) {
     return OrientationModel(
       id: json['id'] as int,
-      name: json['name'] as String
+      name: json['name'] as String,
+      translationKey: json['translation_key'] as String? ?? json['translationKey'] as String? ?? '',
     );
   }
 
@@ -120,12 +124,14 @@ class OrientationModel {
 class ProfessionModel {
   final int id;
   final String name;
-  ProfessionModel({required this.id, required this.name});
+  final String translationKey;
+  ProfessionModel({required this.id, required this.name, required this.translationKey});
 
   factory ProfessionModel.fromJson(Map<String, dynamic> json) {
     return ProfessionModel(
       id: json['id'] as int,
       name: json['name'] as String,
+      translationKey: json['translation_key'] as String? ?? ''
     );
   }
 
@@ -143,12 +149,14 @@ class ProfessionModel {
 class EducationModel {
   final int id;
   final String name;
-  EducationModel({required this.id, required this.name});
+  final String translationKey;
+  EducationModel({required this.id, required this.name, required this.translationKey});
 
   factory EducationModel.fromJson(Map<String, dynamic> json) {
     return EducationModel(
       id: json['id'] as int,
       name: json['name'] as String,
+      translationKey: json['translation_key'] as String? ?? json['translationKey'] as String? ?? '',
     );
   }
 
@@ -176,6 +184,11 @@ class Photo {
     this.uploadOrder = 0,
   });
 
+  String getFullUrl(String baseUrl) {
+    if (url.startsWith('http')) return url;
+    return '$baseUrl$url';
+  }
+
   factory Photo.fromJson(Map<String, dynamic> json) {
     return Photo(
       id: json['id'] as int,
@@ -188,14 +201,16 @@ class Photo {
 
 class LocationParent {
   final int? id;
-  final String name;
+  final String name;  
+  final String translationKey;
 
-  LocationParent({this.id, required this.name});
+  LocationParent({this.id, required this.name,required this.translationKey});
 
   factory LocationParent.fromJson(Map<String, dynamic> json) {
     return LocationParent(
       id: json['id'] as int?,
       name: json['name'] as String,
+      translationKey: json['translation_key'] as String? ?? '',
     );
   }
 }
@@ -205,11 +220,13 @@ class Location {
   final int id;
   final String name;
   final String? type;
+  final String translationKey;
   final LocationParent? parent;
 
   Location({
     required this.id,
     required this.name,
+    required this.translationKey,
     this.type,
     this.parent,
   });
@@ -218,21 +235,37 @@ class Location {
         id: json['id'] as int,
         name: json['name'] as String,
         type: json['type'] as String?,
+        translationKey: json['translation_key'] as String? ?? '',
         parent: json['parent'] != null
             ? LocationParent.fromJson(json['parent'] as Map<String, dynamic>)
             : null,
       );
 
+  String get localizedDisplayName {
+    final String translatedName = (translationKey.isNotEmpty && translationKey.tr() != translationKey)
+        ? translationKey.tr()
+        : name;
+    if (parent != null) {
+      final String parentTranslatedName = (parent!.translationKey.isNotEmpty && parent!.translationKey.tr() != parent!.translationKey)
+          ? parent!.translationKey.tr()
+          : parent!.name;
+      return '$translatedName, $parentTranslatedName';
+    }
+    return translatedName;
+  }
+
   Location copyWith({
     int? id,
     String? name,
     String? type,
+    String? translationKey,
     LocationParent? parent,
   }) {
     return Location(
       id: id ?? this.id,
       name: name ?? this.name,
       type: type ?? this.type,
+      translationKey: translationKey ?? this.translationKey,
       parent: parent ?? this.parent,
     );
   }
@@ -253,16 +286,16 @@ class UserPreferences {
 
   factory UserPreferences.fromJson(Map<String, dynamic> json) {
     return UserPreferences(
-      minAge: json['minAge'] as int,
-      maxAge: json['maxAge'] as int,
-      maxDistance: json['maxDistance'] as int,
-      interestedIn: (json['interestedIn'] as List<dynamic>)
-          .map((e) => e as String)
-          .toList(),
+      minAge: (json['minAge'] as int?) ?? (json['min_age'] as int?) ?? 18,
+      maxAge: (json['maxAge'] as int?) ?? (json['max_age'] as int?) ?? 50,
+      maxDistance: (json['maxDistance'] as int?) ?? (json['max_distance'] as int?) ?? 100,
+      interestedIn: (json['interestedIn'] as List<dynamic>?)?.map((e) => e as String).toList()
+          ?? (json['genders'] as List<dynamic>?)?.map((e) => e as String).toList()
+          ?? <String>[],
     );
   }
 
-  Map<String, dynamic> toJson() => {
+  Map<String, dynamic> toJson() => <String, dynamic>{
         'minAge': minAge,
         'maxAge': maxAge,
         'maxDistance': maxDistance,
@@ -305,16 +338,16 @@ class User {
     this.birthDate,
     this.birthTime,
     this.location,
-    this.intentions= const[],
-    this.coreValues = const [],
+    this.intentions= const<Intentions>[],
+    this.coreValues = const <CoreValue>[],
     this.bio,
     this.sex,
     this.orientation,
-    this.hobbies = const [],
-    this.photos = const [],
-    this.professions = const [],
-    this.educations = const [],
-    this.personalityTraits = const {},
+    this.hobbies = const <Hobby>[],
+    this.photos = const <Photo>[],
+    this.professions = const <ProfessionModel>[],
+    this.educations = const <EducationModel>[],
+    this.personalityTraits = const <String, dynamic>{},
     this.preferences,
     this.profilePhotoUrl,
     this.lastProfileEditAt,
@@ -338,10 +371,10 @@ class User {
             : null,
         intentions: (json['intentions'] as List<dynamic>?)
                 ?.map((e) => Intentions.fromJson(e as Map<String, dynamic>))
-                .toList() ?? [],
+                .toList() ?? <Intentions>[],
         coreValues: (json['core_values'] as List<dynamic>?)
                 ?.map((e) => CoreValue.fromJson(e as Map<String, dynamic>))
-                .toList() ?? [],
+                .toList() ?? <CoreValue>[],
         bio: json['bio'] as String?,
         sex: json['sex'] != null
             ? Sex.fromJson(json['sex'] as Map<String, dynamic>)
@@ -351,19 +384,19 @@ class User {
             : null,
         hobbies: (json['hobbies'] as List<dynamic>?)
                 ?.map((e) => Hobby.fromJson(e as Map<String, dynamic>))
-                .toList() ?? [],
+                .toList() ?? <Hobby>[],
         photos: (json['photos'] as List<dynamic>?)
                 ?.map((e) => Photo.fromJson(e as Map<String, dynamic>))
-                .toList() ?? [],
+                .toList() ?? <Photo>[],
         professions: (json['professions'] as List<dynamic>?)
                 ?.map((e) => ProfessionModel.fromJson(e as Map<String, dynamic>))
-                .toList() ?? [],
+                .toList() ?? <ProfessionModel>[],
         educations: (json['educations'] as List<dynamic>?)
                 ?.map((e) => EducationModel.fromJson(e as Map<String, dynamic>))
-                .toList() ?? [],
+                .toList() ?? <EducationModel>[],
         personalityTraits: json['personality_traits'] != null
             ? Map<String, dynamic>.from(json['personality_traits'] as Map)
-            : {},
+            : <String, dynamic>{},
         preferences: json['preferences'] != null
             ? UserPreferences.fromJson(json['preferences'] as Map<String, dynamic>)
             : null,
@@ -384,7 +417,7 @@ class User {
 
   int? get age {
     if (birthDate == null) return null;
-    final now = DateTime.now();
+    final DateTime now = DateTime.now();
     int age = now.year - birthDate!.year;
     if (now.month < birthDate!.month ||
         (now.month == birthDate!.month && now.day < birthDate!.day)) {
@@ -414,7 +447,7 @@ class User {
   }
 
   Map<String, dynamic> toJson() {
-    return {
+    return <String, dynamic>{
       'id': id,
       'user_id': userId,
       'name': name,
@@ -423,25 +456,25 @@ class User {
       'birth_date': birthDate?.toIso8601String().split('T').first,
       'birth_time': birthTime,
       'location': location,
-      'intentions': intentions.map((cv) => {
+      'intentions': intentions.map((Intentions cv) => <String, Object>{
         'id': cv.id,
         'key': cv.key,
         'translation_key': cv.translationKey,
       }).toList(),
-      'core_values': coreValues.map((cv) => {
+      'core_values': coreValues.map((CoreValue cv) => <String, Object>{
         'id': cv.id,
         'key': cv.key,
         'translation_key': cv.translationKey,
       }).toList(),
       'bio': bio,
-      'sex': sex != null ? {'id': sex!.id, 'name': sex!.name} : null,
+      'sex': sex != null ? <String, Object>{'id': sex!.id, 'name': sex!.name, 'translation_key': sex!.translationKey} : null,
       'orientation': orientation != null
-          ? {'id': orientation!.id, 'name': orientation!.name}
+          ? <String, Object>{'id': orientation!.id, 'name': orientation!.name, 'translation_key': orientation!.translationKey}
           : null,
-      'hobbies': hobbies.map((h) => {'id': h.id, 'name': h.name}).toList(),
-      'photos': photos.map((p) => {'id': p.id, 'url': p.url, 'is_primary': p.isPrimary}).toList(),
-      'professions': professions.map((p) => {'id': p.id, 'name': p.name}).toList(),
-      'educations': educations.map((e) => {'id': e.id, 'name': e.name}).toList(),
+      'hobbies': hobbies.map((Hobby h) => <String, Object>{'id': h.id, 'name': h.name, 'translation_key': h.translationKey}).toList(),
+      'photos': photos.map((Photo p) => <String, Object>{'id': p.id, 'url': p.url, 'is_primary': p.isPrimary}).toList(),
+      'professions': professions.map((ProfessionModel p) => <String, Object>{'id': p.id, 'name': p.name, 'translation_key': p.translationKey}).toList(),
+      'educations': educations.map((EducationModel e) => <String, Object>{'id': e.id, 'name': e.name, 'translation_key': e.translationKey}).toList(),
       'personality_traits': personalityTraits,
       'preferences': preferences?.toJson(),
       'profile_photo_url': profilePhotoUrl,
@@ -494,7 +527,7 @@ class User {
       personalityTraits: personalityTraits ?? this.personalityTraits,
       preferences: preferences ?? this.preferences,
       profilePhotoUrl: profilePhotoUrl ?? this.profilePhotoUrl,
-      lastProfileEditAt: this.lastProfileEditAt, // Kept stable
+      lastProfileEditAt: lastProfileEditAt, // Kept stable
       themePreferences: themePreferences ?? this.themePreferences,
     );
   }
@@ -508,8 +541,8 @@ extension UserEditPermissions on User {
 
   int get daysUntilNextEdit {
     if (canEditProfile) return 0;
-    final nextEditDate = lastProfileEditAt!.add(const Duration(days: 7));
-    final remaining = nextEditDate.difference(DateTime.now());
+    final DateTime nextEditDate = lastProfileEditAt!.add(const Duration(days: 7));
+    final Duration remaining = nextEditDate.difference(DateTime.now());
     return remaining.inDays + 1;
   }
 }

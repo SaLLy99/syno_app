@@ -14,18 +14,18 @@ class LocationSearchDialog extends ConsumerStatefulWidget {
 
 class _LocationSearchDialogState extends ConsumerState<LocationSearchDialog> {
   final TextEditingController _searchController = TextEditingController();
-  List<LocationItem> _results = [];
+  List<LocationItem> _results = <LocationItem>[];
   bool _isLoading = false;
 
   Future<void> _search(String query) async {
     if (query.isEmpty) {
-      setState(() => _results = []);
+      setState(() => _results = <LocationItem>[]);
       return;
     }
 
     setState(() => _isLoading = true);
     try {
-      final results = await ref.read(locationServiceProvider).searchLocations(query);
+      final List<LocationItem> results = await ref.read(locationServiceProvider).searchLocations(query);
       if (mounted) setState(() => _results = results);
     } catch (e) {
       debugPrint('Error searching locations: $e');
@@ -43,7 +43,7 @@ class _LocationSearchDialogState extends ConsumerState<LocationSearchDialog> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          children: [
+          children: <Widget>[
             TextField(
               controller: _searchController,
               style: const TextStyle(color: Colors.white),
@@ -67,13 +67,13 @@ class _LocationSearchDialogState extends ConsumerState<LocationSearchDialog> {
                   ? const Center(child: CircularProgressIndicator())
                   : ListView.builder(
                       itemCount: _results.length,
-                      itemBuilder: (context, index) {
-                        final item = _results[index];
+                      itemBuilder: (BuildContext context, int index) {
+                        final LocationItem item = _results[index];
                         return ListTile(
-                          title: Text(item.displayName, style: const TextStyle(color: Colors.white)),
+                          title: Text(item.localizedDisplayName, style: const TextStyle(color: Colors.white)),
                           onTap: () {
                             // Convert LocationItem to Location (User entity)
-                            final location = Location(id: item.id, name: item.displayName);
+                            final Location location = Location(id: item.id, name: item.displayName,translationKey:item.translationKey);
                             Navigator.of(context).pop(location);
                           },
                         );

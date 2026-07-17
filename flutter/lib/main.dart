@@ -4,12 +4,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syno_app/data/services/otp_verification_args.dart';
 import 'package:syno_app/domain/entities/user.dart';
 import 'package:syno_app/domain/entities/match.dart';
 import 'package:syno_app/presentation/screens/chat_screen.dart';
 import 'package:syno_app/presentation/screens/chats_list_screen.dart';
 import 'package:syno_app/presentation/screens/matches_list_screen.dart';
+import 'package:syno_app/presentation/screens/likes_list_screen.dart';
 import 'package:syno_app/presentation/providers/user_provider.dart';
 import 'package:syno_app/presentation/screens/edit_profile_screen.dart';
 import 'package:syno_app/presentation/providers/auth_providers.dart';
@@ -41,6 +43,8 @@ import 'package:syno_app/presentation/providers/theme_provider.dart';
 import 'package:syno_app/presentation/providers/registration_provider.dart';
 import 'package:syno_app/presentation/screens/blocked_users_screen.dart';
 import 'package:syno_app/presentation/screens/otp_verification_screen.dart';
+import 'package:syno_app/presentation/screens/synastry_detail_screen.dart';
+import 'package:syno_app/presentation/screens/matches_details_screen.dart';
 
 Locale _resolveStartLocale() {
   final deviceLocale = WidgetsBinding.instance.platformDispatcher.locale;
@@ -63,6 +67,9 @@ void main() async {
   });
 
   final String backendUrl = dotenv.env['BACKEND_URL'] ?? 'http://10.0.2.2:8000';
+
+  final SharedPreferences prefs = await SharedPreferences.getInstance();
+  await prefs.setString('backend_url', backendUrl);
 
   runApp(
     ProviderScope(
@@ -360,8 +367,8 @@ final routerProvider =Provider<GoRouter>((ref) {
           ),
 
           GoRoute(
-            path: '/matches',
-            builder: (context, state) => const MatchesListScreen(),
+            path: '/likes',
+            builder: (context, state) => const LikesListScreen(),
           ),
 
           GoRoute(
@@ -418,6 +425,33 @@ final routerProvider =Provider<GoRouter>((ref) {
         path: '/chat',
         builder: (context, state) {
           return ChatScreen(match: state.extra as Match);
+        },
+      ),
+
+      GoRoute(
+        path: '/match-details',
+        name: 'match-details',
+        builder: (context, state) {
+          final match = state.extra as Match;
+          return MatchDetailsScreen(match: match);
+        },
+      ),
+
+      GoRoute(
+        path: '/synastry-report',
+        name: 'synastry-report',
+        builder: (context, state) {
+          final match = state.extra as Match;
+          return SynastryDetailScreen(match: match);
+        },
+      ),
+
+      GoRoute(
+        path: '/synastry-detail',
+        name: 'synastry-detail',
+        builder: (context, state) {
+          final match = state.extra as Match;
+          return SynastryDetailScreen(match: match);
         },
       ),
     ],

@@ -18,12 +18,12 @@ class _RegisterBioScreenState extends ConsumerState<RegisterBioScreen> {
   @override
   void initState() {
     super.initState();
-    final existingBio = ref.read(registrationProvider).profileData.bio;
+    final String? existingBio = ref.read(registrationProvider).profileData.bio;
     if (existingBio != null) _bioController.text = existingBio;
   }
 
   void _onNext() {
-    ref.read(registrationProvider.notifier).updateProfileData({
+    ref.read(registrationProvider.notifier).updateProfileData(<String, dynamic>{
       'bio': _bioController.text.trim(),
     });
     context.push('/theme-selection');
@@ -39,7 +39,7 @@ class _RegisterBioScreenState extends ConsumerState<RegisterBioScreen> {
         padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: <Widget>[
             Text('register.bio_subtitle'.tr(), style: const TextStyle(color: Colors.white70)),
             const SizedBox(height: 24),
             TextFormField(

@@ -17,21 +17,23 @@ class RegisterBirthScreen extends ConsumerStatefulWidget {
 }
 
 class _RegisterBirthScreenState extends ConsumerState<RegisterBirthScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _birthDateController = TextEditingController();
-  final _birthTimeController = TextEditingController();
-  final _birthLocationController = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _birthDateController = TextEditingController();
+  final TextEditingController _birthTimeController = TextEditingController();
+  final TextEditingController _birthLocationController = TextEditingController();
 
   LocationItem? _selectedLocation;
 
   @override
   void initState() {
     super.initState();
-    final regState = ref.read(registrationProvider).profileData;
-    if (regState.birthDate != null)
+    final ProfileData regState = ref.read(registrationProvider).profileData;
+    if (regState.birthDate != null) {
       _birthDateController.text = regState.birthDate.toString();
-    if (regState.birthTime != null)
+    }
+    if (regState.birthTime != null) {
       _birthTimeController.text = regState.birthTime!;
+    }
   }
 
   @override
@@ -52,7 +54,7 @@ class _RegisterBirthScreenState extends ConsumerState<RegisterBirthScreen> {
         return;
       }
 
-      ref.read(registrationProvider.notifier).updateProfileData({
+      ref.read(registrationProvider.notifier).updateProfileData(<String, dynamic>{
         'birth_date': _birthDateController.text,
         'birth_time': _birthTimeController.text,
         'location_id': _selectedLocation!.id,
@@ -74,7 +76,7 @@ class _RegisterBirthScreenState extends ConsumerState<RegisterBirthScreen> {
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+            children: <Widget>[
               // Date of Birth
               TextFormField(
                 controller: _birthDateController,
@@ -100,7 +102,7 @@ class _RegisterBirthScreenState extends ConsumerState<RegisterBirthScreen> {
                     });
                   }
                 },
-                validator: (value) => (value == null || value.isEmpty)
+                validator: (String? value) => (value == null || value.isEmpty)
                     ? 'register.errors.dob_required'.tr()
                     : null,
               ),
@@ -135,26 +137,26 @@ class _RegisterBirthScreenState extends ConsumerState<RegisterBirthScreen> {
               // Birth Location (TypeAhead)
               TypeAheadField<LocationItem>(
                 controller: _birthLocationController,
-                suggestionsCallback: (pattern) async {
+                suggestionsCallback: (String pattern) async {
                   return await ref
                       .read(locationServiceProvider)
                       .searchLocations(pattern);
                 },
-                itemBuilder: (context, location) {
+                itemBuilder: (BuildContext context, LocationItem location) {
                   return ListTile(
-                    title: Text(location.displayName,
+                    title: Text(location.localizedDisplayName,
                         style: const TextStyle(color: Colors.white)),
                     tileColor: const Color(0xFF1A1A1A),
                   );
                 },
-                emptyBuilder: (context) => Container(
+                emptyBuilder: (BuildContext context) => Container(
                   color: const Color(0xFF1A1A1A),
                   child: ListTile(
                     title: Text('register.no_cities_found'.tr(),
                         style: const TextStyle(color: Colors.white70)),
                   ),
                 ),
-                loadingBuilder: (context) => Container(
+                loadingBuilder: (BuildContext context) => Container(
                   color: const Color(0xFF1A1A1A),
                   child: const Center(
                     child: Padding(
@@ -163,13 +165,13 @@ class _RegisterBirthScreenState extends ConsumerState<RegisterBirthScreen> {
                     ),
                   ),
                 ),
-                onSelected: (location) {
+                onSelected: (LocationItem location) {
                   setState(() {
-                    _birthLocationController.text = location.displayName;
+                    _birthLocationController.text = location.localizedDisplayName;
                     _selectedLocation = location;
                   });
                 },
-                builder: (context, controller, focusNode) {
+                builder: (BuildContext context, TextEditingController controller, FocusNode focusNode) {
                   return TextFormField(
                     controller: controller,
                     focusNode: focusNode,
@@ -178,7 +180,7 @@ class _RegisterBirthScreenState extends ConsumerState<RegisterBirthScreen> {
                       labelText: 'register.birth_location_label'.tr(),
                       hintText: 'register.birth_location_hint'.tr(),
                     ),
-                    validator: (value) => (value == null || value.isEmpty)
+                    validator: (String? value) => (value == null || value.isEmpty)
                         ? 'register.errors.birth_location_required'.tr()
                         : null,
                   );

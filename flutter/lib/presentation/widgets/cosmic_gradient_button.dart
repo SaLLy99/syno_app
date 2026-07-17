@@ -21,7 +21,7 @@ class CosmicGradientButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final br = borderRadius ?? BorderRadius.circular(AppRadius.lg);
+    final BorderRadius br = borderRadius ?? BorderRadius.circular(AppRadius.lg);
     return Container(
       height: height,
       decoration: BoxDecoration(

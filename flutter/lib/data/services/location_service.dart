@@ -18,9 +18,9 @@ class LocationService {
 
   /// Fetches all available city locations.
   Future<List<LocationItem>> getAllLocations() async {
-    final urlString = '$_backendUrl/api/location/search';
-    final url = Uri.parse(urlString);
-    final response = await http.get(url);
+    final String urlString = '$_backendUrl/api/location/search';
+    final Uri url = Uri.parse(urlString);
+    final http.Response response = await http.get(url);
 
     if (response.statusCode == 200) {
       return compute(_parseAndFilterLocations, response.body);
@@ -31,14 +31,14 @@ class LocationService {
 
   /// Searches for locations (countries and cities) from the unified endpoint.
   Future<List<LocationItem>> searchLocations(String pattern) async {
-    var urlString = '$_backendUrl/api/location/search';
+    String urlString = '$_backendUrl/api/location/search';
     
     if (pattern.isNotEmpty) {
       urlString += '?q=${Uri.encodeQueryComponent(pattern)}';
     }
 
-    final url = Uri.parse(urlString);
-    final response = await http.get(url);
+    final Uri url = Uri.parse(urlString);
+    final http.Response response = await http.get(url);
 
     if (response.statusCode == 200) {
       return compute(_parseAndFilterLocations, response.body);

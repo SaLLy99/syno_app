@@ -21,14 +21,14 @@ class UserStateNotifier extends StateNotifier<AsyncValue<User?>> {
 
   Future<void> _initializeUserAndToken() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
       _authToken = prefs.getString('auth_token'); // Load token on init
       if (_authToken != null) {
         await refreshUser();
       } else {
         state = const AsyncValue.data(null);
       }
-    } catch (e, st) {
+    } catch (e) {
       debugPrint("[UserStateNotifier] Error fetching user: $e");
       if (e.toString().contains('401') || e.toString().contains('Unauthorized') || e.toString().contains('Could not validate credentials')) {
         await _clearAuthToken();
@@ -41,7 +41,7 @@ class UserStateNotifier extends StateNotifier<AsyncValue<User?>> {
   }
 
   Future<void> _clearAuthToken() async {
-    final prefs = await SharedPreferences.getInstance();
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
     _authToken = null;
   }
@@ -52,7 +52,7 @@ class UserStateNotifier extends StateNotifier<AsyncValue<User?>> {
     if (token != null) {
       _authToken = token;
       // Save token to persistence synchronously before fetching user
-      final prefs = await SharedPreferences.getInstance();
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.setString('auth_token', token);
     }
     try {
@@ -60,12 +60,12 @@ class UserStateNotifier extends StateNotifier<AsyncValue<User?>> {
       if (mounted) {
         // If the fetched user has theme preferences from the API, apply them.
         if (user?.themePreferences != null) {
-          final themeData = AppThemeData.fromJson(user!.themePreferences!);
+          final AppThemeData themeData = AppThemeData.fromJson(user!.themePreferences!);
           _ref.read(themeProvider.notifier).setThemeFromProfile(themeData);
         }
         state = AsyncValue.data(user);
       }
-    } catch (e, st) {
+    } catch (e) {
       debugPrint("[UserStateNotifier] Error in refreshUser: $e");
       if (e.toString().contains('401') || e.toString().contains('Unauthorized') || e.toString().contains('Could not validate credentials')) {
         await _clearAuthToken();
@@ -79,7 +79,7 @@ class UserStateNotifier extends StateNotifier<AsyncValue<User?>> {
     if (token != null) {
       _authToken = token;
       // Save token synchronously to avoid race conditions
-      final prefs = await SharedPreferences.getInstance();
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
       await prefs.setString('auth_token', token);
     }
     // Force a state transition to ensure listeners (like the Router) re-evaluate
@@ -90,7 +90,7 @@ class UserStateNotifier extends StateNotifier<AsyncValue<User?>> {
 
   Future<void> createProfileWithPhotos(Map<String, dynamic> combinedData, List<String> paths, {bool firstIsPrimary = false}) async {
     try {
-      final createUser = await _ref
+      final User createUser = await _ref
           .read(userServiceProvider)
           .createProfileWithPhotos(combinedData, paths, firstIsPrimary: firstIsPrimary);
       state = AsyncValue.data(createUser);
@@ -103,11 +103,11 @@ class UserStateNotifier extends StateNotifier<AsyncValue<User?>> {
     try {
       // Use createProfileWithPhotos for updates as well. Pass an empty list for photos
       // since this method is for data-only changes. The backend will preserve existing photos.
-      final updatedUser = await _ref.read(userServiceProvider).createProfileWithPhotos(apiData, [], firstIsPrimary: true);
+      final User updatedUser = await _ref.read(userServiceProvider).createProfileWithPhotos(apiData, <String>[], firstIsPrimary: true);
 
       state = AsyncValue.data(updatedUser);
       return updatedUser;
-    } catch (e, st) {
+    } catch (e) {
       // state = AsyncValue.error(e, st); // Don't set global error state on update failure
       rethrow; 
     }
@@ -117,10 +117,10 @@ class UserStateNotifier extends StateNotifier<AsyncValue<User?>> {
     try {
       // Use createProfileWithPhotos to update only the photo.
       // The backend PATCH logic will handle this correctly.
-      final updatedUser = await _ref.read(userServiceProvider).createProfileWithPhotos({}, [photoPath], firstIsPrimary: true);
+      final User updatedUser = await _ref.read(userServiceProvider).createProfileWithPhotos(<String, dynamic>{}, <String>[photoPath], firstIsPrimary: true);
       state = AsyncValue.data(updatedUser);
       return updatedUser;
-    } catch (e, st) {
+    } catch (e) {
       // state = AsyncValue.error(e, st); // Don't set global error state on update failure
       rethrow;
     }
@@ -132,10 +132,10 @@ class UserStateNotifier extends StateNotifier<AsyncValue<User?>> {
 
       // After successful deletion, refetch the user to get the updated list of photos
       // and ensure the primary photo is correctly identified.
-      final updatedUser = await _ref.read(userServiceProvider).fetchUser();
+      final User? updatedUser = await _ref.read(userServiceProvider).fetchUser();
       state = AsyncValue.data(updatedUser);
 
-    } catch (e, st) {
+    } catch (e) {
       // state = AsyncValue.error(e, st); // Don't set global error state on update failure
       rethrow; // Rethrow to allow the UI to catch it and show a message.
     }
@@ -157,7 +157,7 @@ class UserStateNotifier extends StateNotifier<AsyncValue<User?>> {
   }
 
   Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
     _authToken = null;
     _ref.read(registrationProvider.notifier).reset();

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:dio/dio.dart' as dio;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:syno_app/domain/entities/user.dart';
 import 'package:syno_app/presentation/providers/registration_provider.dart';
 import 'package:syno_app/presentation/providers/theme_provider.dart';
 import 'package:syno_app/theme.dart'; 
@@ -33,8 +34,8 @@ class _ThemeSelectionScreenState extends ConsumerState<ThemeSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     // Determine a contrasting color for the FAB text based on the accent color's brightness.
-    final fabColor = _selectedTheme.accentColor;
-    final fabTextColor = fabColor.computeLuminance() > 0.5 ? Colors.black : Colors.white;
+    final Color fabColor = _selectedTheme.accentColor;
+    final Color fabTextColor = fabColor.computeLuminance() > 0.5 ? Colors.black : Colors.white;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -54,9 +55,9 @@ class _ThemeSelectionScreenState extends ConsumerState<ThemeSelectionScreen> {
           child: ListView.builder(
             padding: const EdgeInsets.all(AppSpacing.md),
             itemCount: availableThemes.length,
-            itemBuilder: (context, index) {
-              final theme = availableThemes[index];
-              final isSelected = theme.id == _selectedTheme.id;
+            itemBuilder: (BuildContext context, int index) {
+              final AppThemeData theme = availableThemes[index];
+              final bool isSelected = theme.id == _selectedTheme.id;
 
               return Card(
                 color: _selectedTheme.primaryTextColor.withOpacity(0.05),
@@ -79,7 +80,7 @@ class _ThemeSelectionScreenState extends ConsumerState<ThemeSelectionScreen> {
                     ),
                   ),
                   title: Text(
-                    theme.name, 
+                    theme.localizedName(context), 
                     style: TextStyle(
                       color: _selectedTheme.primaryTextColor, 
                       fontWeight: FontWeight.bold,
@@ -96,7 +97,7 @@ class _ThemeSelectionScreenState extends ConsumerState<ThemeSelectionScreen> {
         onPressed: _isSaving ? null : () async {
           setState(() => _isSaving = true);
           try {
-            final themeMap = {
+            final Map<String, String> themeMap = <String, String>{
               'theme_id': _selectedTheme.id,
               'background_color': '#${_selectedTheme.backgroundColor.value.toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}',
               'accent_color': '#${_selectedTheme.accentColor.value.toRadixString(16).padLeft(8, '0').substring(2).toUpperCase()}',
@@ -106,21 +107,21 @@ class _ThemeSelectionScreenState extends ConsumerState<ThemeSelectionScreen> {
             // Apply the selected theme globally so the app updates immediately.
             ref.read(themeProvider.notifier).setThemeFromProfile(_selectedTheme);
 
-            final currentUserState = ref.read(currentUserProvider);
-            final isProfileUpdate = currentUserState is AsyncData && currentUserState.value != null;
+            final AsyncValue<User?> currentUserState = ref.read(currentUserProvider);
+            final bool isProfileUpdate = currentUserState is AsyncData && currentUserState.value != null;
 
             if (isProfileUpdate) {
-              final newTheme = AppThemeData.fromJson(themeMap);
+              final AppThemeData newTheme = AppThemeData.fromJson(themeMap);
               await ref.read(themeUpdateProvider.notifier).updateTheme(newTheme);
               if (mounted) context.pop();
             } else {
-              final registrationNotifier = ref.read(registrationProvider.notifier);
+              final RegistrationNotifier registrationNotifier = ref.read(registrationProvider.notifier);
               registrationNotifier.updateProfileData(themeMap);
               if (mounted) context.go('/profile-confirmation');
             }
           } on dio.DioException catch (e) {
             if (!mounted) return;
-            final message = e.response?.statusCode == 401
+            final String message = e.response?.statusCode == 401
                 ? 'profile.settings.theme.save_error_unauthorized'.tr()
                 : 'profile.settings.theme.save_error_generic'.tr();
 

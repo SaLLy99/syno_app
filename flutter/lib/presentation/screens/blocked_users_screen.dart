@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syno_app/domain/entities/user.dart';
 import 'package:syno_app/presentation/providers/block_provider.dart';
 import 'package:syno_app/presentation/providers/auth_providers.dart';
 import 'package:syno_app/presentation/providers/user_provider.dart';
-import 'package:syno_app/presentation/providers/user_state_notifier.dart';
 import 'package:syno_app/presentation/widgets/cosmic_dialog.dart';
 import 'package:syno_app/theme.dart';
 import 'package:syno_app/presentation/providers/theme_provider.dart';
@@ -29,17 +27,17 @@ class _BlockedUsersScreenState extends ConsumerState<BlockedUsersScreen> {
   }
 
   void _handleBlock() async {
-    final name = _nameController.text.trim();
+    final String name = _nameController.text.trim();
     if (name.isEmpty) return;
     
-    final theme = ref.read(themeProvider);
+    final AppThemeData theme = ref.read(themeProvider);
 
     setState(() => _isProcessing = true);
     try {
       // 1. Check if user exists first (The pre-check)
-      final userToBlock = await ref.read(currentUserProvider.notifier).searchUserByName(name);
-      final currentUser = ref.read(currentUserProvider).value;
-      final blockedList = ref.read(blockedUsersProvider).value ?? [];
+      final User? userToBlock = await ref.read(currentUserProvider.notifier).searchUserByName(name);
+      final User? currentUser = ref.read(currentUserProvider).value;
+      final List<User> blockedList = ref.read(blockedUsersProvider).value ?? <User>[];
       
       if (userToBlock == null) {
         if (mounted) setState(() => _isProcessing = false);
@@ -60,7 +58,7 @@ class _BlockedUsersScreenState extends ConsumerState<BlockedUsersScreen> {
       }
 
       // Check if user is already blocked
-      final isAlreadyBlocked = blockedList.any((u) => u.userId == userToBlock.userId);
+      final bool isAlreadyBlocked = blockedList.any((User u) => u.userId == userToBlock.userId);
       if (isAlreadyBlocked) {
         if (mounted) setState(() => _isProcessing = false);
         showCosmicErrorDialog(
@@ -93,7 +91,7 @@ class _BlockedUsersScreenState extends ConsumerState<BlockedUsersScreen> {
   }
 
   Future<void> _executeBlock(String name) async {
-    final theme = ref.read(themeProvider);
+    final AppThemeData theme = ref.read(themeProvider);
 
     setState(() => _isProcessing = true);
     try {
@@ -111,7 +109,7 @@ class _BlockedUsersScreenState extends ConsumerState<BlockedUsersScreen> {
                 style: TextStyle(color: theme.textColor),
               ),
               content: Text(
-                'profile.settings.blocked_users.success_blocked'.tr(args: [name]),
+                'profile.settings.blocked_users.success_blocked'.tr(args: <String>[name]),
                 style: TextStyle(color: theme.textColor.withOpacity(0.8)),
               ),
               actions: <Widget>[
@@ -139,12 +137,12 @@ class _BlockedUsersScreenState extends ConsumerState<BlockedUsersScreen> {
   }
 
   Future<void> _handleUnblock(int userId, String name) async {
-    final theme = ref.read(themeProvider);
+    final AppThemeData theme = ref.read(themeProvider);
 
     showCosmicConfirmDialog(
       context: context,
       title: 'profile.settings.blocked_users.unblock_confirm_title'.tr(),
-      message: 'profile.settings.blocked_users.unblock_confirm_message'.tr(args: [name]),
+      message: 'profile.settings.blocked_users.unblock_confirm_message'.tr(args: <String>[name]),
       confirmText: 'profile.settings.blocked_users.unblock_button'.tr(),
       theme: theme,
       onConfirm: () async {
@@ -162,7 +160,7 @@ class _BlockedUsersScreenState extends ConsumerState<BlockedUsersScreen> {
                     style: TextStyle(color: theme.textColor),
                   ),
                   content: Text(
-                    'profile.settings.blocked_users.success_unblocked'.tr(args: [name]),
+                    'profile.settings.blocked_users.success_unblocked'.tr(args: <String>[name]),
                     style: TextStyle(color: theme.textColor.withOpacity(0.8)),
                   ),
                   actions: <Widget>[
@@ -185,13 +183,13 @@ class _BlockedUsersScreenState extends ConsumerState<BlockedUsersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentUser = ref.watch(currentUserProvider).value;
+    final User? currentUser = ref.watch(currentUserProvider).value;
     if (currentUser == null) {
       return const Scaffold(body: Center(child: Text('Not logged in')));
     }
 
-    final blockedAsync = ref.watch(blockedUsersProvider);
-    final theme = ref.watch(themeProvider);
+    final AsyncValue<List<User>> blockedAsync = ref.watch(blockedUsersProvider);
+    final AppThemeData theme = ref.watch(themeProvider);
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -204,11 +202,11 @@ class _BlockedUsersScreenState extends ConsumerState<BlockedUsersScreen> {
         decoration: BoxDecoration(gradient: theme.gradient),
         child: SafeArea(
           child: Column(
-            children: [
+            children: <Widget>[
               Padding(
                 padding: const EdgeInsets.all(AppSpacing.md),
                 child: Row(
-                  children: [
+                  children: <Widget>[
                     Expanded(
                       child: TextField(
                         controller: _nameController,
@@ -236,15 +234,15 @@ class _BlockedUsersScreenState extends ConsumerState<BlockedUsersScreen> {
               const Divider(color: Colors.white24),
               Expanded(
                 child: blockedAsync.when(
-                  data: (list) {
+                  data: (List<User> list) {
                     if (list.isEmpty) {
                       return Center(child: Text('profile.settings.blocked_users.empty_list'.tr(), style: const TextStyle(color: Colors.white70)));
                     }
                     return ListView.builder(
                       padding: const EdgeInsets.all(AppSpacing.md),
                       itemCount: list.length,
-                      itemBuilder: (context, index) {
-                        final user = list[index];
+                      itemBuilder: (BuildContext context, int index) {
+                        final User user = list[index];
                         final String displayName = '${user.name ?? ''} ${user.lastName ?? ''}'.trim();
 
                         return Card(
@@ -293,9 +291,9 @@ class _BlockedUserAvatar extends ConsumerWidget {
     final String initial = (user.name?.isNotEmpty == true) ? user.name![0].toUpperCase() : "?";
     
     // Safety check for photos
-    final primaryPhoto = user.photos.isEmpty 
+    final Photo? primaryPhoto = user.photos.isEmpty 
         ? null 
-        : user.photos.firstWhere((p) => p.isPrimary == true, orElse: () => user.photos.first);
+        : user.photos.firstWhere((Photo p) => p.isPrimary == true, orElse: () => user.photos.first);
 
     // If you implement an authTokenProvider, watch it here. 
     // Otherwise, you can keep the StatefulWidget approach, 
@@ -307,7 +305,7 @@ class _BlockedUserAvatar extends ConsumerWidget {
       );
     }
 
-    final backendUrl = ref.watch(backendUrlProvider);
+    final String backendUrl = ref.watch(backendUrlProvider);
     // Note: If you don't use a provider for the token, 
     // you may need to keep the StatefulWidget to manage the token state.
     return CircleAvatar(

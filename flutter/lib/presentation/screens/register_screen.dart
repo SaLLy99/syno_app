@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
-import 'package:syno_app/presentation/providers/auth_providers.dart';
-import 'package:syno_app/presentation/widgets/app_dialogs.dart';
 import 'package:syno_app/presentation/providers/registration_provider.dart';
 import 'package:syno_app/theme.dart';
 
@@ -18,10 +16,10 @@ class RegisterScreen extends ConsumerStatefulWidget {
 }
 
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
 
   bool _isLoading = false;
   bool _isPasswordVisible = false;
@@ -46,8 +44,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     setState(() => _isLoading = true);
 
     // Store credentials in a temporary state provider to be used at the end of the flow.
-    final email = _emailController.text.trim();
-    final password = _passwordController.text.trim();
+    final String email = _emailController.text.trim();
+    final String password = _passwordController.text.trim();
     ref.read(registrationProvider.notifier).setCredentials(email, password);
 
     // The actual registration API call is moved to the final step (RegisterPhotosScreen).
@@ -89,7 +87,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+                children: <Widget>[
                   // App Logo or Title
                   Text(
                     'register.title'.tr(),
@@ -118,7 +116,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     style: const TextStyle(color: Colors.white),
                     decoration: _getInputDecoration('register.email'.tr(), Icons.email_outlined),
                     keyboardType: TextInputType.emailAddress,
-                    validator: (value) {
+                    validator: (String? value) {
                       if (value == null || value.isEmpty) {
                         return 'register.email_required'.tr();
                       }
@@ -146,12 +144,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
                       ),
                     ),
-                    validator: (value) {
+                    validator: (String? value) {
                       if (value == null || value.isEmpty) {
                         return 'validation.password_required'.tr();
                       }
                       if (value.length < 6) {
-                        return 'validation.password_length'.tr();
+                        return 'register.password_length'.tr();
                       }
                       return null;
                     },
@@ -174,7 +172,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         onPressed: () => setState(() => _isConfirmPasswordVisible = !_isConfirmPasswordVisible),
                       ),
                     ),
-                    validator: (value) {
+                    validator: (String? value) {
                       if (value == null || value.isEmpty) {
                         return 'register.password_confirm_required'.tr();
                       }
@@ -207,7 +205,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   // Link to Login
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
+                    children: <Widget>[
                       Text("register.already_have_account".tr(), style: const TextStyle(color: Colors.white70)),
                       GestureDetector(
                         onTap: () {

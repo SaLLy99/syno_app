@@ -1,13 +1,17 @@
+import 'package:easy_localization/easy_localization.dart';
+
 class LocationItemParent {
   final int id;
   final String name;
+  final String translationKey;
 
-  LocationItemParent({required this.id, required this.name});
+  LocationItemParent({required this.id, required this.name, required this.translationKey});
 
   factory LocationItemParent.fromJson(Map<String, dynamic> json) {
     return LocationItemParent(
       id: json['id'],
       name: json['name']?.toString() ?? '',
+      translationKey: json['translation_key']?.toString() ?? json['translationKey']?.toString() ?? '',
     );
   }
 }
@@ -16,12 +20,14 @@ class LocationItem {
   final int id;
   final String name;
   final String type;
+  final String translationKey;
   final LocationItemParent? parent;
 
   LocationItem({
     required this.id,
     required this.name,
     required this.type,
+    required this.translationKey,
     this.parent,
   });
 
@@ -30,6 +36,7 @@ class LocationItem {
       id: json['id'],
       name: json['name']?.toString() ?? '',
       type: json['type']?.toString() ?? '',
+      translationKey: json['translation_key']?.toString() ?? json['translationKey']?.toString() ?? '',
       parent: json['parent'] != null ? LocationItemParent.fromJson(json['parent']) : null,
     );
   }
@@ -41,6 +48,20 @@ class LocationItem {
       return '$name, ${parent!.name}';
     }
     return name;
+  }
+
+  /// A computed property to display the location in a localized user-friendly format.
+  String get localizedDisplayName {
+    final String translatedName = (translationKey.isNotEmpty && translationKey.tr() != translationKey)
+        ? translationKey.tr()
+        : name;
+    if (parent != null) {
+      final String parentTranslatedName = (parent!.translationKey.isNotEmpty && parent!.translationKey.tr() != parent!.translationKey)
+          ? parent!.translationKey.tr()
+          : parent!.name;
+      return '$translatedName, $parentTranslatedName';
+    }
+    return translatedName;
   }
 
   @override

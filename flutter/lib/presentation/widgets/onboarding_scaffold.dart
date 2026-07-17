@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:syno_app/presentation/screens/theme.dart';
-import 'package:syno_app/theme.dart' hide CosmicColors;
 
 class OnboardingScaffold extends StatelessWidget {
   final String title;
@@ -45,7 +44,7 @@ class OnboardingScaffold extends StatelessWidget {
             const BoxDecoration(gradient: CosmicColors.deepSpaceGradient),
         child: SafeArea(
           child: Column(
-            children: [
+            children: <Widget>[
               Padding(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
@@ -55,7 +54,7 @@ class OnboardingScaffold extends StatelessWidget {
                     tween: Tween<double>(begin: 0.0, end: progress),
                     duration: const Duration(milliseconds: 250),
                     curve: Curves.easeInOut,
-                    builder: (context, animatedProgress, child) {
+                    builder: (BuildContext context, double animatedProgress, Widget? child) {
                       return LinearProgressIndicator(
                         value: animatedProgress,
                         backgroundColor: Colors.white10,

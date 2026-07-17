@@ -40,23 +40,51 @@ class ExplanationGeneratorService {
     return allReasons.take(5).toList();
   }
   
+  static const Map<String, List<String>> _cosmicInsights = <String, List<String>>{
+    'high': <String>[
+      'The stars have aligned in your favor—this is destiny calling',
+      'A cosmic match written in the constellations',
+      'Your souls dance to the same celestial rhythm',
+      'The universe conspires to bring you together',
+      'A rare alignment that transcends ordinary connection',
+    ],
+    'good': <String>[
+      'The cosmos sees great potential in your union',
+      'Your energies harmonize across multiple dimensions',
+      'A connection blessed by the celestial spheres',
+      'The planets smile upon this pairing',
+      'Your charts reveal a promising cosmic journey together',
+    ],
+    'medium': <String>[
+      'The universe offers opportunities for beautiful growth',
+      'Your paths cross for meaningful reasons',
+      'A balanced cosmic connection awaits exploration',
+      'The stars guide you toward mutual discovery',
+      'Your energies can create something special together',
+    ],
+    'low': <String>[
+      'Every connection teaches us something profound',
+      'The cosmos challenges you to grow beyond comfort',
+      'Different energies can spark unexpected transformation',
+      'Your journey together offers valuable lessons',
+      'The universe presents opportunities for conscious evolution',
+    ],
+  };
+
   String generateCosmicInsight(double finalScore, SynastryData synastryData) {
-    List<String> insights;
-    String insightCategoryKey;
-    
+    final String category;
     if (finalScore >= 85) {
-      insightCategoryKey = 'explanation.cosmic_insight.high';
+      category = 'high';
     } else if (finalScore >= 70) {
-      insightCategoryKey = 'explanation.cosmic_insight.good';
+      category = 'good';
     } else if (finalScore >= 55) {
-      insightCategoryKey = 'explanation.cosmic_insight.medium';
+      category = 'medium';
     } else {
-      insightCategoryKey = 'explanation.cosmic_insight.low';
+      category = 'low';
     }
 
-    // easy_localization returns a List<dynamic>, so we cast it.
-    insights = List<String>.from(tr(insightCategoryKey) as Iterable);
-    
+    final List<String> insights = List<String>.from(_cosmicInsights[category]!);
+
     final double highestScore = <double>[
       synastryData.moonScore,
       synastryData.mercuryScore,
@@ -64,13 +92,13 @@ class ExplanationGeneratorService {
       synastryData.nodesScore,
       synastryData.saturnScore,
     ].reduce(max);
-    
+
     if (highestScore == synastryData.nodesScore && synastryData.nodesScore >= 75) {
       insights.add('explanation.cosmic_insight.nodes_special'.tr());
     } else if (highestScore == synastryData.venusMarsScore && synastryData.venusMarsScore >= 80) {
       insights.add('explanation.cosmic_insight.venus_mars_special'.tr());
     }
-    
+
     final Random random = Random(finalScore.toInt());
     return insights[random.nextInt(insights.length)];
   }

@@ -7,21 +7,21 @@ import 'package:syno_app/domain/entities/sexes_data.dart';
 import 'package:syno_app/presentation/providers/registration_provider.dart';
 import 'package:syno_app/presentation/widgets/onboarding_scaffold.dart';
 import 'package:syno_app/presentation/widgets/selectable_option_card.dart';
-import 'package:syno_app/theme.dart'; // For CosmicColors
+// For CosmicColors
 
 // These providers are assumed to exist based on RegisterScreen2 context
-final sexesProvider = FutureProvider<List<Sex>>((ref) async {
+final FutureProvider<List<Sex>> sexesProvider = FutureProvider<List<Sex>>((Ref ref) async {
   // Mock data or actual service call
-  return [
+  return <Sex>[
     Sex(id: 1, name: 'Male', translationKey: 'sex.male'),
     Sex(id: 2, name: 'Female', translationKey: 'sex.female'),
     Sex(id: 3, name: 'Non-binary', translationKey: 'sex.non_binary'),
   ];
 });
 
-final orientationsProvider = FutureProvider<List<Orientations>>((ref) async {
+final FutureProvider<List<Orientations>> orientationsProvider = FutureProvider<List<Orientations>>((Ref ref) async {
   // Mock data or actual service call
-  return [
+  return <Orientations>[
     Orientations(
         id: 1, name: 'Straight', translationKey: 'orientation.straight'),
     Orientations(id: 2, name: 'Gay', translationKey: 'orientation.gay'),
@@ -49,7 +49,7 @@ class _RegisterIdentityScreenState
   @override
   void initState() {
     super.initState();
-    final regState = ref.read(registrationProvider).profileData;
+    final ProfileData regState = ref.read(registrationProvider).profileData;
     _selectedGenderId = regState.sexId;
     _selectedOrientationId = regState.orientationId;
   }
@@ -69,7 +69,7 @@ class _RegisterIdentityScreenState
       return;
     }
 
-    ref.read(registrationProvider.notifier).updateProfileData({
+    ref.read(registrationProvider.notifier).updateProfileData(<String, dynamic>{
       'sex_id': _selectedGenderId,
       'orientation_id': _selectedOrientationId,
     });
@@ -78,8 +78,8 @@ class _RegisterIdentityScreenState
 
   @override
   Widget build(BuildContext context) {
-    final sexesAsync = ref.watch(sexesProvider);
-    final orientationsAsync = ref.watch(orientationsProvider);
+    final AsyncValue<List<Sex>> sexesAsync = ref.watch(sexesProvider);
+    final AsyncValue<List<Orientations>> orientationsAsync = ref.watch(orientationsProvider);
 
     return OnboardingScaffold(
       title: 'register.identity_title'.tr(),
@@ -90,7 +90,7 @@ class _RegisterIdentityScreenState
         padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: <Widget>[
             Text(
               'register.identity_subtitle'.tr(),
               style: const TextStyle(color: Colors.white70, fontSize: 16),
@@ -100,11 +100,11 @@ class _RegisterIdentityScreenState
                 style: const TextStyle(color: Colors.white70, fontSize: 14)),
             const SizedBox(height: 12),
             sexesAsync.when(
-              data: (sexes) => Wrap(
+              data: (List<Sex> sexes) => Wrap(
                 spacing: 12,
                 runSpacing: 12,
-                children: sexes.map((sex) {
-                  final isSelected = _selectedGenderId == sex.id;
+                children: sexes.map((Sex sex) {
+                  final bool isSelected = _selectedGenderId == sex.id;
                   return SelectableOptionCard(
                     selected: isSelected,
                     label: sex.translationKey.tr(),
@@ -113,18 +113,18 @@ class _RegisterIdentityScreenState
                 }).toList(),
               ),
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, stack) => Text('Error: $err'),
+              error: (Object err, StackTrace stack) => Text('Error: $err'),
             ),
             const SizedBox(height: 28),
             Text('register.orientation_label'.tr(),
                 style: const TextStyle(color: Colors.white70, fontSize: 14)),
             const SizedBox(height: 12),
             orientationsAsync.when(
-              data: (orientations) => Wrap(
+              data: (List<Orientations> orientations) => Wrap(
                 spacing: 12,
                 runSpacing: 12,
-                children: orientations.map((orientation) {
-                  final isSelected = _selectedOrientationId == orientation.id;
+                children: orientations.map((Orientations orientation) {
+                  final bool isSelected = _selectedOrientationId == orientation.id;
                   return SelectableOptionCard(
                     selected: isSelected,
                     label: orientation.translationKey.tr(),
@@ -134,7 +134,7 @@ class _RegisterIdentityScreenState
                 }).toList(),
               ),
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, stack) => Text('Error: $err'),
+              error: (Object err, StackTrace stack) => Text('Error: $err'),
             ),
           ],
         ),

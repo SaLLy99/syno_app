@@ -12,6 +12,7 @@ import 'package:syno_app/presentation/providers/user_provider.dart' hide userSer
 import 'package:syno_app/presentation/widgets/app_dialogs.dart';
 import 'package:syno_app/theme.dart';
 import 'package:syno_app/presentation/providers/theme_provider.dart';
+import 'package:syno_app/presentation/utils/error_localization.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
@@ -22,7 +23,7 @@ class EditProfileScreen extends ConsumerStatefulWidget {
 
 class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   final ImagePicker _picker = ImagePicker();
-  final _formKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   bool _isUploading = false;
   String? _token;
 
@@ -34,21 +35,21 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   DateTime? _birthDate;
   TimeOfDay? _birthTime;
 
-  List<dynamic> _sexes = [];
-  List<dynamic> _orientations = [];
-  List<dynamic> _hobbies = [];
-  List<dynamic> _educations = [];
-  List<dynamic> _professions = [];
-  List<dynamic> _coreValues = [];
-  List<dynamic> _intentions = [];
+  List<dynamic> _sexes = <dynamic>[];
+  List<dynamic> _orientations = <dynamic>[];
+  List<dynamic> _hobbies = <dynamic>[];
+  List<dynamic> _educations = <dynamic>[];
+  List<dynamic> _professions = <dynamic>[];
+  List<dynamic> _coreValues = <dynamic>[];
+  List<dynamic> _intentions = <dynamic>[];
 
   String? _selectedSexId;
   String? _selectedOrientationId;
-  Set<int> _selectedHobbyIds = {};
-  Set<int> _selectedEducationIds = {};
-  Set<int> _selectedProfessionIds = {};
-  Set<String> _selectedCoreValues = {};
-  Set<String> _selectedIntentionKeys = {};
+  Set<int> _selectedHobbyIds = <int>{};
+  Set<int> _selectedEducationIds = <int>{};
+  Set<int> _selectedProfessionIds = <int>{};
+  Set<String> _selectedCoreValues = <String>{};
+  Set<String> _selectedIntentionKeys = <String>{};
 
   @override
   void initState() {
@@ -69,14 +70,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   }
 
   Future<void> _loadToken() async {
-    final prefs = await SharedPreferences.getInstance();
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
     if (mounted) setState(() => _token = prefs.getString('auth_token'));
   }
 
   Future<void> _fetchStaticData() async {
-    final backendUrl = ref.read(backendUrlProvider);
+    final String backendUrl = ref.read(backendUrlProvider);
     try {
-      final responses = await Future.wait([
+      final List<http.Response> responses = await Future.wait(<Future<http.Response>>[
         http.get(Uri.parse('$backendUrl/api/sexes/')),
         http.get(Uri.parse('$backendUrl/api/orientations/')),
         http.get(Uri.parse('$backendUrl/api/hobbies/')),
@@ -104,12 +105,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
   Future<void> _pickAndUploadPhoto({required bool isPrimary}) async {
     if (!isPrimary) {
-      final user = ref.read(currentUserProvider).value;
-      final additionalCount = user?.photos.where((p) => p.isPrimary != true).length ?? 0;
+      final User? user = ref.read(currentUserProvider).value;
+      final int additionalCount = user?.photos.where((Photo p) => p.isPrimary != true).length ?? 0;
       if (user != null && additionalCount >= 6) {
         if (mounted) {
           AppDialogs.showErrorDialog(
-              context, "Photo Limit Reached", "You can upload a maximum of 6 additional photos.");
+              context, 'profile.photo_limit_reached'.tr(), 'profile.photo_limit_message'.tr());
         }
         return;
       }
@@ -122,14 +123,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
       setState(() => _isUploading = true);
 
-      await ref.read(currentUserProvider.notifier).createProfileWithPhotos({}, [image.path], firstIsPrimary: isPrimary);
+      await ref.read(currentUserProvider.notifier).createProfileWithPhotos(<String, dynamic>{}, <String>[image.path], firstIsPrimary: isPrimary);
 
       if (!mounted) return;
       await AppDialogs.showSuccessDialog(
-        context, "Success", "Profile photo updated successfully.",
+        context, 'profile.photo_updated_title'.tr(), 'profile.photo_updated_message'.tr(),
         onDismiss: () {});
     } catch (e) {
-      if (mounted) AppDialogs.showErrorDialog(context, "Error", "Error: $e");
+      if (mounted) AppDialogs.showErrorDialog(context, 'profile.error'.tr(), resolveLocalizedMessage(e.toString(), context: context));
     } finally {
       if (mounted) setState(() => _isUploading = false);
     }
@@ -141,16 +142,15 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       builder: (BuildContext dialogContext) {
         return AlertDialog(
           backgroundColor: CosmicColors.grey800,
-          title: const Text("Delete Photo", style: TextStyle(color: Colors.white)),
-          content: const Text("Are you sure you want to delete this photo?",
-              style: TextStyle(color: Colors.white70)),
-          actions: [
+          title: Text('profile.delete_photo'.tr(), style: const TextStyle(color: Colors.white)),
+          content: Text('profile.delete_photo_confirm'.tr(), style: const TextStyle(color: Colors.white70)),
+          actions: <Widget>[
             TextButton(
-              child: const Text("Cancel"),
+              child: Text('profile.cancel'.tr()),
               onPressed: () => Navigator.of(dialogContext).pop(false),
             ),
             TextButton(
-              child: const Text("Delete", style: TextStyle(color: Colors.redAccent)),
+              child: Text('profile.delete'.tr(), style: const TextStyle(color: Colors.redAccent)),
               onPressed: () => Navigator.of(dialogContext).pop(true),
             ),
           ],
@@ -168,12 +168,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       
       if (mounted) {
         await AppDialogs.showSuccessDialog(
-            context, "Success", "Photo deleted successfully",
+            context, 'profile.photo_deleted_title'.tr(), 'profile.photo_deleted_message'.tr(),
             onDismiss: () {});
       }
     } catch (e) {
       if (!mounted) return;
-      AppDialogs.showErrorDialog(context, "Deletion Failed", e.toString());
+      AppDialogs.showErrorDialog(context, 'profile.error'.tr(), resolveLocalizedMessage(e.toString(), context: context));
     } finally {
       if (mounted) setState(() => _isUploading = false);
     }
@@ -208,35 +208,33 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     _lastNameController.text = user.lastName ?? '';
     _bioController.text = user.bio ?? '';
     _birthDate = user.birthDate;
-    if (user.intentions != null) {
-      final dynamic rawIntentions = user.intentions;
-      if (rawIntentions is Iterable) {
-        _selectedIntentionKeys = rawIntentions.map<String>((i) {
-          try {
-            if (i is Map) {
-              return (i['key'] ?? i['translation_key'] ?? i.toString()) as String;
-            }
-            final dynamic item = i;
-            return (item.key ?? item.translationKey ?? item.toString()).toString();
-          } catch (_) {
-            return i.toString();
+    final dynamic rawIntentions = user.intentions;
+    if (rawIntentions is Iterable) {
+      _selectedIntentionKeys = rawIntentions.map<String>((i) {
+        try {
+          if (i is Map) {
+            return (i['key'] ?? i['translation_key'] ?? i.toString()) as String;
           }
-        }).toSet();
-      } else {
-        _selectedIntentionKeys = {rawIntentions.toString()};
-      }
+          final dynamic item = i;
+          return (item.key ?? item.translationKey ?? item.toString()).toString();
+        } catch (_) {
+          return i.toString();
+        }
+      }).toSet();
+    } else {
+      _selectedIntentionKeys = <String>{rawIntentions.toString()};
     }
-
+  
     _selectedSexId = user.sex?.id.toString();
     _selectedOrientationId = user.orientation?.id.toString();
-    _selectedHobbyIds = user.hobbies.map((h) => h.id).toSet();
-    _selectedEducationIds = user.educations.map((e) => e.id).toSet();
-    _selectedProfessionIds = user.professions.map((p) => p.id).toSet();
-    _selectedCoreValues = user.coreValues.map((t) => t.key).toSet();
+    _selectedHobbyIds = user.hobbies.map((Hobby h) => h.id).toSet();
+    _selectedEducationIds = user.educations.map((EducationModel e) => e.id).toSet();
+    _selectedProfessionIds = user.professions.map((ProfessionModel p) => p.id).toSet();
+    _selectedCoreValues = user.coreValues.map((CoreValue t) => t.key).toSet();
 
     if (user.birthTime != null) {
       try {
-        final parts = user.birthTime!.split(':');
+        final List<String> parts = user.birthTime!.split(':');
         _birthTime = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
       } catch (e) {
         debugPrint("Time parsing error: $e");
@@ -251,13 +249,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
     try {
       // Map selected intention keys to IDs
-      final intentionIds = _intentions
+      final List<int> intentionIds = _intentions
           .where((i) => _selectedIntentionKeys.contains(i['key']))
           .map((i) => i['id'] as int)
           .toList();
 
       // 1. Prepare profile data
-      final Map<String, dynamic> data = {
+      final Map<String, dynamic> data = <String, dynamic>{
         'name': _nameController.text.trim(),
         'last_name': _lastNameController.text.trim(),
         'bio': _bioController.text.trim(),
@@ -281,10 +279,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         data['birth_time'] =
             "${_birthTime!.hour.toString().padLeft(2, '0')}:${_birthTime!.minute.toString().padLeft(2, '0')}";
       }
-      data.removeWhere((key, value) => value == null);
+      data.removeWhere((String key, value) => value == null);
 
       // 2. Update the profile data. The service handles photos separately.
-      await ref.read(currentUserProvider.notifier).createProfileWithPhotos(data, []);
+      await ref.read(currentUserProvider.notifier).createProfileWithPhotos(data, <String>[]);
 
       // 3. Invalidate the provider to force a refetch of the complete, updated user profile
       ref.invalidate(currentUserProvider);
@@ -292,13 +290,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       if (mounted) {
         await AppDialogs.showSuccessDialog(
           context, 
-          "profile.updated".tr(), 
-          "profile.changes_saved".tr(), 
+          'profile.updated'.tr(), 
+          'profile.changes_saved'.tr(), 
           onDismiss: () => Navigator.pop(context)
         );
       }
     } catch (e) {
-      if (mounted) AppDialogs.showErrorDialog(context, "Update Failed", e.toString());
+      if (mounted) AppDialogs.showErrorDialog(context, 'profile.error'.tr(), resolveLocalizedMessage(e.toString(), context: context));
     } finally {
       if (mounted) setState(() => _isUploading = false);
     }
@@ -316,8 +314,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final userAsync = ref.watch(currentUserProvider);
-    final theme = ref.watch(themeProvider);
+    final AsyncValue<User?> userAsync = ref.watch(currentUserProvider);
+    final AppThemeData theme = ref.watch(themeProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -329,7 +327,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         iconTheme: IconThemeData(color: theme.primaryTextColor),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        actions: [
+        actions: <Widget>[
           IconButton(
             icon: _isUploading
                 ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: theme.primaryTextColor))
@@ -343,29 +341,29 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         decoration: BoxDecoration(gradient: theme.gradient),
         child: userAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => Center(child: Text('Error: $err', style: const TextStyle(color: Colors.white))),
-          data: (user) {
-            if (user == null) return const Center(child: Text("User not found"));
+          error: (Object err, _) => Center(child: Text('profile.error'.tr(args: <String>[err.toString()]), style: const TextStyle(color: Colors.white))),
+          data: (User? user) {
+            if (user == null) return Center(child: Text('profile.user_not_found'.tr(), style: const TextStyle(color: Colors.white)));
             _initializeControllers(user);
 
             return Form(
               key: _formKey,
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(24, 120, 24, 24),
-                children: [
+                children: <Widget>[
                   // --- PROFILE AVATAR ---
                   Center(
                     child: Stack(
-                      children: [
+                      children: <Widget>[
                         CircleAvatar(
                           radius: 70,
                           backgroundColor: Colors.white10,
-                          backgroundImage: (user.photos.any((p) => p.isPrimary) && _token != null)
+                          backgroundImage: (user.photos.any((Photo p) => p.isPrimary) && _token != null)
                               ? NetworkImage(
-                                  '${ref.read(backendUrlProvider)}/api/photos/${user.photos.firstWhere((p) => p.isPrimary).id}',
-                                  headers: {'Authorization': 'Bearer $_token'})
+                                  '${ref.read(backendUrlProvider)}/api/photos/${user.photos.firstWhere((Photo p) => p.isPrimary).id}',
+                                  headers: <String, String>{'Authorization': 'Bearer $_token'})
                               : null,
-                          child: !user.photos.any((p) => p.isPrimary)
+                          child: !user.photos.any((Photo p) => p.isPrimary)
                               ? Icon(Icons.person, size: 50, color: theme.primaryTextColor)
                               : null,
                         ),
@@ -384,7 +382,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   const SizedBox(height: 40),
 
                   // --- GALLERY ---
-                  Text("Gallery", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: theme.primaryTextColor)),
+                  Text('profile.gallery'.tr(), style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: theme.primaryTextColor)),
                   const SizedBox(height: 16),
                   GridView.builder(
                     shrinkWrap: true,
@@ -394,10 +392,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       crossAxisSpacing: 10,
                       mainAxisSpacing: 10,
                     ),
-                    itemCount: user.photos.where((p) => !p.isPrimary).length + 
-                        (user.photos.where((p) => !p.isPrimary).length < 6 ? 1 : 0),
-                    itemBuilder: (context, index) {
-                      final additionalPhotos = user.photos.where((p) => !p.isPrimary).toList();
+                    itemCount: user.photos.where((Photo p) => !p.isPrimary).length + 
+                        (user.photos.where((Photo p) => !p.isPrimary).length < 6 ? 1 : 0),
+                    itemBuilder: (BuildContext context, int index) {
+                      final List<Photo> additionalPhotos = user.photos.where((Photo p) => !p.isPrimary).toList();
                       if (index == additionalPhotos.length) {
                         return GestureDetector(
                           onTap: () => _pickAndUploadPhoto(isPrimary: false),
@@ -411,16 +409,16 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                           ),
                         );
                       }
-                      final photo = additionalPhotos[index];
+                      final Photo photo = additionalPhotos[index];
                       return Stack(
-                        children: [
+                        children: <Widget>[
                           Container(
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(12),
                               image: (_token != null) ? DecorationImage(
                                 image: NetworkImage(
                                     '${ref.read(backendUrlProvider)}/api/photos/${photo.id}',
-                                    headers: {'Authorization': 'Bearer $_token'}),
+                                    headers: <String, String>{'Authorization': 'Bearer $_token'}),
                                 fit: BoxFit.cover,
                               ) : null,
                             ),
@@ -449,36 +447,36 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   TextFormField(
                     controller: _nameController,
                     style: TextStyle(color: theme.primaryTextColor),
-                    decoration: _getInputDecoration("First Name", Icons.person_outline, theme.primaryTextColor),
-                    validator: (v) => v == null || v.trim().isEmpty ? 'Name is required' : null,
+                    decoration: _getInputDecoration('profile.first_name'.tr(), Icons.person_outline, theme.primaryTextColor),
+                    validator: (String? v) => v == null || v.trim().isEmpty ? 'profile.name_required'.tr() : null,
                   ),
                   const SizedBox(height: 20),
                   TextFormField(
                     controller: _lastNameController,
                     style: TextStyle(color: theme.primaryTextColor),
-                    decoration: _getInputDecoration("Last Name", Icons.person_outline, theme.primaryTextColor),
-                    validator: (v) => null, // Last name is optional
+                    decoration: _getInputDecoration('profile.last_name'.tr(), Icons.person_outline, theme.primaryTextColor),
+                    validator: (String? v) => null, // Last name is optional
                   ),
                   const SizedBox(height: 20),
                   TextFormField(
                     controller: _bioController,
                     maxLines: 4,
                     style: TextStyle(color: theme.primaryTextColor),
-                    decoration: _getInputDecoration("Bio", Icons.edit_note, theme.primaryTextColor),
-                    validator: (v) => v == null || v.trim().isEmpty ? 'Bio is required' : null,
+                    decoration: _getInputDecoration('profile.bio'.tr(), Icons.edit_note, theme.primaryTextColor),
+                    validator: (String? v) => v == null || v.trim().isEmpty ? 'profile.bio_required'.tr() : null,
                   ),
                   const SizedBox(height: 20),
 
                   // --- DATE & TIME ---
                   Row(
-                    children: [
+                    children: <Widget>[
                       Expanded(
                         child: InkWell(
                           onTap: () => _selectDate(context),
                           child: InputDecorator(
-                            decoration: _getInputDecoration("Birth Date", Icons.calendar_today, theme.primaryTextColor),
+                            decoration: _getInputDecoration('profile.birth_date'.tr(), Icons.calendar_today, theme.primaryTextColor),
                             child: Text(
-                              _birthDate != null ? DateFormat('yyyy-MM-dd').format(_birthDate!) : 'Select Date',
+                              _birthDate != null ? DateFormat('yyyy-MM-dd').format(_birthDate!) : 'profile.select_date'.tr(),
                               style: TextStyle(color: theme.primaryTextColor),
                             ),
                           ),
@@ -489,9 +487,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                         child: InkWell(
                           onTap: () => _selectTime(context),
                           child: InputDecorator(
-                            decoration: _getInputDecoration("Birth Time", Icons.access_time, theme.primaryTextColor),
+                            decoration: _getInputDecoration('profile.birth_time'.tr(), Icons.access_time, theme.primaryTextColor),
                             child: Text(
-                              _birthTime != null ? _birthTime!.format(context) : 'Select Time',
+                              _birthTime != null ? _birthTime!.format(context) : 'profile.select_time'.tr(),
                               style: TextStyle(color: theme.primaryTextColor),
                             ),
                           ),
@@ -508,14 +506,17 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     spacing: 8.0,
                     runSpacing: 4.0,
                     children: _intentions.map((intention) {
-                      final key = intention['key'].toString();
-                      final translationKey = intention['translation_key'].toString();
+                      final String key = intention['key'].toString();
+                      final String translationKey = intention['translation_key'].toString();
                       return FilterChip(
                         label: Text(translationKey.tr()),
                         selected: _selectedIntentionKeys.contains(key),
-                        onSelected: (selected) => setState(() {
-                          if (selected) _selectedIntentionKeys.add(key);
-                          else _selectedIntentionKeys.remove(key);
+                        onSelected: (bool selected) => setState(() {
+                          if (selected) {
+                            _selectedIntentionKeys.add(key);
+                          } else {
+                            _selectedIntentionKeys.remove(key);
+                          }
                         }),
                       );
                     }).toList(),
@@ -523,15 +524,15 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   const SizedBox(height: 20),
 
                   Row(
-                    children: [
+                    children: <Widget>[
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           value: _sexes.any((s) => s['id'].toString() == _selectedSexId) ? _selectedSexId : null,
                           style: TextStyle(color: theme.primaryTextColor),
                           dropdownColor: Theme.of(context).cardColor,
-                          decoration: _getInputDecoration("Sex", Icons.transgender, theme.primaryTextColor),
-                          items: _sexes.map((s) => DropdownMenuItem(value: s['id'].toString(), child: Text(s['name'].toString()))).toList(),
-                          onChanged: (val) => setState(() => _selectedSexId = val),
+                          decoration: _getInputDecoration('profile.sex'.tr(), Icons.transgender, theme.primaryTextColor),
+                          items: _sexes.map((s) => DropdownMenuItem(value: s['id'].toString(), child: Text((s['translation_key']?.toString().isNotEmpty == true && (s['translation_key'] as String).tr() != s['translation_key']) ? (s['translation_key'] as String).tr() : s['name'].toString()))).toList(),
+                          onChanged: (String? val) => setState(() => _selectedSexId = val),
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -540,9 +541,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                           value: _orientations.any((o) => o['id'].toString() == _selectedOrientationId) ? _selectedOrientationId : null,
                           style: TextStyle(color: theme.primaryTextColor),
                           dropdownColor: Theme.of(context).cardColor,
-                          decoration: _getInputDecoration("Orientation", Icons.explore_outlined, theme.primaryTextColor),
-                          items: _orientations.map((o) => DropdownMenuItem(value: o['id'].toString(), child: Text(o['name'].toString()))).toList(),
-                          onChanged: (val) => setState(() => _selectedOrientationId = val),
+                          decoration: _getInputDecoration('profile.orientation'.tr(), Icons.explore_outlined, theme.primaryTextColor),
+                          items: _orientations.map((o) => DropdownMenuItem(value: o['id'].toString(), child: Text((o['translation_key']?.toString().isNotEmpty == true && (o['translation_key'] as String).tr() != o['translation_key']) ? (o['translation_key'] as String).tr() : o['name'].toString()))).toList(),
+                          onChanged: (String? val) => setState(() => _selectedOrientationId = val),
                         ),
                       ),
                     ],
@@ -550,8 +551,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   const SizedBox(height: 30),
 
                   // --- CORE VALUES ---
-                  Text("Core Values", style: TextStyle(fontSize: 16, color: theme.primaryTextColor.withOpacity(0.7))),
-                  Text("Select up to 5", style: TextStyle(fontSize: 12, color: theme.primaryTextColor.withOpacity(0.5))),
+                  Text('profile.core_values.title'.tr(), style: TextStyle(fontSize: 16, color: theme.primaryTextColor.withOpacity(0.7))),
+                  Text('profile.core_values.subtitle'.tr(), style: TextStyle(fontSize: 12, color: theme.primaryTextColor.withOpacity(0.5))),
                   const SizedBox(height: 8),
                   Wrap(
                   spacing: 8.0,
@@ -565,13 +566,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     final String lookupPath = rawTranslationKey ?? rawKey ?? 'unknown';
 
                     // 3. Determine selection state using the unique key
-                    final isSelected = _selectedCoreValues.contains(rawKey);
+                    final bool isSelected = _selectedCoreValues.contains(rawKey);
 
                     return FilterChip(
                       // 4. Translate the path once here
                       label: Text(lookupPath.tr()), 
                       selected: isSelected,
-                      onSelected: (selected) {
+                      onSelected: (bool selected) {
                         setState(() {
                           if (selected) {
                             if (_selectedCoreValues.length < 5 && rawKey != null) {
@@ -588,51 +589,60 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   const SizedBox(height: 20),
 
                   // --- HOBBIES ---
-                  Text("Hobbies", style: TextStyle(fontSize: 16, color: theme.primaryTextColor.withOpacity(0.7))),
+                  Text('profile.hobbies_title'.tr(), style: TextStyle(fontSize: 16, color: theme.primaryTextColor.withOpacity(0.7))),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8.0,
                     runSpacing: 4.0,
                     children: _hobbies.map((hobby) => FilterChip(
-                      label: Text(hobby['name'].toString()),
+                      label: Text((hobby['translation_key']?.toString().isNotEmpty == true && (hobby['translation_key'] as String).tr() != hobby['translation_key']) ? (hobby['translation_key'] as String).tr() : hobby['name'].toString()),
                       selected: _selectedHobbyIds.contains(hobby['id']),
-                      onSelected: (selected) => setState(() {
-                        if (selected) _selectedHobbyIds.add(hobby['id']);
-                        else _selectedHobbyIds.remove(hobby['id']);
+                      onSelected: (bool selected) => setState(() {
+                        if (selected) {
+                          _selectedHobbyIds.add(hobby['id']);
+                        } else {
+                          _selectedHobbyIds.remove(hobby['id']);
+                        }
                       }),
                     )).toList(),
                   ),
                   const SizedBox(height: 20),
 
                   // --- EDUCATION ---
-                  Text("Education", style: TextStyle(fontSize: 16, color: theme.primaryTextColor.withOpacity(0.7))),
+                  Text('profile.education'.tr(), style: TextStyle(fontSize: 16, color: theme.primaryTextColor.withOpacity(0.7))),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8.0,
                     runSpacing: 4.0,
                     children: _educations.map((edu) => FilterChip(
-                      label: Text(edu['name'].toString()),
+                      label: Text((edu['translation_key']?.toString().isNotEmpty == true && (edu['translation_key'] as String).tr() != edu['translation_key']) ? (edu['translation_key'] as String).tr() : edu['name'].toString()),
                       selected: _selectedEducationIds.contains(edu['id']),
-                      onSelected: (selected) => setState(() {
-                        if (selected) _selectedEducationIds.add(edu['id']);
-                        else _selectedEducationIds.remove(edu['id']);
+                      onSelected: (bool selected) => setState(() {
+                        if (selected) {
+                          _selectedEducationIds.add(edu['id']);
+                        } else {
+                          _selectedEducationIds.remove(edu['id']);
+                        }
                       }),
                     )).toList(),
                   ),
                   const SizedBox(height: 20),
 
                   // --- PROFESSION ---
-                  Text("Profession", style: TextStyle(fontSize: 16, color: theme.primaryTextColor.withOpacity(0.7))),
+                  Text('profile.profession'.tr(), style: TextStyle(fontSize: 16, color: theme.primaryTextColor.withOpacity(0.7))),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8.0,
                     runSpacing: 4.0,
                     children: _professions.map((prof) => FilterChip(
-                      label: Text(prof['name'].toString()),
+                      label: Text((prof['translation_key']?.toString().isNotEmpty == true && (prof['translation_key'] as String).tr() != prof['translation_key']) ? (prof['translation_key'] as String).tr() : prof['name'].toString()),
                       selected: _selectedProfessionIds.contains(prof['id']),
-                      onSelected: (selected) => setState(() {
-                        if (selected) _selectedProfessionIds.add(prof['id']);
-                        else _selectedProfessionIds.remove(prof['id']);
+                      onSelected: (bool selected) => setState(() {
+                        if (selected) {
+                          _selectedProfessionIds.add(prof['id']);
+                        } else {
+                          _selectedProfessionIds.remove(prof['id']);
+                        }
                       }),
                     )).toList(),
                   ),

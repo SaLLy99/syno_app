@@ -27,11 +27,11 @@ class UserProfileData {
     this.sex,
     this.location,
     this.orientation,
-    this.intention = const [],
-    this.coreValues = const [],
-    this.hobbies = const [],
-    this.professions = const [],
-    this.educations = const [],
+    this.intention = const <String>[],
+    this.coreValues = const <String>[],
+    this.hobbies = const <Hobby>[],
+    this.professions = const <ProfessionModel>[],
+    this.educations = const <EducationModel>[],
   });
 
   factory UserProfileData.fromUser(User user) {
@@ -56,7 +56,7 @@ class UserProfileData {
   // This method is used to convert the data to a format suitable for the API.
   // The exact structure might need adjustment based on your backend API.
   Map<String, dynamic> toApiData(List<Sex> sexes, List<OrientationModel> orientations) {
-    return {
+    return <String, dynamic>{
       'name': name,
       'last_name': lastName,
       'height': height,
@@ -68,9 +68,9 @@ class UserProfileData {
       'orientation_id': orientation?.id, // Use the ID from the selected Orientation object
       'intention': intention,
       'core_values': coreValues,
-      'hobby_ids': hobbies.map((h) => h.id).toList(),
-      'profession_ids': professions.map((p) => p.id).toList(),
-      'education_ids': educations.map((e) => e.id).toList(),
+      'hobby_ids': hobbies.map((Hobby h) => h.id).toList(),
+      'profession_ids': professions.map((ProfessionModel p) => p.id).toList(),
+      'education_ids': educations.map((EducationModel e) => e.id).toList(),
     };
   }
 

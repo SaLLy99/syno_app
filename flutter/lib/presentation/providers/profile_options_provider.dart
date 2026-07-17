@@ -20,17 +20,17 @@ class ProfileOptions {
   });
 
   factory ProfileOptions.empty() => ProfileOptions(
-        sexes: [],
-        orientations: [],
-        hobbies: [],
-        professions: [],
-        educations: [],
+        sexes: <Sex>[],
+        orientations: <OrientationModel>[],
+        hobbies: <Hobby>[],
+        professions: <ProfessionModel>[],
+        educations: <EducationModel>[],
       );
 }
 
 /// 2. Dio Provider
 /// Centralizing Dio allows you to add Interceptors for Auth tokens later.
-final dioProvider = Provider<Dio>((ref) {
+final Provider<Dio> dioProvider = Provider<Dio>((Ref ref) {
   return Dio(BaseOptions(
     connectTimeout: const Duration(seconds: 5),
     receiveTimeout: const Duration(seconds: 3),
@@ -38,14 +38,14 @@ final dioProvider = Provider<Dio>((ref) {
 });
 
 /// 3. Profile Options Provider
-final profileOptionsProvider = FutureProvider.autoDispose<ProfileOptions>((ref) async {
-  final backendUrl = ref.watch(backendUrlProvider);
-  final dio = ref.watch(dioProvider);
+final FutureProvider<ProfileOptions> profileOptionsProvider = FutureProvider.autoDispose<ProfileOptions>((Ref ref) async {
+  final String backendUrl = ref.watch(backendUrlProvider);
+  final Dio dio = ref.watch(dioProvider);
 
   try {
     // Future.wait runs all requests in parallel for maximum speed.
     // If one fails, the whole FutureProvider enters the 'error' state.
-    final responses = await Future.wait([
+    final List<Response> responses = await Future.wait(<Future<Response>>[
       dio.get('$backendUrl/api/sexes/'),
       dio.get('$backendUrl/api/orientations/'),
       dio.get('$backendUrl/api/hobbies/'),
@@ -63,13 +63,13 @@ final profileOptionsProvider = FutureProvider.autoDispose<ProfileOptions>((ref) 
           .toList(),
 
       // Optional fields: Using null-checks and empty list fallbacks (?? [])
-      hobbies: (responses[2].data as List? ?? [])
+      hobbies: (responses[2].data as List? ?? <dynamic>[])
           .map((json) => Hobby.fromJson(json))
           .toList(),
-      professions: (responses[3].data as List? ?? [])
+      professions: (responses[3].data as List? ?? <dynamic>[])
           .map((json) => ProfessionModel.fromJson(json))
           .toList(),
-      educations: (responses[4].data as List? ?? [])
+      educations: (responses[4].data as List? ?? <dynamic>[])
           .map((json) => EducationModel.fromJson(json))
           .toList(),
     );

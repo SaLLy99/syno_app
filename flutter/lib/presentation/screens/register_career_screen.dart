@@ -19,10 +19,10 @@ class RegisterCareerScreen extends ConsumerStatefulWidget {
 class _RegisterCareerScreenState extends ConsumerState<RegisterCareerScreen> {
   final TextEditingController _professionController = TextEditingController();
   final TextEditingController _educationController = TextEditingController();
-  final List<ProfessionModel> _selectedProfessions = [];
-  final List<EducationModel> _selectedEducations = [];
-  List<ProfessionModel> _allProfessions = [];
-  List<EducationModel> _allEducations = [];
+  final List<ProfessionModel> _selectedProfessions = <ProfessionModel>[];
+  final List<EducationModel> _selectedEducations = <EducationModel>[];
+  List<ProfessionModel> _allProfessions = <ProfessionModel>[];
+  List<EducationModel> _allEducations = <EducationModel>[];
 
   @override
   void initState() {
@@ -40,9 +40,9 @@ class _RegisterCareerScreenState extends ConsumerState<RegisterCareerScreen> {
   }
 
   void _onNext() {
-    ref.read(registrationProvider.notifier).updateProfileData({
-      'profession_ids': _selectedProfessions.map((p) => p.id).toList(),
-      'education_ids': _selectedEducations.map((e) => e.id).toList(),
+    ref.read(registrationProvider.notifier).updateProfileData(<String, dynamic>{
+      'profession_ids': _selectedProfessions.map((ProfessionModel p) => p.id).toList(),
+      'education_ids': _selectedEducations.map((EducationModel e) => e.id).toList(),
     });
     context.push('/register-bio');
   }
@@ -57,30 +57,38 @@ class _RegisterCareerScreenState extends ConsumerState<RegisterCareerScreen> {
         padding: const EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: <Widget>[
             Text('register.career_subtitle'.tr(), style: const TextStyle(color: Colors.white70)),
             const SizedBox(height: 24),
             if (_selectedProfessions.isNotEmpty)
               Wrap(
                 spacing: 8,
-                children: _selectedProfessions.map((p) => Chip(
-                  label: Text(p.name),
-                  onDeleted: () => setState(() => _selectedProfessions.remove(p)),
-                )).toList(),
+                children: _selectedProfessions.map((ProfessionModel p) {
+                  final String label = p.translationKey.isNotEmpty && p.translationKey.tr() != p.translationKey
+                      ? p.translationKey.tr() : p.name;
+                  return Chip(
+                    label: Text(label),
+                    onDeleted: () => setState(() => _selectedProfessions.remove(p)),
+                  );
+                }).toList(),
               ),
             TypeAheadField<ProfessionModel>(
               controller: _professionController,
-              suggestionsCallback: (pattern) {
+              suggestionsCallback: (String pattern) {
                 return _allProfessions
-                    .where((p) => p.name.toLowerCase().contains(pattern.toLowerCase()) && !_selectedProfessions.contains(p))
+                    .where((ProfessionModel p) => p.name.toLowerCase().contains(pattern.toLowerCase()) && !_selectedProfessions.contains(p))
                     .toList();
               },
-              itemBuilder: (context, suggestion) => ListTile(title: Text(suggestion.name)),
-              onSelected: (suggestion) => setState(() {
+              itemBuilder: (BuildContext context, ProfessionModel suggestion) {
+                final String label = suggestion.translationKey.isNotEmpty && suggestion.translationKey.tr() != suggestion.translationKey
+                    ? suggestion.translationKey.tr() : suggestion.name;
+                return ListTile(title: Text(label));
+              },
+              onSelected: (ProfessionModel suggestion) => setState(() {
                 _selectedProfessions.add(suggestion);
                 _professionController.clear();
               }),
-              builder: (context, controller, focusNode) => TextFormField(
+              builder: (BuildContext context, TextEditingController controller, FocusNode focusNode) => TextFormField(
                 controller: controller,
                 focusNode: focusNode,
                 decoration: InputDecoration(labelText: 'register.profession_label'.tr()),
@@ -90,24 +98,32 @@ class _RegisterCareerScreenState extends ConsumerState<RegisterCareerScreen> {
             if (_selectedEducations.isNotEmpty)
               Wrap(
                 spacing: 8,
-                children: _selectedEducations.map((e) => Chip(
-                  label: Text(e.name),
-                  onDeleted: () => setState(() => _selectedEducations.remove(e)),
-                )).toList(),
+                children: _selectedEducations.map((EducationModel e) {
+                  final String label = e.translationKey.isNotEmpty && e.translationKey.tr() != e.translationKey
+                      ? e.translationKey.tr() : e.name;
+                  return Chip(
+                    label: Text(label),
+                    onDeleted: () => setState(() => _selectedEducations.remove(e)),
+                  );
+                }).toList(),
               ),
             TypeAheadField<EducationModel>(
               controller: _educationController,
-              suggestionsCallback: (pattern) {
+              suggestionsCallback: (String pattern) {
                 return _allEducations
-                    .where((e) => e.name.toLowerCase().contains(pattern.toLowerCase()) && !_selectedEducations.contains(e))
+                    .where((EducationModel e) => e.name.toLowerCase().contains(pattern.toLowerCase()) && !_selectedEducations.contains(e))
                     .toList();
               },
-              itemBuilder: (context, suggestion) => ListTile(title: Text(suggestion.name)),
-              onSelected: (suggestion) => setState(() {
+              itemBuilder: (BuildContext context, EducationModel suggestion) {
+                final String label = suggestion.translationKey.isNotEmpty && suggestion.translationKey.tr() != suggestion.translationKey
+                    ? suggestion.translationKey.tr() : suggestion.name;
+                return ListTile(title: Text(label));
+              },
+              onSelected: (EducationModel suggestion) => setState(() {
                 _selectedEducations.add(suggestion);
                 _educationController.clear();
               }),
-              builder: (context, controller, focusNode) => TextFormField(
+              builder: (BuildContext context, TextEditingController controller, FocusNode focusNode) => TextFormField(
                 controller: controller,
                 focusNode: focusNode,
                 decoration: InputDecoration(labelText: 'register.education_label'.tr()),

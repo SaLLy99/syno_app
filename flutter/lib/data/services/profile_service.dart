@@ -8,7 +8,7 @@ class ProfileService {
   ProfileService(this._backendUrl);
 
   Future<List<Sex>> getGenders() async {
-    final response = await http.get(Uri.parse('$_backendUrl/api/genders'));
+    final http.Response response = await http.get(Uri.parse('$_backendUrl/api/genders'));
 
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
@@ -19,7 +19,7 @@ class ProfileService {
   }
 
   Future<List<OrientationModel>> getOrientations() async {
-    final response = await http.get(Uri.parse('$_backendUrl/api/orientations'));
+    final http.Response response = await http.get(Uri.parse('$_backendUrl/api/orientations'));
 
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
@@ -30,7 +30,7 @@ class ProfileService {
   }
 
   Future<List<Hobby>> getHobbies() async {
-    final response = await http.get(Uri.parse('$_backendUrl/api/hobbies'));
+    final http.Response response = await http.get(Uri.parse('$_backendUrl/api/hobbies'));
 
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);

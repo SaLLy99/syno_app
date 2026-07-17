@@ -13,7 +13,7 @@ class SynastryReportScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = ref.watch(themeProvider);
+    final AppThemeData theme = ref.watch(themeProvider);
     return Scaffold(
       extendBodyBehindAppBar: true,
       body: Container(
@@ -64,11 +64,11 @@ class SynastryReportScreen extends ConsumerWidget {
       decoration: BoxDecoration(
         gradient: CosmicColors.cosmicGradient,
         borderRadius: BorderRadius.circular(AppRadius.lg),
-        boxShadow: <BoxShadow>[
+        boxShadow: const <BoxShadow>[
           BoxShadow(
             color: CosmicColors.cosmicPurple30, // Use const color
             blurRadius: 20,
-            offset: const Offset(0, 10),
+            offset: Offset(0, 10),
           ),
         ],
       ),
