@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
+import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syno_app/domain/entities/match.dart';
 import 'package:syno_app/domain/entities/user_preferences.dart';
 import 'package:syno_app/presentation/providers/match_provider.dart';
@@ -21,6 +23,10 @@ class DiscoverScreen extends ConsumerStatefulWidget {
 
 class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
   int _currentIndex = 0;
+  Match? _lastSwipedMatch;
+  int _lastSwipedIndex = -1;
+  bool _isProcessing = false;
+  int _photoIndex = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -61,6 +67,11 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
+          IconButton(
+            icon: Icon(Icons.auto_awesome, color: Colors.amber.withOpacity(0.9)),
+            tooltip: 'Daily Picks',
+            onPressed: () => context.push('/recommendations'),
+          ),
           IconButton(
             icon: Icon(Icons.tune, color: Colors.white.withOpacity(0.8)),
             onPressed: () => _showPreferencesSheet(context),
@@ -129,34 +140,66 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
           Positioned.fill(
             child: Padding(
               padding: EdgeInsets.only(
-                left: AppSpacing.md + (i - _currentIndex) * 8,
-                right: AppSpacing.md + (i - _currentIndex) * 8,
-                top: AppSpacing.md + (i - _currentIndex) * 8,
-                bottom: 120 + (i - _currentIndex) * 8,
+                left: 12 + (i - _currentIndex) * 6,
+                right: 12 + (i - _currentIndex) * 6,
+                top: 8 + (i - _currentIndex) * 6,
+                bottom: 100 + (i - _currentIndex) * 6,
               ),
               child: SwipeableCard(
                 match: matches[i],
                 isTopCard: i == _currentIndex,
                 likedByUser: likedIds.contains(matches[i].matchedUser.userId),
                 onLike: () async {
-                  final bool isMutual = await ref.read(matchActionsProvider).saveMatch(
-                    matches[i].copyWith(status: MatchStatus.accepted),
-                  );
-                  setState(() => _currentIndex++);
-                  if (isMutual && context.mounted) {
-                    MatchFoundDialog.show(
-                      context,
-                      matchedUser: matches[i].matchedUser,
-                      match: matches[i],
-                      baseUrl: ref.read(backendUrlProvider),
+                  if (_isProcessing) return;
+                  _isProcessing = true;
+                  try {
+                    final Match? matchedResult = await ref.read(matchActionsProvider).saveMatch(
+                      matches[i].copyWith(status: MatchStatus.accepted),
                     );
+                    setState(() => _currentIndex++);
+                    if (matchedResult != null && context.mounted) {
+                      MatchFoundDialog.show(
+                        context,
+                        matchedUser: matches[i].matchedUser,
+                        match: matchedResult,
+                        baseUrl: ref.read(backendUrlProvider),
+                      );
+                    }
+                  } finally {
+                    _isProcessing = false;
                   }
                 },
                 onPass: () async {
-                  await ref.read(matchActionsProvider).passMatch(
-                    matches[i].copyWith(status: MatchStatus.declined),
-                  );
-                  setState(() => _currentIndex++);
+                  if (_isProcessing) return;
+                  _isProcessing = true;
+                  try {
+                    await ref.read(matchActionsProvider).passMatch(
+                      matches[i].copyWith(status: MatchStatus.declined),
+                    );
+                    setState(() => _currentIndex++);
+                  } finally {
+                    _isProcessing = false;
+                  }
+                },
+                onSuperLike: () async {
+                  if (_isProcessing) return;
+                  _isProcessing = true;
+                  try {
+                    final Match? matchedResult = await ref.read(matchActionsProvider).saveMatch(
+                      matches[i].copyWith(status: MatchStatus.accepted),
+                    );
+                    setState(() => _currentIndex++);
+                    if (matchedResult != null && context.mounted) {
+                      MatchFoundDialog.show(
+                        context,
+                        matchedUser: matches[i].matchedUser,
+                        match: matchedResult,
+                        baseUrl: ref.read(backendUrlProvider),
+                      );
+                    }
+                  } finally {
+                    _isProcessing = false;
+                  }
                 },
                 onViewProfile: () {
                   context.push('/match-details', extra: matches[i]);
@@ -176,38 +219,114 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
 
   Widget _buildActionButtons(Match match) {
     return Padding(
-      padding: AppSpacing.horizontalXl,
+      padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: <Widget>[
-          _buildActionButton(
+          _buildCircleButton(
+            icon: Icons.replay,
+            color: Colors.orange,
+            size: 44,
+            enabled: _lastSwipedMatch != null,
+            onTap: _lastSwipedMatch != null ? () async {
+              final String? baseUrl = ref.read(backendUrlProvider);
+              if (baseUrl == null) return;
+              try {
+                final prefs = await SharedPreferences.getInstance();
+                final String? token = prefs.getString('auth_token');
+                if (token == null) return;
+                await Dio().post(
+                  '$baseUrl/api/matches/undo-last',
+                  options: Options(headers: {'Authorization': 'Bearer $token'}),
+                );
+              } catch (e) {
+                debugPrint('[Discover] Undo failed: $e');
+              }
+              setState(() {
+                _currentIndex = _lastSwipedIndex;
+                _lastSwipedMatch = null;
+                _lastSwipedIndex = -1;
+                _photoIndex = 0;
+              });
+              ref.invalidate(potentialMatchesProvider);
+            } : null,
+          ),
+          _buildCircleButton(
             icon: Icons.close,
             color: Colors.red,
-            size: 64,
-            onPressed: () async {
-              await ref.read(matchActionsProvider).passMatch(
-                match.copyWith(status: MatchStatus.declined),
-              );
-              setState(() => _currentIndex++);
+            size: 60,
+            onTap: () async {
+              if (_isProcessing) return;
+              _isProcessing = true;
+              try {
+                setState(() {
+                  _lastSwipedMatch = match;
+                  _lastSwipedIndex = _currentIndex;
+                });
+                await ref.read(matchActionsProvider).passMatch(
+                  match.copyWith(status: MatchStatus.declined),
+                );
+                setState(() { _currentIndex++; _photoIndex = 0; });
+              } finally {
+                _isProcessing = false;
+              }
             },
           ),
-          const SizedBox(width: 48),
-          _buildActionButton(
+          _buildCircleButton(
+            icon: Icons.star,
+            color: Colors.blue,
+            size: 48,
+            onTap: () async {
+              if (_isProcessing) return;
+              _isProcessing = true;
+              try {
+                setState(() {
+                  _lastSwipedMatch = match;
+                  _lastSwipedIndex = _currentIndex;
+                });
+                final Match? matchedResult = await ref.read(matchActionsProvider).saveMatch(
+                  match.copyWith(status: MatchStatus.accepted),
+                );
+                setState(() { _currentIndex++; _photoIndex = 0; });
+                if (matchedResult != null && context.mounted) {
+                  MatchFoundDialog.show(
+                    context,
+                    matchedUser: match.matchedUser,
+                    match: matchedResult,
+                    baseUrl: ref.read(backendUrlProvider),
+                  );
+                }
+              } finally {
+                _isProcessing = false;
+              }
+            },
+          ),
+          _buildCircleButton(
             icon: Icons.favorite,
             color: CosmicColors.cosmicPink,
-            size: 72,
-            onPressed: () async {
-              final bool isMutual = await ref.read(matchActionsProvider).saveMatch(
-                match.copyWith(status: MatchStatus.accepted),
-              );
-              setState(() => _currentIndex++);
-              if (isMutual && context.mounted) {
-                MatchFoundDialog.show(
-                  context,
-                  matchedUser: match.matchedUser,
-                  match: match,
-                  baseUrl: ref.read(backendUrlProvider),
+            size: 60,
+            onTap: () async {
+              if (_isProcessing) return;
+              _isProcessing = true;
+              try {
+                setState(() {
+                  _lastSwipedMatch = match;
+                  _lastSwipedIndex = _currentIndex;
+                });
+                final Match? matchedResult = await ref.read(matchActionsProvider).saveMatch(
+                  match.copyWith(status: MatchStatus.accepted),
                 );
+                setState(() { _currentIndex++; _photoIndex = 0; });
+                if (matchedResult != null && context.mounted) {
+                  MatchFoundDialog.show(
+                    context,
+                    matchedUser: match.matchedUser,
+                    match: matchedResult,
+                    baseUrl: ref.read(backendUrlProvider),
+                  );
+                }
+              } finally {
+                _isProcessing = false;
               }
             },
           ),
@@ -216,29 +335,32 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
     );
   }
 
-  Widget _buildActionButton({
+  Widget _buildCircleButton({
     required IconData icon,
     required Color color,
-    required VoidCallback onPressed,
-    double size = 64,
+    required double size,
+    VoidCallback? onTap,
+    bool enabled = true,
   }) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        shape: BoxShape.circle,
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: color.withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: IconButton(
-        icon: Icon(icon, color: color, size: size * 0.5),
-        onPressed: onPressed,
+    final bool isActive = enabled && onTap != null;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: isActive ? Colors.white : Colors.white.withOpacity(0.3),
+          shape: BoxShape.circle,
+          boxShadow: isActive
+              ? [BoxShadow(color: color.withOpacity(0.25), blurRadius: 12, offset: const Offset(0, 4))]
+              : [],
+        ),
+        child: Icon(
+          icon,
+          color: isActive ? color : color.withOpacity(0.4),
+          size: size * 0.45,
+        ),
       ),
     );
   }

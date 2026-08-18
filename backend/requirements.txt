@@ -10,3 +10,7 @@ pydantic-settings
 alembic
 python-multipart
 twilio
+libephemeris>=2.0.0
+vedastro>=1.23.25
+google-genai>=1.0.0
+httpx>=0.24.0

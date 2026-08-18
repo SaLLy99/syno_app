@@ -238,12 +238,48 @@ def delete_photo(db: Session, photo_id: int, user_id: int) -> bool:
 
 # --- User Actions ---
 
-def delete_user(db: Session, user_id: int) -> bool:
+def deactivate_user(db: Session, user_id: int) -> bool:
+    """Soft-delete: flag the user as deactivated instead of hard-deleting."""
     user = db.query(models.SynoUser).filter(models.SynoUser.id == user_id).first()
-    if not user: return False
+    if not user:
+        return False
+    user.is_deactivated = True
+    user.deactivated_at = datetime.utcnow()
+    db.commit()
+    return True
+
+def reactivate_user(db: Session, user_id: int) -> bool:
+    """Restore a deactivated user's account to active status."""
+    user = db.query(models.SynoUser).filter(models.SynoUser.id == user_id).first()
+    if not user or not user.is_deactivated:
+        return False
+    user.is_deactivated = False
+    user.deactivated_at = None
+    db.commit()
+    return True
+
+def permanently_delete_user(db: Session, user_id: int) -> bool:
+    """Hard-delete a user account (used after recovery window expires)."""
+    user = db.query(models.SynoUser).filter(models.SynoUser.id == user_id).first()
+    if not user:
+        return False
     db.delete(user)
     db.commit()
     return True
+
+def cleanup_expired_deactivated_accounts(db: Session, days: int = 30) -> int:
+    """Permanently delete deactivated accounts older than the recovery window."""
+    cutoff = datetime.utcnow() - timedelta(days=days)
+    expired = db.query(models.SynoUser).filter(
+        models.SynoUser.is_deactivated == True,
+        models.SynoUser.deactivated_at < cutoff
+    ).all()
+    count = len(expired)
+    for user in expired:
+        db.delete(user)
+    if count > 0:
+        db.commit()
+    return count
 
 def block_user(db: Session, blocker_id: int, blocked_id: int) -> Optional[bool]:
     if blocker_id == blocked_id: return None
@@ -381,12 +417,13 @@ def get_received_likes(db: Session, user_id: int) -> List[dict]:
             "compatibility_score": match.compatibility_score,
             "created_at": match.created_at,
             "profile": {
+                "id": profile.user_id,
                 "user_id": profile.user_id,
                 "name": profile.name,
                 "last_name": profile.last_name,
                 "birth_date": profile.birth_date.isoformat() if profile.birth_date else None,
                 "bio": profile.bio,
-                "location": {"id": profile.location.id, "name": profile.location.name} if profile.location else None,
+                "location": {"id": profile.location.id, "name": profile.location.name, "latitude": profile.location.latitude, "longitude": profile.location.longitude} if profile.location else None,
                 "sex": {"id": profile.sex.id, "name": profile.sex.name} if profile.sex else None,
                 "photo_url": f"/api/photos/{primary_photo.id}" if primary_photo else None,
             }
@@ -539,7 +576,7 @@ def delete_match(db: Session, match_id: int, user_id: int) -> bool:
 
 # --- Message Management ---
 
-def create_message(db: Session, match_id: int, sender_id: int, content: str) -> Optional[models.Message]:
+def create_message(db: Session, match_id: int, sender_id: int, content: str = None, image_url: str = None, video_url: str = None, gif_url: str = None, message_type: str = "text") -> Optional[models.Message]:
     match = db.query(models.Match).filter(models.Match.id == match_id).first()
     if not match:
         return None
@@ -548,7 +585,11 @@ def create_message(db: Session, match_id: int, sender_id: int, content: str) -> 
     message = models.Message(
         match_id=match_id,
         sender_id=sender_id,
-        content=content
+        content=content,
+        image_url=image_url,
+        video_url=video_url,
+        gif_url=gif_url,
+        message_type=message_type
     )
     db.add(message)
     db.commit()
@@ -561,28 +602,76 @@ def get_messages_for_match(db: Session, match_id: int, user_id: int) -> List[mod
         return []
     if match.user_id != user_id and match.matched_user_id != user_id:
         return []
-    messages = db.query(models.Message).filter(
-        models.Message.match_id == match_id
-    ).order_by(models.Message.created_at.asc()).all()
     reverse_match = db.query(models.Match).filter(
         models.Match.user_id == match.matched_user_id,
-        models.Match.matched_user_id == match.user_id
+        models.Match.matched_user_id == match.user_id,
     ).first()
+    match_ids = [match_id]
     if reverse_match and reverse_match.id != match_id:
-        reverse_messages = db.query(models.Message).filter(
-            models.Message.match_id == reverse_match.id
-        ).order_by(models.Message.created_at.asc()).all()
-        messages.extend(reverse_messages)
-        messages.sort(key=lambda m: m.created_at)
+        match_ids.append(reverse_match.id)
+    messages = db.query(models.Message).filter(
+        models.Message.match_id.in_(match_ids)
+    ).order_by(models.Message.created_at.asc()).all()
     return messages
 
 def mark_messages_read(db: Session, match_id: int, user_id: int):
+    match = db.query(models.Match).filter(models.Match.id == match_id).first()
+    match_ids = [match_id]
+    if match:
+        reverse_match = db.query(models.Match).filter(
+            models.Match.user_id == match.matched_user_id,
+            models.Match.matched_user_id == match.user_id
+        ).first()
+        if reverse_match and reverse_match.id != match_id:
+            match_ids.append(reverse_match.id)
     db.query(models.Message).filter(
-        models.Message.match_id == match_id,
+        models.Message.match_id.in_(match_ids),
         models.Message.sender_id != user_id,
         models.Message.is_read == False
     ).update({"is_read": True})
     db.commit()
+
+def delete_chat_messages(db: Session, match_id: int, user_id: int) -> bool:
+    match = db.query(models.Match).filter(models.Match.id == match_id).first()
+    if not match:
+        return False
+    if match.user_id != user_id and match.matched_user_id != user_id:
+        return False
+    db.query(models.Message).filter(models.Message.match_id == match_id).delete()
+    reverse_match = db.query(models.Match).filter(
+        models.Match.user_id == match.matched_user_id,
+        models.Match.matched_user_id == match.user_id
+    ).first()
+    if reverse_match:
+        db.query(models.Message).filter(models.Message.match_id == reverse_match.id).delete()
+    db.commit()
+    return True
+
+
+def delete_single_message(db: Session, message_id: int, user_id: int) -> Optional[models.Message]:
+    message = db.query(models.Message).filter(models.Message.id == message_id).first()
+    if not message:
+        return None
+    if message.sender_id != user_id:
+        return None
+    db.delete(message)
+    db.commit()
+    return message
+
+
+def edit_message(db: Session, message_id: int, user_id: int, new_content: str) -> Optional[models.Message]:
+    message = db.query(models.Message).filter(
+        models.Message.id == message_id,
+        models.Message.sender_id == user_id
+    ).first()
+    if not message:
+        return None
+    message.content = new_content
+    message.is_edited = True
+    db.commit()
+    db.refresh(message)
+    return message
+
 
 def get_unread_count(db: Session, match_id: int, user_id: int) -> int:
     return db.query(models.Message).filter(
@@ -606,35 +695,50 @@ def get_chat_list(db: Session, user_id: int) -> List[dict]:
             models.Match.matched_user_id == user_id,
             models.Match.status == "accepted"
         ).first()
-        if not reverse_match:
-            continue
         pair_key = (min(user_id, match.matched_user_id), max(user_id, match.matched_user_id))
         if pair_key in seen_pairs:
             continue
         seen_pairs.add(pair_key)
-        canonical_match_id = min(match.id, reverse_match.id)
+        if reverse_match:
+            canonical_match_id = min(match.id, reverse_match.id)
+            match_ids = [match.id, reverse_match.id]
+        else:
+            canonical_match_id = match.id
+            match_ids = [match.id]
         other_profile = db.query(models.Profile).options(
             joinedload(models.Profile.photos).load_only(models.UserPhoto.id, models.UserPhoto.is_primary, models.UserPhoto.upload_order),
             joinedload(models.Profile.sex)
         ).filter(models.Profile.user_id == match.matched_user_id).first()
         last_msg = db.query(models.Message).filter(
-            models.Message.match_id == canonical_match_id
+            models.Message.match_id.in_(match_ids)
         ).order_by(models.Message.created_at.desc()).first()
+        unread_count = db.query(models.Message).filter(
+            models.Message.match_id.in_(match_ids),
+            models.Message.sender_id != user_id,
+            models.Message.is_read == False
+        ).count()
         profile_dict = None
         if other_profile:
             primary_photo = next((p for p in other_profile.photos if p.is_primary), (other_profile.photos[0] if other_profile.photos else None))
+            other_user = db.query(models.SynoUser).filter(models.SynoUser.id == match.matched_user_id).first()
             profile_dict = {
+                "id": other_profile.user_id,
+                "user_id": other_profile.user_id,
                 "name": other_profile.name,
                 "photo_url": f"/api/photos/{primary_photo.id}" if primary_photo else None,
                 "sex": other_profile.sex.name if other_profile.sex else None,
+                "last_active_at": other_user.last_active_at.isoformat() if other_user and other_user.last_active_at else None,
             }
         result.append({
             "match_id": canonical_match_id,
             "matched_user_id": match.matched_user_id,
             "matched_profile": profile_dict,
+            "compatibility_score": match.compatibility_score,
             "last_message": last_msg.content if last_msg else None,
             "last_message_at": last_msg.created_at if last_msg else match.created_at,
-            "is_read": get_unread_count(db, canonical_match_id, user_id) == 0,
+            "last_message_sender_id": last_msg.sender_id if last_msg else None,
+            "is_read": unread_count == 0,
+            "unread_count": unread_count,
         })
     return result
 

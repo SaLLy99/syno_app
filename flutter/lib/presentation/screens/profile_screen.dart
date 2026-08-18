@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:easy_localization/easy_localization.dart';
 
 // Assuming these paths exist in your project
+import 'package:syno_app/domain/entities/astrology_system.dart';
 import 'package:syno_app/domain/entities/user.dart';
 import 'package:syno_app/presentation/providers/auth_providers.dart';
 import 'package:syno_app/presentation/providers/user_provider.dart';
@@ -63,7 +64,7 @@ class ProfileScreen extends ConsumerWidget {
                         const SizedBox(height: AppSpacing.xl),
                         _buildHobbiesSection(context, user, theme),
                         const SizedBox(height: AppSpacing.xl),
-                        _buildBirthInfoSection(context, user, theme),
+                        _buildBirthInfoSection(context, ref, user, theme),
                         const SizedBox(height: AppSpacing.xl),
                         _buildCareerEducationSection(context, user, theme),
                         const SizedBox(height: AppSpacing.xl),
@@ -320,8 +321,9 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildBirthInfoSection(BuildContext context, User user, AppThemeData theme) {
-    final Map<String, String>? zodiacData = user.zodiacSign != null ? _getZodiacData(user.zodiacSign!) : null;
+  Widget _buildBirthInfoSection(BuildContext context, WidgetRef ref, User user, AppThemeData theme) {
+    final AstrologySystem system = ref.watch(astrologySystemProvider);
+    final Map<String, String>? zodiacData = user.getZodiacSign(system) != null ? _getZodiacData(user.getZodiacSign(system)!) : null;
     return _SectionWrapper(
       title: 'profile.birth_info'.tr(),
       textColor: theme.primaryTextColor,

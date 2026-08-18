@@ -15,7 +15,9 @@ String resolveLocalizedMessage(String message, {BuildContext? context}) {
       normalized.startsWith('dialog.') ||
       normalized.startsWith('register.') ||
       normalized.startsWith('profile.') ||
-      normalized.startsWith('login.');
+      normalized.startsWith('login.') ||
+      normalized.startsWith('account.') ||
+      normalized.startsWith('reactivation.');
 
   if (isTranslatableKey && context != null) {
     return normalized.tr(context: context);

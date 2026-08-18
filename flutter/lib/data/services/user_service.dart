@@ -12,15 +12,26 @@ class UserService {
   UserService(this.backendUrl, {this.onUnauthorized}) {
     _dio.interceptors.add(
       dio.InterceptorsWrapper(
-        onError: (dio.DioException e, dio.ErrorInterceptorHandler handler) {
-          // If the server returns a 401 Unauthorized, it means the token
-          // is expired or invalid. Trigger the onUnauthorized callback to
-          // initiate a global logout.
-          if (e.response?.statusCode == 401) {
-            debugPrint("[UserService Interceptor] 401 Unauthorized detected. Triggering logout.");
-            onUnauthorized?.call();
+        onError: (dio.DioException e, dio.ErrorInterceptorHandler handler) async {
+          final int? statusCode = e.response?.statusCode;
+          final dynamic data = e.response?.data;
+          final String? detail = data is Map<String, dynamic> ? data['detail'] as String? : null;
+
+          if (statusCode == 401 || statusCode == 403) {
+            if (detail == 'account.deactivated' || detail == 'account.deactivated_token_invalid') {
+              debugPrint("[UserService Interceptor] Deactivated account detected ($statusCode). Saving recovery flag and logging out.");
+              final SharedPreferences prefs = await SharedPreferences.getInstance();
+              await prefs.setBool('pending_reactivation', true);
+              await prefs.remove('auth_token');
+              onUnauthorized?.call();
+              return handler.reject(e);
+            }
+            if (statusCode == 401) {
+              debugPrint("[UserService Interceptor] 401 Unauthorized detected. Triggering logout.");
+              onUnauthorized?.call();
+            }
           }
-          return handler.next(e); // Propagate the error.
+          return handler.next(e);
         },
       ),
     );
@@ -307,6 +318,34 @@ class UserService {
       }
     } on dio.DioException catch (e) {
       throw Exception('Failed to delete account: ${e.response?.data ?? e.message}');
+    }
+  }
+
+  Future<void> requestReactivation({String? email, String? phoneNumber}) async {
+    final String url = '$backendUrl/api/auth/request-reactivation';
+    try {
+      final Map<String, String> data = <String, String>{};
+      if (email != null) data['email'] = email;
+      if (phoneNumber != null) data['phone_number'] = phoneNumber;
+      await _dio.post(url, data: data);
+    } on dio.DioException catch (e) {
+      throw Exception('Failed to request reactivation: ${e.response?.data ?? e.message}');
+    }
+  }
+
+  Future<String> verifyReactivation({String? email, String? phoneNumber, required String code}) async {
+    final String url = '$backendUrl/api/auth/verify-reactivation';
+    try {
+      final Map<String, String> data = <String, String>{'code': code};
+      if (email != null) data['email'] = email;
+      if (phoneNumber != null) data['phone_number'] = phoneNumber;
+      final dio.Response response = await _dio.post(url, data: data);
+      final String accessToken = response.data['access_token'] as String;
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('auth_token', accessToken);
+      return accessToken;
+    } on dio.DioException catch (e) {
+      throw Exception('Failed to verify reactivation: ${e.response?.data ?? e.message}');
     }
   }
 

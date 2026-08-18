@@ -100,22 +100,23 @@ class _LoginMethodScreenState extends ConsumerState<LoginMethodScreen> {
 
     // 2. Call the API
     if (_isEmailSelected) {
-      // Save identifier to mark registration in progress for the router
+      await authService.requestOtp(email: identifier, lang: lang);
+    } else {
+      await authService.requestOtp(phoneNumber: identifier, lang: lang);
+    }
+
+    // 3. Save identifier to mark registration in progress for the router
+    //    (only after OTP request succeeds to avoid stale state on deactivated accounts)
+    if (_isEmailSelected) {
       ref.read(registrationProvider.notifier).updateStep1Data(<String, String>{
         'email': identifier,
         'phone_number': '',
       });
-      
-      await authService.requestOtp(email: identifier, lang: lang);
     } else {
-      // For phone registration flow, save the phone number as the primary
-      // registration identifier so the router knows this flow is active.
       ref.read(registrationProvider.notifier).updateStep1Data(<String, String>{
         'phone_number': identifier,
         'email': '',
       });
-      
-      await authService.requestOtp(phoneNumber: identifier, lang: lang);
     }
     
     // 3. Navigate with the correct object type

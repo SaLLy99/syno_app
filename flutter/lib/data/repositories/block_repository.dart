@@ -1,57 +1,59 @@
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class BlockRepository {
-  // Key namespace per current user: 'blocked_users_<userId>' stores a JSON list of userIds
-  String _keyFor(String userId) => 'blocked_users_$userId';
+  final Dio _dio = Dio();
 
-  Future<Set<String>> getBlockedUserIds(String currentUserId) async {
-    try {
-      final SharedPreferences prefs = await SharedPreferences.getInstance();
-      final String? raw = prefs.getString(_keyFor(currentUserId));
-      if (raw == null || raw.isEmpty) return <String>{};
-      final decoded = jsonDecode(raw);
-      if (decoded is List) {
-        return decoded.map((e) => e.toString()).toSet();
-      }
-      // Auto-sanitize corrupted entries
-      debugPrint('Blocked list corrupted for ???. Resetting.');
-      await prefs.remove(_keyFor(currentUserId));
-      return <String>{};
-    } on FormatException catch (e) {
-      // This specifically catches JSON parsing errors.
-      debugPrint('Corrupted JSON in blocked users list for ???. Resetting. Error: $e');
-      final SharedPreferences prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_keyFor(currentUserId));
-      return <String>{};
-    }
+  Future<String?> _getToken() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString('auth_token');
   }
 
-  Future<bool> isBlocked({required String currentUserId, required String targetUserId}) async {
-    final Set<String> set = await getBlockedUserIds(currentUserId);
-    return set.contains(targetUserId);
+  Future<String?> _getBackendUrl() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString('backend_url');
   }
+
+  Options _authOptions(String token) => Options(
+    headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+  );
 
   Future<void> blockUser({required String currentUserId, required String targetUserId}) async {
     try {
-      final SharedPreferences prefs = await SharedPreferences.getInstance();
-      final Set<String> set = await getBlockedUserIds(currentUserId);
-      set.add(targetUserId);
-      await prefs.setString(_keyFor(currentUserId), jsonEncode(set.toList()));
+      final String? token = await _getToken();
+      final String? baseUrl = await _getBackendUrl();
+      if (token != null && baseUrl != null) {
+        final response = await _dio.post(
+          '$baseUrl/api/users/$targetUserId/block',
+          options: _authOptions(token),
+        );
+        if (response.statusCode == 200 || response.statusCode == 204) {
+          debugPrint('[BlockRepo] Blocked user $targetUserId via backend');
+          return;
+        }
+      }
     } catch (e) {
-      debugPrint('Error blocking ??? for ???: $e');
+      debugPrint('[BlockRepo] Error blocking user via backend: $e');
     }
   }
 
   Future<void> unblockUser({required String currentUserId, required String targetUserId}) async {
     try {
-      final SharedPreferences prefs = await SharedPreferences.getInstance();
-      final Set<String> set = await getBlockedUserIds(currentUserId);
-      set.remove(targetUserId);
-      await prefs.setString(_keyFor(currentUserId), jsonEncode(set.toList()));
+      final String? token = await _getToken();
+      final String? baseUrl = await _getBackendUrl();
+      if (token != null && baseUrl != null) {
+        final response = await _dio.delete(
+          '$baseUrl/api/users/$targetUserId/unblock',
+          options: _authOptions(token),
+        );
+        if (response.statusCode == 200 || response.statusCode == 204) {
+          debugPrint('[BlockRepo] Unblocked user $targetUserId via backend');
+          return;
+        }
+      }
     } catch (e) {
-      debugPrint('Error unblocking ??? for ???: $e');
+      debugPrint('[BlockRepo] Error unblocking user via backend: $e');
     }
   }
 }

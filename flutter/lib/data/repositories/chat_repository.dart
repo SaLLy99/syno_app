@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -37,9 +38,14 @@ class ChatRepository {
             id: json['id'].toString(),
             matchId: json['match_id'].toString(),
             senderId: json['sender_id'].toString(),
-            content: json['content'] as String,
-            timestamp: DateTime.parse(json['created_at'] as String),
+            content: json['content'] as String?,
+            imageUrl: json['image_url'] as String?,
+            videoUrl: json['video_url'] as String?,
+            gifUrl: json['gif_url'] as String?,
+            messageType: json['message_type'] as String? ?? 'text',
             isRead: json['is_read'] as bool? ?? false,
+            isEdited: json['is_edited'] as bool? ?? false,
+            timestamp: DateTime.parse(json['created_at'] as String),
           )).toList();
           await _saveMessagesLocally(matchId, messages);
           return messages;
@@ -51,7 +57,7 @@ class ChatRepository {
     return _getMessagesLocal(matchId);
   }
 
-  Future<void> sendMessage(String matchId, String senderId, String content) async {
+  Future<void> sendMessage(String matchId, String senderId, String content, {String? imageUrl, String? videoUrl, String? gifUrl, String messageType = "text"}) async {
     try {
       final String? token = await _getToken();
       final String? baseUrl = await _getBackendUrl();
@@ -61,6 +67,10 @@ class ChatRepository {
           data: {
             'match_id': int.parse(matchId),
             'content': content,
+            'image_url': imageUrl,
+            'video_url': videoUrl,
+            'gif_url': gifUrl,
+            'message_type': messageType,
           },
           options: _authOptions(token),
         );
@@ -78,6 +88,10 @@ class ChatRepository {
       matchId: matchId,
       senderId: senderId,
       content: content,
+      imageUrl: imageUrl,
+      videoUrl: videoUrl,
+      gifUrl: gifUrl,
+      messageType: messageType,
       timestamp: DateTime.now(),
       isRead: false,
     );
@@ -86,6 +100,127 @@ class ChatRepository {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     final String messagesJson = jsonEncode(allMessages.map((ChatMessage m) => m.toJson()).toList());
     await prefs.setString(_messagesKey, messagesJson);
+  }
+
+  Future<String?> uploadMedia(File file, String token, String baseUrl) async {
+    try {
+      final String fileName = file.path.split('/').last;
+      final String mimeType = fileName.endsWith('.mp4') || fileName.endsWith('.mov')
+          ? 'video/mp4'
+          : 'image/jpeg';
+
+      final FormData formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(
+          file.path,
+          filename: fileName,
+          contentType: DioMediaType.parse(mimeType),
+        ),
+      });
+
+      final response = await _dio.post(
+        '$baseUrl/api/chat/media',
+        data: formData,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'multipart/form-data',
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data['url'] as String?;
+      }
+    } catch (e) {
+      debugPrint('[ChatRepo] Error uploading media: $e');
+    }
+    return null;
+  }
+
+  Future<bool> deleteMessage(String messageId) async {
+    try {
+      final String? token = await _getToken();
+      final String? baseUrl = await _getBackendUrl();
+      if (token != null && baseUrl != null) {
+        final response = await _dio.delete(
+          '$baseUrl/api/messages/message/$messageId',
+          options: _authOptions(token),
+        );
+        if (response.statusCode == 204) {
+          debugPrint('[ChatRepo] Message deleted');
+          return true;
+        }
+      }
+    } catch (e) {
+      debugPrint('[ChatRepo] Error deleting message: $e');
+    }
+    return false;
+  }
+
+  Future<ChatMessage?> editMessage(String messageId, String newContent) async {
+    try {
+      final String? token = await _getToken();
+      final String? baseUrl = await _getBackendUrl();
+      if (token != null && baseUrl != null) {
+        final response = await _dio.patch(
+          '$baseUrl/api/messages/message/$messageId',
+          data: {'content': newContent},
+          options: _authOptions(token),
+        );
+        if (response.statusCode == 200) {
+          final json = response.data as Map<String, dynamic>;
+          return ChatMessage(
+            id: json['id'].toString(),
+            matchId: json['match_id'].toString(),
+            senderId: json['sender_id'].toString(),
+            content: json['content'] as String?,
+            imageUrl: json['image_url'] as String?,
+            videoUrl: json['video_url'] as String?,
+            gifUrl: json['gif_url'] as String?,
+            messageType: json['message_type'] as String? ?? 'text',
+            isRead: json['is_read'] as bool? ?? false,
+            isEdited: json['is_edited'] as bool? ?? false,
+            timestamp: DateTime.parse(json['created_at'] as String),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('[ChatRepo] Error editing message: $e');
+    }
+    return null;
+  }
+
+  Future<ChatMessage?> forwardMessage(String messageId, String targetMatchId) async {
+    try {
+      final String? token = await _getToken();
+      final String? baseUrl = await _getBackendUrl();
+      if (token != null && baseUrl != null) {
+        final response = await _dio.post(
+          '$baseUrl/api/messages/message/$messageId/forward',
+          data: {'target_match_id': int.parse(targetMatchId)},
+          options: _authOptions(token),
+        );
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          final json = response.data as Map<String, dynamic>;
+          return ChatMessage(
+            id: json['id'].toString(),
+            matchId: json['match_id'].toString(),
+            senderId: json['sender_id'].toString(),
+            content: json['content'] as String?,
+            imageUrl: json['image_url'] as String?,
+            videoUrl: json['video_url'] as String?,
+            gifUrl: json['gif_url'] as String?,
+            messageType: json['message_type'] as String? ?? 'text',
+            isRead: json['is_read'] as bool? ?? false,
+            isEdited: json['is_edited'] as bool? ?? false,
+            timestamp: DateTime.parse(json['created_at'] as String),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('[ChatRepo] Error forwarding message: $e');
+    }
+    return null;
   }
 
   Future<void> markAsRead(String matchId, String userId) async {

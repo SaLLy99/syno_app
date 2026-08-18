@@ -1,47 +1,45 @@
 import 'dart:math';
+import 'package:syno_app/domain/entities/astrology_system.dart';
 import 'package:syno_app/domain/entities/natal_chart.dart';
 
 class NatalChartCalculator {
-  static const Map<String, double> _signDegrees = {
-    'Aries': 0,
-    'Taurus': 30,
-    'Gemini': 60,
-    'Cancer': 90,
-    'Leo': 120,
-    'Virgo': 150,
-    'Libra': 180,
-    'Scorpio': 210,
-    'Sagittarius': 240,
-    'Capricorn': 270,
-    'Aquarius': 300,
-    'Pisces': 330,
-  };
-
-  NatalChart calculate(DateTime birthDate, String? birthTime) {
+  NatalChart calculate(DateTime birthDate, String? birthTime, {AstrologySystem system = AstrologySystem.western}) {
     final double julianDay = _toJulianDay(birthDate);
     final double centuries = (julianDay - 2451545.0) / 36525.0;
+    final double ayanamsa = system == AstrologySystem.eastern ? _lahiriAyanamsa(birthDate) : 0.0;
 
     final Map<String, double> positions = {};
 
-    positions['Sun'] = _calculateSun(centuries);
-    positions['Moon'] = _calculateMoon(centuries, birthDate);
-    positions['Mercury'] = _calculateMercury(centuries);
-    positions['Venus'] = _calculateVenus(centuries);
-    positions['Mars'] = _calculateMars(centuries);
-    positions['Jupiter'] = _calculateJupiter(centuries);
-    positions['Saturn'] = _calculateSaturn(centuries);
-    positions['Uranus'] = _calculateUranus(centuries);
-    positions['Neptune'] = _calculateNeptune(centuries);
+    positions['Sun'] = _applyAyanamsa(_calculateSun(centuries), ayanamsa);
+    positions['Moon'] = _applyAyanamsa(_calculateMoon(centuries, birthDate), ayanamsa);
+    positions['Mercury'] = _applyAyanamsa(_calculateMercury(centuries), ayanamsa);
+    positions['Venus'] = _applyAyanamsa(_calculateVenus(centuries), ayanamsa);
+    positions['Mars'] = _applyAyanamsa(_calculateMars(centuries), ayanamsa);
+    positions['Jupiter'] = _applyAyanamsa(_calculateJupiter(centuries), ayanamsa);
+    positions['Saturn'] = _applyAyanamsa(_calculateSaturn(centuries), ayanamsa);
+    positions['Uranus'] = _applyAyanamsa(_calculateUranus(centuries), ayanamsa);
+    positions['Neptune'] = _applyAyanamsa(_calculateNeptune(centuries), ayanamsa);
+    positions['Pluto'] = _applyAyanamsa(_calculatePluto(centuries), ayanamsa);
+
+    Map<String, double>? houses;
+    double? ascendantDeg;
+    double? midheavenDeg;
 
     if (birthTime != null && birthTime.isNotEmpty) {
       final double houseOffset = _calculateHouseOffset(birthTime);
-      final String ascendantSign = _calculateAscendant(centuries, houseOffset);
-      positions['Ascendant'] = _signDegrees[ascendantSign] ?? 0;
+      ascendantDeg = _applyAyanamsa(_calculateAscendantDegree(centuries, houseOffset), ayanamsa);
+      midheavenDeg = _applyAyanamsa(_calculateMidheavenDegree(centuries, houseOffset), ayanamsa);
+      positions['Ascendant'] = ascendantDeg;
+      positions['Midheaven'] = midheavenDeg;
+
+      houses = _calculateEqualHouses(ascendantDeg);
     }
 
     return NatalChart(
       planetPositions: positions,
       birthTime: birthTime,
+      houses: houses,
+      system: system,
     );
   }
 
@@ -91,7 +89,7 @@ class NatalChartCalculator {
         0.186 * sin(_toRadians(Mp % 360)) -
         0.114 * sin(_toRadians(2 * _toRadians(Mp) % 360));
 
-    longitude += dayFraction * 13.2; // approximate daily motion
+    longitude += dayFraction * 13.2;
     longitude = longitude % 360;
     if (longitude < 0) longitude += 360;
 
@@ -168,29 +166,66 @@ class NatalChartCalculator {
     return longitude;
   }
 
+  double _calculatePluto(double T) {
+    final double L = 238.9288 + 145.2078 * T;
+    final double M = 14.589 + 145.182 * T;
+    final double C = 6.58 * sin(_toRadians(M % 360)) + 1.44 * sin(_toRadians(2 * M % 360));
+    double longitude = L + C;
+    longitude = longitude % 360;
+    if (longitude < 0) longitude += 360;
+    return longitude;
+  }
+
   double _calculateHouseOffset(String birthTime) {
     final parts = birthTime.split(':');
     if (parts.length != 2) return 0;
     final hour = int.tryParse(parts[0]) ?? 12;
     final minute = int.tryParse(parts[1]) ?? 0;
-    return (hour + minute / 60.0) * 15.0; // 15 degrees per hour
+    return (hour + minute / 60.0) * 15.0;
   }
 
-  String _calculateAscendant(double T, double houseOffset) {
+  double _calculateAscendantDegree(double T, double houseOffset) {
     final double obliquity = 23.4393 - 0.013 * T;
     final double lst = (100.46 + 360.9856235 * (houseOffset / 15.0)) % 360;
     final double y = cos(_toRadians(obliquity)) * sin(_toRadians(lst));
     final double x = cos(_toRadians(lst));
-    final double asc = atan2(y, x) * 180 / pi;
-    final normalizedAsc = (asc + 360) % 360;
+    double asc = atan2(y, x) * 180 / pi;
+    asc = (asc + 360) % 360;
+    return asc;
+  }
 
-    for (final entry in _signDegrees.entries) {
-      if (normalizedAsc >= entry.value && normalizedAsc < entry.value + 30) {
-        return entry.key;
-      }
+  double _calculateMidheavenDegree(double T, double houseOffset) {
+    final double obliquity = 23.4393 - 0.013 * T;
+    final double lst = (100.46 + 360.9856235 * (houseOffset / 15.0)) % 360;
+    final double y = sin(_toRadians(obliquity));
+    final double x = cos(_toRadians(lst));
+    double mc = atan2(y, x) * 180 / pi;
+    mc = (mc + 360) % 360;
+    return mc;
+  }
+
+  Map<String, double> _calculateEqualHouses(double ascendantDeg) {
+    final Map<String, double> houses = {};
+    for (int i = 1; i <= 12; i++) {
+      final double houseCusp = (ascendantDeg + (i - 1) * 30) % 360;
+      houses['House $i'] = houseCusp;
     }
-    return 'Aries';
+    return houses;
   }
 
   double _toRadians(double degrees) => degrees * pi / 180.0;
+
+  double _lahiriAyanamsa(DateTime birthDate) {
+    final double year = birthDate.year + (birthDate.month - 1) / 12.0 + birthDate.day / 365.25;
+    final double baseAyanamsa = 23.85313;
+    final double rate = 0.013969;
+    return baseAyanamsa + rate * (year - 2000.0);
+  }
+
+  double _applyAyanamsa(double tropicalDegree, double ayanamsa) {
+    double sidereal = tropicalDegree - ayanamsa;
+    sidereal = sidereal % 360;
+    if (sidereal < 0) sidereal += 360;
+    return sidereal;
+  }
 }

@@ -6,18 +6,25 @@ import 'package:syno_app/domain/entities/user.dart';
 import 'package:syno_app/presentation/providers/registration_provider.dart';
 import 'package:syno_app/presentation/providers/theme_provider.dart';
 import 'package:syno_app/presentation/providers/user_provider.dart';
+import 'package:syno_app/presentation/providers/websocket_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Manages the user's authentication state and profile data.
 class UserStateNotifier extends StateNotifier<AsyncValue<User?>> {
   final Ref _ref;
   String? _authToken;
+  bool _justReactivated = false;
 
   UserStateNotifier(this._ref) : super(const AsyncValue.loading()) {
     _initializeUserAndToken();
   }
 
   String? get authToken => _authToken;
+  bool get justReactivated => _justReactivated;
+
+  void clearJustReactivated() {
+    _justReactivated = false;
+  }
 
   Future<void> _initializeUserAndToken() async {
     try {
@@ -25,6 +32,7 @@ class UserStateNotifier extends StateNotifier<AsyncValue<User?>> {
       _authToken = prefs.getString('auth_token'); // Load token on init
       if (_authToken != null) {
         await refreshUser();
+        _connectWebSocket();
       } else {
         state = const AsyncValue.data(null);
       }
@@ -37,6 +45,15 @@ class UserStateNotifier extends StateNotifier<AsyncValue<User?>> {
       if (mounted) {
         state = const AsyncValue.data(null);
       }
+    }
+  }
+
+  void _connectWebSocket() {
+    try {
+      final wsService = _ref.read(webSocketServiceProvider);
+      wsService.connect();
+    } catch (e) {
+      debugPrint("[UserStateNotifier] WebSocket connection failed: $e");
     }
   }
 
@@ -64,6 +81,10 @@ class UserStateNotifier extends StateNotifier<AsyncValue<User?>> {
           _ref.read(themeProvider.notifier).setThemeFromProfile(themeData);
         }
         state = AsyncValue.data(user);
+        // Clear reactivated flag once we have a valid user profile
+        if (user != null) {
+          _justReactivated = false;
+        }
       }
     } catch (e) {
       debugPrint("[UserStateNotifier] Error in refreshUser: $e");
@@ -156,10 +177,29 @@ class UserStateNotifier extends StateNotifier<AsyncValue<User?>> {
     } catch (e) { rethrow; }
   }
 
+  Future<void> requestReactivation({String? email, String? phoneNumber}) async {
+    try {
+      await _ref.read(userServiceProvider).requestReactivation(email: email, phoneNumber: phoneNumber);
+    } catch (e) { rethrow; }
+  }
+
+  Future<void> verifyReactivation({String? email, String? phoneNumber, required String code}) async {
+    try {
+      final String token = await _ref.read(userServiceProvider).verifyReactivation(
+        email: email,
+        phoneNumber: phoneNumber,
+        code: code,
+      );
+      _justReactivated = true;
+      await refreshUser(token: token);
+    } catch (e) { rethrow; }
+  }
+
   Future<void> logout() async {
     final SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
     _authToken = null;
+    _justReactivated = false;
     _ref.read(registrationProvider.notifier).reset();
     state = const AsyncValue.data(null);
   }

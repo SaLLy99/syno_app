@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:syno_app/domain/entities/user.dart';
+import 'package:syno_app/domain/entities/astrology_system.dart';
 import 'package:syno_app/presentation/providers/auth_providers.dart';
 import 'package:syno_app/presentation/providers/user_provider.dart' hide userServiceProvider;
 import 'package:syno_app/presentation/widgets/app_dialogs.dart';
@@ -50,6 +51,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   Set<int> _selectedProfessionIds = <int>{};
   Set<String> _selectedCoreValues = <String>{};
   Set<String> _selectedIntentionKeys = <String>{};
+  AstrologySystem _selectedAstrologySystem = AstrologySystem.western;
 
   @override
   void initState() {
@@ -312,6 +314,52 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     );
   }
 
+  Widget _buildAstrologySystemChip({
+    required AstrologySystem system,
+    required String icon,
+    required String label,
+    required AppThemeData theme,
+  }) {
+    final bool isSelected = _selectedAstrologySystem == system;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedAstrologySystem = system),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFF6D28D9).withOpacity(0.3)
+              : Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFF8B5CF6)
+                : Colors.white.withOpacity(0.15),
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(icon, style: const TextStyle(fontSize: 18)),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.white.withOpacity(0.7),
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final AsyncValue<User?> userAsync = ref.watch(currentUserProvider);
@@ -493,6 +541,32 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                               style: TextStyle(color: theme.primaryTextColor),
                             ),
                           ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // --- ASTROLOGY SYSTEM ---
+                  Text("Astrology System", style: TextStyle(fontSize: 16, color: theme.primaryTextColor.withOpacity(0.7))),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildAstrologySystemChip(
+                          system: AstrologySystem.western,
+                          icon: '♈',
+                          label: 'Western (Tropical)',
+                          theme: theme,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _buildAstrologySystemChip(
+                          system: AstrologySystem.eastern,
+                          icon: '🕉',
+                          label: 'Eastern (Sidereal)',
+                          theme: theme,
                         ),
                       ),
                     ],

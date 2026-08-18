@@ -2,8 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:syno_app/data/services/auth_service.dart';
 import 'package:syno_app/data/services/user_service.dart';
 import 'package:syno_app/domain/entities/user.dart';
+import 'package:syno_app/presentation/providers/match_provider.dart';
 import 'package:syno_app/presentation/providers/registration_provider.dart';
 import 'package:syno_app/presentation/providers/user_provider.dart';
+import 'package:syno_app/presentation/providers/websocket_provider.dart';
 
 
 final Provider<String> backendUrlProvider = Provider<String>((Ref ref) => throw UnimplementedError());
@@ -18,7 +20,6 @@ final Provider<UserService> userServiceProvider = Provider<UserService>((Ref ref
   return UserService(
     ref.watch(backendUrlProvider),
     onUnauthorized: () {
-      // Trigger a logout via the AuthNotifier when a 401 occurs
       try {
         ref.read(authProvider.notifier).logOut();
       } catch (_) {}
@@ -38,25 +39,51 @@ class AuthNotifier extends AsyncNotifier<User?> {
     try {
       final AuthService authService = ref.read(authServiceProvider);
       await authService.login(email, password); 
-      ref.invalidate(currentUserProvider); 
-      state = const AsyncData(null); 
+      ref.invalidate(currentUserProvider);
+      state = const AsyncData(null);
+      _connectWebSocket();
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;
     }
   }
 
+  void _connectWebSocket() {
+    try {
+      final wsService = ref.read(webSocketServiceProvider);
+      wsService.connect();
+    } catch (e) {
+      // WebSocket connection is optional, don't fail login
+    }
+  }
+
   Future<void> logOut() async {
     state = const AsyncLoading();
     try {
+      _disconnectWebSocket();
       final AuthService authService = ref.read(authServiceProvider);
       await authService.logOut();
       ref.read(registrationProvider.notifier).reset();
-      ref.invalidate(currentUserProvider); 
+      ref.invalidate(currentUserProvider);
+      ref.invalidate(allUsersProvider);
+      ref.invalidate(potentialMatchesProvider);
+      ref.invalidate(chatsFromBackendProvider);
+      ref.invalidate(matchesFromBackendProvider);
+      ref.invalidate(incomingLikesProvider);
+      ref.invalidate(likedUserIdsProvider);
       state = const AsyncData(null);
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;
+    }
+  }
+
+  void _disconnectWebSocket() {
+    try {
+      final wsService = ref.read(webSocketServiceProvider);
+      wsService.disconnect();
+    } catch (e) {
+      // Ignore disconnect errors
     }
   }
 
@@ -67,6 +94,7 @@ class AuthNotifier extends AsyncNotifier<User?> {
       await authService.register(email, password);
       ref.invalidate(currentUserProvider);
       state = const AsyncData(null); 
+      _connectWebSocket();
     } catch (e, st) {
       state = AsyncError(e, st);
       rethrow;

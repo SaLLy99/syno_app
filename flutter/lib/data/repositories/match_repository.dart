@@ -22,11 +22,11 @@ class MatchRepository {
     headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
   );
 
-  Future<void> saveMatchToBackend(Match match) async {
+  Future<int?> saveMatchToBackend(Match match) async {
     try {
       final String? token = await _getToken();
       final String? baseUrl = await _getBackendUrl();
-      if (token == null || baseUrl == null) return;
+      if (token == null || baseUrl == null) return null;
 
       final response = await _dio.post(
         '$baseUrl/api/matches',
@@ -39,11 +39,14 @@ class MatchRepository {
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        debugPrint('[MatchRepo] Saved match to backend: ${response.data['id']}');
+        final int? backendId = response.data['id'] as int?;
+        debugPrint('[MatchRepo] Saved match to backend: $backendId');
+        return backendId;
       }
     } catch (e) {
       debugPrint('[MatchRepo] Error saving match to backend: $e');
     }
+    return null;
   }
 
   Future<void> updateMatchStatusOnBackend(int backendMatchId, String status) async {

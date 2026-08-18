@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:syno_app/domain/entities/astrology_system.dart';
 import 'package:syno_app/presentation/providers/theme_provider.dart';
 import 'package:syno_app/presentation/providers/user_provider.dart';
 import 'package:syno_app/presentation/widgets/app_dialogs.dart';
@@ -35,6 +36,15 @@ class SettingsScreen extends ConsumerWidget {
                 title: 'profile.settings.theme.title'.tr(),
                 subtitle: 'profile.settings.theme.subtitle'.tr(),
                 onTap: () => context.push('/profile/settings/theme-selection'),
+                theme: theme,
+              ),
+              _buildAstrologySystemTile(context, ref, theme),
+              _buildSettingsTile(
+                context,
+                icon: Icons.analytics_outlined,
+                title: 'Analytics',
+                subtitle: 'View your match statistics and tips',
+                onTap: () => context.push('/analytics'),
                 theme: theme,
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -92,6 +102,36 @@ class SettingsScreen extends ConsumerWidget {
       title: Text(title, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
       subtitle: Text(subtitle, style: TextStyle(color: theme.secondaryTextColor)),
       onTap: onTap,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
+    );
+  }
+
+  Widget _buildAstrologySystemTile(BuildContext context, WidgetRef ref, AppThemeData theme) {
+    final AstrologySystem current = ref.watch(astrologySystemProvider);
+    return ListTile(
+      leading: Icon(Icons.auto_awesome, color: theme.primaryTextColor),
+      title: Text('Astrology System', style: TextStyle(color: theme.primaryTextColor, fontWeight: FontWeight.bold)),
+      subtitle: Text(
+        '${current.label} — ${current.description}',
+        style: TextStyle(color: theme.secondaryTextColor),
+      ),
+      trailing: DropdownButton<AstrologySystem>(
+        value: current,
+        dropdownColor: const Color(0xFF2D1B4E),
+        style: TextStyle(color: theme.primaryTextColor),
+        underline: const SizedBox.shrink(),
+        onChanged: (AstrologySystem? newSystem) {
+          if (newSystem != null) {
+            ref.read(astrologySystemProvider.notifier).setSystem(newSystem);
+          }
+        },
+        items: AstrologySystem.values.map((system) {
+          return DropdownMenuItem<AstrologySystem>(
+            value: system,
+            child: Text('${system.label} (${system.description})'),
+          );
+        }).toList(),
+      ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
     );
   }

@@ -2,20 +2,63 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:syno_app/domain/entities/match.dart';
+import 'package:syno_app/domain/entities/natal_chart.dart';
 import 'package:syno_app/domain/entities/synastry_data.dart';
+import 'package:syno_app/data/services/astrology_api_service.dart';
+import 'package:syno_app/domain/entities/astrology_system.dart';
+import 'package:syno_app/presentation/providers/auth_providers.dart';
+import 'package:syno_app/presentation/providers/user_provider.dart';
 import 'package:syno_app/presentation/providers/theme_provider.dart';
 import 'package:syno_app/presentation/widgets/compatibility_meter.dart';
+import 'package:syno_app/presentation/widgets/zodiac_wheel_widget.dart';
 import 'package:syno_app/theme.dart';
 
-class SynastryDetailScreen extends ConsumerWidget {
+class SynastryDetailScreen extends ConsumerStatefulWidget {
   final Match match;
 
   const SynastryDetailScreen({super.key, required this.match});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SynastryDetailScreen> createState() => _SynastryDetailScreenState();
+}
+
+class _SynastryDetailScreenState extends ConsumerState<SynastryDetailScreen> {
+  NatalChart? _chart1;
+  NatalChart? _chart2;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCharts();
+  }
+
+  Future<void> _loadCharts() async {
+    final currentUser = ref.read(currentUserProvider).value;
+    if (currentUser?.birthDate == null || widget.match.matchedUser.birthDate == null) {
+      setState(() => _loading = false);
+      return;
+    }
+
+    final backendUrl = ref.read(backendUrlProvider);
+    final apiService = AstrologyApiService(backendUrl);
+    final c1 = await apiService.getChart(currentUser!);
+    final c2 = await apiService.getChart(widget.match.matchedUser);
+
+    if (mounted) {
+      setState(() {
+        _chart1 = c1;
+        _chart2 = c2;
+        _loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final AppThemeData theme = ref.watch(themeProvider);
-    final SynastryData data = match.synastryData;
+    final SynastryData data = widget.match.synastryData;
+    final AstrologySystem system = ref.watch(astrologySystemProvider);
 
     final Map<String, double> dimensions = {
       'Romance': data.romanceScore,
@@ -54,10 +97,74 @@ class SynastryDetailScreen extends ConsumerWidget {
               children: [
                 _buildOverallScore(context),
                 const SizedBox(height: 24),
+                if (_chart1 != null && _chart2 != null) ...[
+                  Center(
+                    child: ZodiacWheelWidget(
+                      chart: _chart1!,
+                      chart2: _chart2!,
+                      showBothCharts: true,
+                      size: 280,
+                      system: system,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+                if (widget.match.synastryData.interpretation.isNotEmpty) ...[
+                  _buildSection(
+                    context,
+                    'Overall Reading',
+                    Icons.auto_awesome,
+                    CosmicColors.cosmicBlue,
+                    Text(
+                      widget.match.synastryData.interpretation,
+                      style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 14, height: 1.5),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
                 _buildStrengths(context, dimensions),
                 const SizedBox(height: 20),
                 _buildChallenges(context),
                 const SizedBox(height: 20),
+                if (widget.match.synastryData.communicationText.isNotEmpty) ...[
+                  _buildSection(
+                    context,
+                    'Communication Style',
+                    Icons.psychology,
+                    CosmicColors.cosmicPurple,
+                    Text(
+                      widget.match.synastryData.communicationText,
+                      style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 14, height: 1.5),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+                if (widget.match.synastryData.emotionalDynamicText.isNotEmpty) ...[
+                  _buildSection(
+                    context,
+                    'Emotional Dynamic',
+                    Icons.favorite,
+                    CosmicColors.cosmicPink,
+                    Text(
+                      widget.match.synastryData.emotionalDynamicText,
+                      style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 14, height: 1.5),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+                if (widget.match.synastryData.growthDynamicText.isNotEmpty) ...[
+                  _buildSection(
+                    context,
+                    'Growth Potential',
+                    Icons.trending_up,
+                    CosmicColors.sunsetOrange,
+                    Text(
+                      widget.match.synastryData.growthDynamicText,
+                      style: TextStyle(color: Colors.white.withOpacity(0.85), fontSize: 14, height: 1.5),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
                 _buildWhyWeMatched(context),
                 const SizedBox(height: 20),
                 _buildDetailedAspects(context),
@@ -71,7 +178,7 @@ class SynastryDetailScreen extends ConsumerWidget {
   }
 
   Widget _buildOverallScore(BuildContext context) {
-    final double score = match.finalScore;
+    final double score = widget.match.synastryScore;
     return Center(
       child: Column(
         children: [
@@ -134,37 +241,60 @@ class SynastryDetailScreen extends ConsumerWidget {
     final sortedDims = dimensions.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
+    final List<String> backendStrengths = widget.match.synastryData.strengths;
+
     return _buildSection(
       context,
       'Strengths',
       Icons.star,
       CosmicColors.cosmicPurple,
       Column(
-        children: sortedDims.take(5).map((entry) {
-          final int stars = entry.value >= 90 ? 5 : entry.value >= 80 ? 4 : entry.value >= 70 ? 3 : 2;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    entry.key,
-                    style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 15),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (backendStrengths.isNotEmpty) ...[
+            ...backendStrengths.map((s) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('✨ ', style: TextStyle(fontSize: 14)),
+                  Expanded(
+                    child: Text(
+                      s,
+                      style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 14, height: 1.4),
+                    ),
                   ),
-                ),
-                Row(
-                  children: List.generate(5, (i) {
-                    return Icon(
-                      i < stars ? Icons.star : Icons.star_border,
-                      color: i < stars ? CosmicColors.cosmicPink : Colors.white30,
-                      size: 18,
-                    );
-                  }),
-                ),
-              ],
-            ),
-          );
-        }).toList(),
+                ],
+              ),
+            )),
+            const SizedBox(height: 8),
+          ],
+          ...sortedDims.take(5).map((entry) {
+            final int stars = entry.value >= 90 ? 5 : entry.value >= 80 ? 4 : entry.value >= 70 ? 3 : 2;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      entry.key,
+                      style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 15),
+                    ),
+                  ),
+                  Row(
+                    children: List.generate(5, (i) {
+                      return Icon(
+                        i < stars ? Icons.star : Icons.star_border,
+                        color: i < stars ? CosmicColors.cosmicPink : Colors.white30,
+                        size: 18,
+                      );
+                    }),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
       ),
     );
   }
@@ -201,7 +331,12 @@ class SynastryDetailScreen extends ConsumerWidget {
   }
 
   List<String> _generateChallenges() {
-    final SynastryData data = match.synastryData;
+    final SynastryData data = widget.match.synastryData;
+
+    if (data.challenges.isNotEmpty) {
+      return data.challenges;
+    }
+
     final List<String> challenges = [];
 
     if (data.moonScore < 65) {
@@ -227,8 +362,10 @@ class SynastryDetailScreen extends ConsumerWidget {
   }
 
   Widget _buildWhyWeMatched(BuildContext context) {
-    final List<Aspect> topAspects = match.synastryData.detailedAspects
+    final List<Aspect> topAspects = List<Aspect>.from(widget.match.synastryData.detailedAspects)
       ..sort((a, b) => b.score.compareTo(a.score));
+    final List<Aspect> bestAspects = topAspects.where((a) => a.isHarmonious).take(5).toList();
+    if (bestAspects.isEmpty) return const SizedBox.shrink();
 
     return _buildSection(
       context,
@@ -237,7 +374,7 @@ class SynastryDetailScreen extends ConsumerWidget {
       CosmicColors.cosmicPink,
       Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: topAspects.take(5).map((aspect) {
+        children: bestAspects.map((aspect) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: Container(
@@ -280,6 +417,14 @@ class SynastryDetailScreen extends ConsumerWidget {
                           ),
                         ),
                       ),
+                      Text(
+                        '${aspect.score.toStringAsFixed(0)}%',
+                        style: TextStyle(
+                          color: _getAspectColor(aspect.score),
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -308,7 +453,7 @@ class SynastryDetailScreen extends ConsumerWidget {
   }
 
   Widget _buildDetailedAspects(BuildContext context) {
-    if (match.synastryData.detailedAspects.isEmpty) return const SizedBox.shrink();
+    if (widget.match.synastryData.detailedAspects.isEmpty) return const SizedBox.shrink();
 
     return _buildSection(
       context,
@@ -316,7 +461,7 @@ class SynastryDetailScreen extends ConsumerWidget {
       Icons.psychology,
       CosmicColors.cosmicBlue,
       Column(
-        children: match.synastryData.detailedAspects.map((aspect) {
+        children: widget.match.synastryData.detailedAspects.map((aspect) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: CompatibilityMeter(

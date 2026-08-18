@@ -122,12 +122,61 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
         context.go('/register-name');
       }
     } catch (e) {
-      final String message = resolveLocalizedMessage(e.toString());
-      await _showStatusDialog(
-        title: 'dialog.error_title'.tr(),
-        message: message,
-        isError: true,
-      );
+      final String rawMessage = e.toString();
+      final String message = resolveLocalizedMessage(rawMessage);
+
+      if (rawMessage.contains('account.deactivated')) {
+        if (mounted) {
+          final bool? goToReactivation = await showDialog<bool>(
+            context: context,
+            builder: (BuildContext ctx) => AlertDialog(
+              backgroundColor: const Color(0xFF1A1A1A),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  const Icon(Icons.lock_outline, color: Colors.orangeAccent, size: 64),
+                  const SizedBox(height: AppSpacing.md),
+                  Text(
+                    'account.deactivated_title'.tr(),
+                    style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    'account.deactivated_message'.tr(),
+                    style: const TextStyle(color: Colors.white70),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+              actions: <Widget>[
+                Center(
+                  child: TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(false),
+                    child: Text('dialog.cancel'.tr(), style: const TextStyle(color: Colors.white70)),
+                  ),
+                ),
+                Center(
+                  child: TextButton(
+                    onPressed: () => Navigator.of(ctx).pop(true),
+                    child: Text('reactivation.recover_account'.tr(), style: const TextStyle(color: Colors.cyanAccent)),
+                  ),
+                ),
+              ],
+            ),
+          );
+          if (goToReactivation == true && mounted) {
+            context.go('/reactivation');
+          }
+        }
+      } else {
+        await _showStatusDialog(
+          title: 'dialog.error_title'.tr(),
+          message: message,
+          isError: true,
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

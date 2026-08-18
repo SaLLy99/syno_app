@@ -3,6 +3,62 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:syno_app/domain/entities/synastry_data.dart';
 
 class ExplanationGeneratorService {
+  static const Map<String, String> _dimensionReasonKeys = <String, String>{
+    'emotional': 'explanation.top_reasons.dimension_emotional',
+    'communication': 'explanation.top_reasons.dimension_communication',
+    'passion': 'explanation.top_reasons.dimension_passion',
+    'intellectual': 'explanation.top_reasons.dimension_intellectual',
+    'values': 'explanation.top_reasons.dimension_values',
+    'spiritual': 'explanation.top_reasons.dimension_spiritual',
+    'lifestyle': 'explanation.top_reasons.dimension_lifestyle',
+    'growth': 'explanation.top_reasons.dimension_growth',
+  };
+
+  List<String> generateTopReasonsFromDimensions(Map<String, dynamic> dimensions) {
+    final List<String> reasons = <String>[];
+
+    final List<MapEntry<String, dynamic>> sorted = dimensions.entries.toList()
+      ..sort((a, b) {
+        final double sa = (a.value['score'] as num?)?.toDouble() ?? 0;
+        final double sb = (b.value['score'] as num?)?.toDouble() ?? 0;
+        return sb.compareTo(sa);
+      });
+
+    for (final entry in sorted.take(5)) {
+      final String key = entry.key;
+      final Map<String, dynamic> dim = entry.value as Map<String, dynamic>;
+      final double score = (dim['score'] as num?)?.toDouble() ?? 0;
+      final String? label = dim['label'] as String?;
+
+      if (score < 40) continue;
+
+      final String? translationKey = _dimensionReasonKeys[key];
+      if (translationKey != null && _hasTranslation(translationKey)) {
+        reasons.add(translationKey.tr());
+      } else if (label != null && label.isNotEmpty) {
+        reasons.add(label);
+      } else {
+        final String fallbackKey = 'explanation.top_reasons.dimension_$key';
+        if (_hasTranslation(fallbackKey)) {
+          reasons.add(fallbackKey.tr());
+        } else {
+          reasons.add('${key[0].toUpperCase()}${key.substring(1)} compatibility is strong at ${score.toStringAsFixed(0)}%');
+        }
+      }
+    }
+
+    return reasons.take(5).toList();
+  }
+
+  bool _hasTranslation(String key) {
+    try {
+      final String result = key.tr();
+      return result != key;
+    } catch (_) {
+      return false;
+    }
+  }
+
   List<String> generateTopReasons(SynastryData synastryData, List<String> behavioralReasons) {
     final List<String> synastryReasons = <String>[];
     

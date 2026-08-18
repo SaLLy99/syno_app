@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:syno_app/domain/entities/astrology_system.dart';
+import 'package:syno_app/data/services/natal_chart_calculator.dart';
 
 // --- Supporting Models ---
 
@@ -222,6 +224,8 @@ class Location {
   final String? type;
   final String translationKey;
   final LocationParent? parent;
+  final double? latitude;
+  final double? longitude;
 
   Location({
     required this.id,
@@ -229,6 +233,8 @@ class Location {
     required this.translationKey,
     this.type,
     this.parent,
+    this.latitude,
+    this.longitude,
   });
 
   factory Location.fromJson(Map<String, dynamic> json) => Location(
@@ -239,6 +245,8 @@ class Location {
         parent: json['parent'] != null
             ? LocationParent.fromJson(json['parent'] as Map<String, dynamic>)
             : null,
+        latitude: (json['latitude'] as double?) ?? (json['lat'] as double?),
+        longitude: (json['longitude'] as double?) ?? (json['lon'] as double?),
       );
 
   String get localizedDisplayName {
@@ -260,6 +268,8 @@ class Location {
     String? type,
     String? translationKey,
     LocationParent? parent,
+    double? latitude,
+    double? longitude,
   }) {
     return Location(
       id: id ?? this.id,
@@ -267,6 +277,8 @@ class Location {
       type: type ?? this.type,
       translationKey: translationKey ?? this.translationKey,
       parent: parent ?? this.parent,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
     );
   }
 }
@@ -327,7 +339,13 @@ class User {
   final UserPreferences? preferences;
   final String? profilePhotoUrl;
   final DateTime? lastProfileEditAt;
-  final Map<String, dynamic>? themePreferences; // Field added
+  final Map<String, dynamic>? themePreferences;
+  final int? compatibilityScore;
+  final int? weightedScore;
+  final List<String> topReasons;
+  final String? cosmicInsight;
+  final bool isDeactivated;
+  final DateTime? deactivatedAt;
 
   User({
     required this.id,
@@ -352,13 +370,19 @@ class User {
     this.profilePhotoUrl,
     this.lastProfileEditAt,
     this.themePreferences,
+    this.compatibilityScore,
+    this.weightedScore,
+    this.topReasons = const <String>[],
+    this.cosmicInsight,
+    this.isDeactivated = false,
+    this.deactivatedAt,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
     try {
       return User(
-        id: json['id'] as int,
-        userId: json['user_id'] as int,
+        id: json['id'] as int? ?? 0,
+        userId: json['user_id'] as int? ?? json['id'] as int? ?? 0,
         name: json['name'] as String?,
         lastName: json['last_name'] as String?,
         height: (json['height'] as num?)?.toDouble(),
@@ -407,6 +431,16 @@ class User {
         themePreferences: json['theme_preferences'] != null
             ? Map<String, dynamic>.from(json['theme_preferences'] as Map)
             : null,
+        compatibilityScore: json['compatibility_score'] as int?,
+        weightedScore: json['weighted_score'] as int?,
+        topReasons: (json['top_reasons'] as List<dynamic>?)
+                ?.map((e) => e as String)
+                .toList() ?? <String>[],
+        cosmicInsight: json['cosmic_insight'] as String?,
+        isDeactivated: json['is_deactivated'] as bool? ?? false,
+        deactivatedAt: json['deactivated_at'] != null
+            ? DateTime.tryParse(json['deactivated_at'] as String)
+            : null,
       );
     } catch (e, stacktrace) {
       debugPrint('Error parsing User from JSON: $e');
@@ -446,6 +480,17 @@ class User {
     return null;
   }
 
+  String? get zodiacSignEastern {
+    if (birthDate == null) return null;
+    final calculator = NatalChartCalculator();
+    final chart = calculator.calculate(birthDate!, birthTime, system: AstrologySystem.eastern);
+    return chart.getSunSign();
+  }
+
+  String? getZodiacSign(AstrologySystem system) {
+    return system == AstrologySystem.eastern ? zodiacSignEastern : zodiacSign;
+  }
+
   Map<String, dynamic> toJson() {
     return <String, dynamic>{
       'id': id,
@@ -480,6 +525,12 @@ class User {
       'profile_photo_url': profilePhotoUrl,
       'last_profile_edit_at': lastProfileEditAt?.toIso8601String(),
       'theme_preferences': themePreferences,
+      'compatibility_score': compatibilityScore,
+      'weighted_score': weightedScore,
+      'top_reasons': topReasons,
+      'cosmic_insight': cosmicInsight,
+      'is_deactivated': isDeactivated,
+      'deactivated_at': deactivatedAt?.toIso8601String(),
     };
   }
 
@@ -505,6 +556,12 @@ class User {
     UserPreferences? preferences,
     String? profilePhotoUrl,
     Map<String, dynamic>? themePreferences,
+    int? compatibilityScore,
+    int? weightedScore,
+    List<String>? topReasons,
+    String? cosmicInsight,
+    bool? isDeactivated,
+    DateTime? deactivatedAt,
   }) {
     return User(
       id: id ?? this.id,
@@ -527,8 +584,14 @@ class User {
       personalityTraits: personalityTraits ?? this.personalityTraits,
       preferences: preferences ?? this.preferences,
       profilePhotoUrl: profilePhotoUrl ?? this.profilePhotoUrl,
-      lastProfileEditAt: lastProfileEditAt, // Kept stable
+      lastProfileEditAt: lastProfileEditAt,
       themePreferences: themePreferences ?? this.themePreferences,
+      compatibilityScore: compatibilityScore ?? this.compatibilityScore,
+      weightedScore: weightedScore ?? this.weightedScore,
+      topReasons: topReasons ?? this.topReasons,
+      cosmicInsight: cosmicInsight ?? this.cosmicInsight,
+      isDeactivated: isDeactivated ?? this.isDeactivated,
+      deactivatedAt: deactivatedAt ?? this.deactivatedAt,
     );
   }
 }

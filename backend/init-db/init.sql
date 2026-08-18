@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS locations (
     name VARCHAR(100) NOT NULL,
     type VARCHAR(10) NOT NULL, -- 'country' or 'city'
     parent_id INT REFERENCES locations(id) ON DELETE CASCADE,
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION,
     UNIQUE(name, parent_id)
 );
 
@@ -170,28 +172,8 @@ CREATE TABLE IF NOT EXISTS user_photos (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 9️⃣ Insert sample data into locations (countries)
-INSERT INTO locations (name, type) VALUES
-    ('USA', 'country'),
-    ('UK', 'country'),
-    ('France', 'country'),
-    ('Japan', 'country'),
-    ('Australia', 'country'),
-    ('Germany', 'country'),
-    ('Canada', 'country')
-ON CONFLICT (name, parent_id) DO NOTHING;
-
--- 🔟 Insert sample data into locations (cities)
-INSERT INTO locations (name, type, parent_id) VALUES
-    ('New York', 'city', (SELECT id FROM locations WHERE name = 'USA' AND type = 'country')),
-    ('Los Angeles', 'city', (SELECT id FROM locations WHERE name = 'USA' AND type = 'country')),
-    ('London', 'city', (SELECT id FROM locations WHERE name = 'UK' AND type = 'country')),
-    ('Paris', 'city', (SELECT id FROM locations WHERE name = 'France' AND type = 'country')),
-    ('Tokyo', 'city', (SELECT id FROM locations WHERE name = 'Japan' AND type = 'country')),
-    ('Sydney', 'city', (SELECT id FROM locations WHERE name = 'Australia' AND type = 'country')),
-    ('Berlin', 'city', (SELECT id FROM locations WHERE name = 'Germany' AND type = 'country')),
-    ('Toronto', 'city', (SELECT id FROM locations WHERE name = 'Canada' AND type = 'country'))
-ON CONFLICT (name, parent_id) DO NOTHING;
+-- 9️⃣ Locations are populated dynamically via the /api/locations/seed endpoint
+-- (fetches from REST Countries API with real coordinates on first run)
 
 -- 1️⃣0️⃣.5 Insert sample data into educations
 INSERT INTO educations (name) VALUES
@@ -217,9 +199,13 @@ ON CONFLICT (name) DO NOTHING;
 INSERT INTO orientations (name) VALUES
     ('Straight'),
     ('Gay'),
+    ('Lesbian'),
     ('Bisexual'),
     ('Pansexual'),
     ('Asexual'),
+    ('Demisexual'),
+    ('Queer'),
+    ('Questioning'),
     ('Other');
 
 -- 1️⃣3️⃣ Insert sample data into sexes
@@ -227,6 +213,11 @@ INSERT INTO sexes (name) VALUES
     ('Male'),
     ('Female'),
     ('Non-binary'),
+    ('Transgender Male'),
+    ('Transgender Female'),
+    ('Genderqueer'),
+    ('Genderfluid'),
+    ('Agender'),
     ('Other');
 
 -- 1️⃣3️⃣.5 Insert sample data into core_values

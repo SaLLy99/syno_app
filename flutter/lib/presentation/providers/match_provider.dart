@@ -3,10 +3,14 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syno_app/data/repositories/match_repository.dart';
+import 'package:syno_app/data/services/astrology_api_service.dart';
 import 'package:syno_app/data/services/matching_engine_service.dart';
+import 'package:syno_app/domain/entities/astrology_system.dart';
 import 'package:syno_app/domain/entities/match.dart';
+import 'package:syno_app/domain/entities/synastry_data.dart';
 import 'package:syno_app/domain/entities/user.dart';
 import 'package:syno_app/domain/entities/user_preferences.dart';
+import 'package:syno_app/presentation/providers/auth_providers.dart';
 import 'package:syno_app/presentation/providers/user_provider.dart';
 import 'package:syno_app/presentation/providers/preferences_provider.dart';
 import 'package:syno_app/presentation/providers/block_provider.dart';
@@ -15,7 +19,12 @@ final Provider<MatchRepository> matchRepositoryProvider =
   Provider<MatchRepository>((Ref ref) => MatchRepository());
 
 final Provider<MatchingEngineService> matchingEngineProvider =
-  Provider<MatchingEngineService>((Ref ref) => MatchingEngineService());
+  Provider<MatchingEngineService>((Ref ref) {
+    final backendUrl = ref.watch(backendUrlProvider);
+    return MatchingEngineService(
+      astrologyApi: AstrologyApiService(backendUrl),
+    );
+  });
 
 final FutureProvider<List<Match>> potentialMatchesProvider =
   FutureProvider<List<Match>>((Ref ref) async {
@@ -33,24 +42,23 @@ final FutureProvider<List<Match>> potentialMatchesProvider =
     final List<Match> existingMatches =
     await ref.read(userMatchesProvider(currentUser.id.toString()).future);
 
-    final MatchingEngineService matchingEngine = ref.read(matchingEngineProvider);
-    final List<Match> potentialMatches = await matchingEngine.findPotentialMatches(currentUser, allUsers, preferences);
-    debugPrint('[potentialMatches] ${allUsers.length} profiles -> ${potentialMatches.length} after engine');
-
     final List<User> blockedUsers = await ref.read(blockedUsersProvider.future);
     final Set<String> blockedIds = blockedUsers.map((User u) => u.userId.toString()).toSet();
 
-    final List<Match> result = potentialMatches
-      .where((Match pm) =>
-        !existingMatches.any((Match em) => em.matchedUserId == pm.matchedUserId))
-      .where((Match pm) => !blockedIds.contains(pm.matchedUserId.toString()))
-      .where((Match pm) => !existingMatches.any(
-        (Match em) => em.matchedUserId == pm.matchedUserId && 
-        (em.status == MatchStatus.hidden || em.status == MatchStatus.saved)))
-      .toList();
+    debugPrint('[potentialMatches] Using client-side astrology API for scoring');
+    final MatchingEngineService matchingEngine = ref.read(matchingEngineProvider);
+    final AstrologySystem system = ref.read(astrologySystemProvider);
+    List<Match> potentialMatches = await matchingEngine.findPotentialMatches(currentUser, allUsers, preferences: preferences, system: system);
+    potentialMatches = potentialMatches
+        .where((Match pm) => !existingMatches.any((Match em) => em.matchedUserId == pm.matchedUserId))
+        .where((Match pm) => !blockedIds.contains(pm.matchedUserId.toString()))
+        .where((Match pm) => !existingMatches.any(
+          (Match em) => em.matchedUserId == pm.matchedUserId &&
+          (em.status == MatchStatus.hidden || em.status == MatchStatus.saved)))
+        .toList();
 
-    debugPrint('[potentialMatches] ${result.length} final matches');
-    return result;
+    debugPrint('[potentialMatches] ${allUsers.length} profiles -> ${potentialMatches.length} final matches');
+    return potentialMatches;
   } catch (e, st) {
     debugPrint('[potentialMatches] ERROR: $e');
     debugPrint('[potentialMatches] Stack: $st');
@@ -78,18 +86,26 @@ class ChatListItem {
   final int matchedUserId;
   final String? matchedName;
   final String? matchedPhotoUrl;
+  final int? compatibilityScore;
   final String? lastMessage;
   final DateTime? lastMessageAt;
+  final int? lastMessageSenderId;
   final bool isRead;
+  final int unreadCount;
+  final DateTime? lastActiveAt;
 
   ChatListItem({
     required this.matchId,
     required this.matchedUserId,
     this.matchedName,
     this.matchedPhotoUrl,
+    this.compatibilityScore,
     this.lastMessage,
     this.lastMessageAt,
+    this.lastMessageSenderId,
     this.isRead = true,
+    this.unreadCount = 0,
+    this.lastActiveAt,
   });
 }
 
@@ -112,9 +128,15 @@ final FutureProvider<List<ChatListItem>> chatsFromBackendProvider =
         matchedUserId: json['matched_user_id'] as int,
         matchedName: json['matched_profile']?['name'] as String?,
         matchedPhotoUrl: json['matched_profile']?['photo_url'] as String?,
+        compatibilityScore: json['compatibility_score'] as int?,
         lastMessage: json['last_message'] as String?,
         lastMessageAt: json['last_message_at'] != null ? DateTime.tryParse(json['last_message_at'] as String) : null,
+        lastMessageSenderId: json['last_message_sender_id'] as int?,
         isRead: json['is_read'] as bool? ?? true,
+        unreadCount: json['unread_count'] as int? ?? 0,
+        lastActiveAt: json['matched_profile']?['last_active_at'] != null
+            ? DateTime.tryParse(json['matched_profile']['last_active_at'] as String)
+            : null,
       )).toList();
     }
   } catch (e) {
@@ -155,33 +177,18 @@ final FutureProvider<List<BackendMatchItem>> matchesFromBackendProvider =
     );
     if (response.statusCode == 200) {
       final List<dynamic> data = response.data as List<dynamic>;
-      
-      Map<int, dynamic> profileMap = {};
-      try {
-        final userResp = await Dio().get(
-          '$baseUrl/api/discover',
-          options: Options(headers: {'Authorization': 'Bearer $token'}),
-        );
-        if (userResp.statusCode == 200) {
-          final profiles = userResp.data as List<dynamic>;
-          for (final p in profiles) {
-            profileMap[p['user_id'] as int] = p;
-          }
-        }
-      } catch (_) {}
-
       final List<BackendMatchItem> matches = [];
       for (final json in data) {
         final matchedUserId = json['matched_user_id'] as int;
-        final profile = profileMap[matchedUserId];
+        final profile = json['matched_profile'] as Map<String, dynamic>?;
         String? name;
         String? photoUrl;
         if (profile != null) {
-          name = profile['name'] as String?;
-          final photos = profile['photos'] as List<dynamic>?;
-          if (photos != null && photos.isNotEmpty) {
-            photoUrl = '/api/photos/${photos.first['id']}';
-          }
+          final fn = profile['name'] as String?;
+          final ln = profile['last_name'] as String?;
+          name = [if (fn != null) fn, if (ln != null) ln].join(' ');
+          if (name.isEmpty) name = null;
+          photoUrl = profile['photo_url'] as String?;
         }
         matches.add(BackendMatchItem(
           matchId: json['id'] as int,
@@ -241,16 +248,17 @@ class MatchActions {
     ref.invalidate(potentialMatchesProvider);
   }
  
-  Future<bool> saveMatch(Match match) async {
+  Future<Match?> saveMatch(Match match) async {
     final MatchRepository repository = ref.read(matchRepositoryProvider);
     final User? currentUser = ref.read(currentUserProvider).value;
-    if (currentUser == null) return false;
+    if (currentUser == null) return null;
+
+    final int? backendId = await repository.saveMatchToBackend(match);
+    final Match updatedMatch = backendId != null ? match.copyWith(backendMatchId: backendId) : match;
 
     final List<Match> existingMatches = await repository.getMatches(currentUser.id.toString());
-    existingMatches.add(match);
+    existingMatches.add(updatedMatch);
     await repository.saveMatches(existingMatches);
-
-    await repository.saveMatchToBackend(match);
 
     final bool isMutual = await repository.checkMutualMatch(match.matchedUserId);
 
@@ -260,7 +268,7 @@ class MatchActions {
     ref.invalidate(chatsFromBackendProvider);
     ref.invalidate(incomingLikesProvider);
     ref.invalidate(likedUserIdsProvider);
-    return isMutual;
+    return isMutual ? updatedMatch : null;
   }
 
   Future<bool> acceptIncomingLike(int matchId) async {

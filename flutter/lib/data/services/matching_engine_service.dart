@@ -1,8 +1,9 @@
 import 'package:flutter/foundation.dart';
+import 'package:syno_app/data/services/astrology_api_service.dart';
 import 'package:syno_app/data/services/behavioral_ai_service.dart';
 import 'package:syno_app/data/services/explanation_generator_service.dart';
-import 'package:syno_app/data/services/synastry_calculator_service.dart';
 import 'package:syno_app/data/services/weighting_engine_service.dart';
+import 'package:syno_app/domain/entities/astrology_system.dart';
 import 'package:syno_app/domain/entities/match.dart';
 import 'package:syno_app/domain/entities/synastry_data.dart';
 import 'package:syno_app/domain/entities/user.dart';
@@ -10,41 +11,76 @@ import 'package:syno_app/domain/entities/user_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 class MatchingEngineService {
-  final SynastryCalculatorService _synastryCalculator;
+  final AstrologyApiService? _astrologyApi;
   final BehavioralAIService _behavioralAI;
   final WeightingEngineService _weightingEngine;
   final ExplanationGeneratorService _explanationGenerator;
   final Uuid _uuid = const Uuid();
 
   MatchingEngineService({
-    SynastryCalculatorService? synastryCalculator,
+    AstrologyApiService? astrologyApi,
     BehavioralAIService? behavioralAI,
     WeightingEngineService? weightingEngine,
     ExplanationGeneratorService? explanationGenerator,
-  })  : _synastryCalculator = synastryCalculator ?? SynastryCalculatorService(),
+  })  : _astrologyApi = astrologyApi,
         _behavioralAI = behavioralAI ?? BehavioralAIService(),
         _weightingEngine = weightingEngine ?? WeightingEngineService(),
         _explanationGenerator = explanationGenerator ?? ExplanationGeneratorService();
 
   Future<Match> calculateMatch(
     User currentUser,
-    User potentialMatch, [
+    User potentialMatch, {
     DiscoverPreferences? preferences,
-  ]) async {
-    final SynastryData synastryData = await _synastryCalculator.calculateSynastry(currentUser, potentialMatch);
+    AstrologySystem system = AstrologySystem.western,
+  }) async {
+    SynastryData synastryData;
+    Map<String, dynamic>? reportData;
+
+    if (_astrologyApi != null) {
+      reportData = await _astrologyApi.getReport(currentUser, potentialMatch);
+      synastryData = await _astrologyApi.getSynastry(currentUser, potentialMatch)
+          ?? SynastryData(
+              moonScore: 50, mercuryScore: 50, venusMarsScore: 50,
+              nodesScore: 50, saturnScore: 50, detailedAspects: [],
+              interpretation: '',
+            );
+    } else {
+      synastryData = SynastryData(
+        moonScore: 50, mercuryScore: 50, venusMarsScore: 50,
+        nodesScore: 50, saturnScore: 50, detailedAspects: [],
+        interpretation: '',
+      );
+    }
+
     final double synastryScore = synastryData.overallScore;
-    
     final double behavioralScore = await _behavioralAI.calculateBehavioralScore(currentUser, potentialMatch);
-    
     final double finalScore = _weightingEngine.calculateFinalScore(synastryScore, behavioralScore);
-    
     final double weightedScore = _calculateWeightedScore(synastryData, preferences);
-    
-    final List<String> behavioralReasons = _behavioralAI.generateBehavioralReasons(currentUser, potentialMatch, behavioralScore);
-    final List<String> topReasons = _explanationGenerator.generateTopReasons(synastryData, behavioralReasons);
-    
-    final String cosmicInsight = _explanationGenerator.generateCosmicInsight(finalScore, synastryData);
-    
+
+    List<String> topReasons;
+    String cosmicInsight;
+
+    if (reportData != null) {
+      topReasons = List<String>.from(reportData['top_reasons'] ?? []);
+      cosmicInsight = reportData['cosmic_insight'] ?? '';
+
+      final dimensions = reportData['dimensions'] as Map<String, dynamic>?;
+      if (dimensions != null && topReasons.isEmpty) {
+        topReasons = _explanationGenerator.generateTopReasonsFromDimensions(dimensions);
+      }
+    } else {
+      final List<String> behavioralReasons = _behavioralAI.generateBehavioralReasons(currentUser, potentialMatch, behavioralScore);
+      topReasons = _explanationGenerator.generateTopReasons(synastryData, behavioralReasons);
+      cosmicInsight = _explanationGenerator.generateCosmicInsight(finalScore, synastryData);
+    }
+
+    if (cosmicInsight.isEmpty) {
+      cosmicInsight = _explanationGenerator.generateCosmicInsight(finalScore, synastryData);
+    }
+    if (topReasons.isEmpty) {
+      topReasons = _explanationGenerator.generateTopReasons(synastryData, []);
+    }
+
     return Match(
       id: _uuid.v4(),
       userId: currentUser.id.toString(),
@@ -121,9 +157,10 @@ class MatchingEngineService {
 
   Future<List<Match>> findPotentialMatches(
     User currentUser,
-    List<User> allUsers, [
+    List<User> allUsers, {
     DiscoverPreferences? preferences,
-  ]) async {
+    AstrologySystem system = AstrologySystem.western,
+  }) async {
     final List<Match> matches = <Match>[];
     int skippedSelf = 0;
     int skippedPrefs = 0;
@@ -139,12 +176,15 @@ class MatchingEngineService {
       if (user.id == currentUser.id) { skippedSelf++; continue; }
       if (!_meetsPreferences(currentUser, user, preferences)) { skippedPrefs++; continue; }
       
-      if (preferences != null && preferences.minCompatibility > 0) {
-        final SynastryData tempSynastry = await _synastryCalculator.calculateSynastry(currentUser, user);
-        if (tempSynastry.overallScore < preferences.minCompatibility) { skippedMinCompat++; continue; }
+      if (preferences != null && preferences.minCompatibility > 0 && _astrologyApi != null) {
+        final tempSynastry = await _astrologyApi.getSynastry(currentUser, user);
+        if (tempSynastry != null && tempSynastry.overallScore < preferences.minCompatibility) {
+          skippedMinCompat++;
+          continue;
+        }
       }
       
-      final Match match = await calculateMatch(currentUser, user, preferences);
+      final Match match = await calculateMatch(currentUser, user, preferences: preferences, system: system);
       matches.add(match);
     }
     

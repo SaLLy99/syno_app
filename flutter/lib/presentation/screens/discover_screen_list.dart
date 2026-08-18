@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:syno_app/domain/entities/match.dart';
 import 'package:syno_app/presentation/providers/auth_providers.dart';
 import 'package:syno_app/presentation/providers/match_provider.dart';
+import 'package:syno_app/presentation/widgets/match_found_dialog.dart';
 import 'package:syno_app/presentation/widgets/match_score_badge.dart';
 import 'package:syno_app/theme.dart';
 import 'package:syno_app/presentation/providers/theme_provider.dart';
@@ -249,8 +250,16 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
             icon: Icons.favorite,
             color: CosmicColors.cosmicPink,
             onPressed: () async {
-              await ref.read(matchActionsProvider).saveMatch(match.copyWith(status: MatchStatus.accepted));
+              final Match? matchedResult = await ref.read(matchActionsProvider).saveMatch(match.copyWith(status: MatchStatus.accepted));
               setState(() => _currentIndex++);
+              if (matchedResult != null && context.mounted) {
+                MatchFoundDialog.show(
+                  context,
+                  matchedUser: match.matchedUser,
+                  match: matchedResult,
+                  baseUrl: ref.read(backendUrlProvider),
+                );
+              }
             },
           ),
         ],

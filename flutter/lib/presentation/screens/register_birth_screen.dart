@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
+import 'package:syno_app/domain/entities/astrology_system.dart';
 import 'package:syno_app/presentation/providers/registration_provider.dart';
 import 'package:syno_app/presentation/providers/location_providers.dart';
 import 'package:syno_app/presentation/widgets/onboarding_scaffold.dart';
@@ -23,6 +24,7 @@ class _RegisterBirthScreenState extends ConsumerState<RegisterBirthScreen> {
   final TextEditingController _birthLocationController = TextEditingController();
 
   LocationItem? _selectedLocation;
+  AstrologySystem _selectedSystem = AstrologySystem.western;
 
   @override
   void initState() {
@@ -58,6 +60,7 @@ class _RegisterBirthScreenState extends ConsumerState<RegisterBirthScreen> {
         'birth_date': _birthDateController.text,
         'birth_time': _birthTimeController.text,
         'location_id': _selectedLocation!.id,
+        'astrology_system': _selectedSystem.name,
       });
 
       context.push('/register-intentions'); 
@@ -186,8 +189,122 @@ class _RegisterBirthScreenState extends ConsumerState<RegisterBirthScreen> {
                   );
                 },
               ),
+              const SizedBox(height: 32),
+              Text(
+                'Astrology System',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.8),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Choose how your birth chart is calculated',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.5),
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildSystemCard(
+                      system: AstrologySystem.western,
+                      icon: '♈',
+                      title: 'Western',
+                      subtitle: 'Tropical Zodiac',
+                      description: 'Based on equinoxes & seasons. Sun signs match calendar dates.',
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildSystemCard(
+                      system: AstrologySystem.eastern,
+                      icon: '🕉',
+                      title: 'Eastern',
+                      subtitle: 'Sidereal (Vedic)',
+                      description: 'Based on star positions. Uses Lahiri ayanamsa correction.',
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSystemCard({
+    required AstrologySystem system,
+    required String icon,
+    required String title,
+    required String subtitle,
+    required String description,
+  }) {
+    final bool isSelected = _selectedSystem == system;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedSystem = system),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFF6D28D9).withOpacity(0.3)
+              : Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFF8B5CF6)
+                : Colors.white.withOpacity(0.15),
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(icon, style: const TextStyle(fontSize: 24)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.6),
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (isSelected)
+                  const Icon(Icons.check_circle, color: Color(0xFF8B5CF6), size: 20),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              description,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.5),
+                fontSize: 11,
+                height: 1.4,
+              ),
+            ),
+          ],
         ),
       ),
     );

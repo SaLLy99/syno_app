@@ -27,6 +27,16 @@ class Settings(BaseSettings):
     twilio_auth_token: str = ""
     twilio_phone: str = ""
 
+    # Astrology Provider Settings
+    vedastro_api_key: str = "FreeAPIUser"
+    astrology_provider: str = "swisseph"  # swisseph, vedastro, combined
+    default_ayanamsa: str = "Lahiri"
+
+    # AI Interpretation Settings (Google Gemini - Free Tier)
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-2.0-flash"
+    ai_interpretation_enabled: bool = True
+
     model_config = SettingsConfigDict(
         env_file=str(ENV_FILE_PATH),
         env_file_encoding="utf-8",

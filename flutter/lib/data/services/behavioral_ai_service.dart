@@ -6,17 +6,22 @@ class BehavioralAIService {
     
     double score = 50.0;
     
-    // final Map<String, dynamic> traits1 = user1.personalityTraits;
-    // final Map<String, dynamic> traits2 = user2.personalityTraits;
+    final Map<String, dynamic> traits1 = user1.personalityTraits;
+    final Map<String, dynamic> traits2 = user2.personalityTraits;
     
-    // score += _compareTraits(traits1, traits2, 'openness') * 5;
-    // score += _compareTraits(traits1, traits2, 'conscientiousness') * 4;
-    // score += _compareTraits(traits1, traits2, 'extraversion') * 3;
-    // score += _compareTraits(traits1, traits2, 'agreeableness') * 6;
-    // score += _compareTraits(traits1, traits2, 'emotionalStability') * 5;
-    // score += _compareTraits(traits1, traits2, 'adventurous') * 4;
-    // score += _compareTraits(traits1, traits2, 'romantic') * 5;
-    // score += _compareTraits(traits1, traits2, 'intellectual') * 3;
+    if (traits1.isNotEmpty && traits2.isNotEmpty) {
+      score += _compareTraits(traits1, traits2, 'openness') * 5;
+      score += _compareTraits(traits1, traits2, 'conscientiousness') * 4;
+      score += _compareTraits(traits1, traits2, 'extraversion') * 3;
+      score += _compareTraits(traits1, traits2, 'agreeableness') * 6;
+      score += _compareTraits(traits1, traits2, 'emotionalStability') * 5;
+      score += _compareTraits(traits1, traits2, 'adventurous') * 4;
+      score += _compareTraits(traits1, traits2, 'romantic') * 5;
+      score += _compareTraits(traits1, traits2, 'intellectual') * 3;
+    } else {
+      final int seed = user1.id.hashCode ^ user2.id.hashCode;
+      score = 45.0 + ((seed.abs() % 400) / 10.0);
+    }
     
     score = score.clamp(40.0, 95.0);
     

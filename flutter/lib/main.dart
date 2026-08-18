@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syno_app/data/services/otp_verification_args.dart';
+import 'package:syno_app/data/services/websocket_service.dart';
 import 'package:syno_app/domain/entities/user.dart';
 import 'package:syno_app/domain/entities/match.dart';
 import 'package:syno_app/presentation/screens/chat_screen.dart';
@@ -17,6 +18,10 @@ import 'package:syno_app/presentation/screens/edit_profile_screen.dart';
 import 'package:syno_app/presentation/providers/auth_providers.dart';
 import 'package:syno_app/presentation/screens/onboarding_screen.dart';
 import 'package:syno_app/presentation/screens/discover_screen.dart';
+import 'package:syno_app/presentation/screens/recommendations_screen.dart';
+import 'package:syno_app/presentation/screens/compatibility_report_screen.dart';
+import 'package:syno_app/presentation/screens/analytics_screen.dart';
+import 'package:syno_app/presentation/providers/websocket_provider.dart';
 import 'package:syno_app/presentation/screens/profile_screen.dart';
 import 'package:syno_app/presentation/screens/register_photos_screen.dart';
 import 'package:syno_app/presentation/screens/register_intentions_screen.dart';
@@ -45,6 +50,7 @@ import 'package:syno_app/presentation/screens/blocked_users_screen.dart';
 import 'package:syno_app/presentation/screens/otp_verification_screen.dart';
 import 'package:syno_app/presentation/screens/synastry_detail_screen.dart';
 import 'package:syno_app/presentation/screens/matches_details_screen.dart';
+import 'package:syno_app/presentation/screens/reactivation_screen.dart';
 
 Locale _resolveStartLocale() {
   final deviceLocale = WidgetsBinding.instance.platformDispatcher.locale;
@@ -151,17 +157,24 @@ final routerProvider =Provider<GoRouter>((ref) {
 
       final bool isLoggedIn = user != null;
       final bool isProfileIncomplete = isLoggedIn && (user.name == null || user.birthDate == null);
-      final bool needsRegistration = hasStartedRegistration || (hasToken && !isLoggedIn) || isProfileIncomplete;
+      // If user just reactivated, they have a token but no profile - skip OTP, go to registration
+      final bool justReactivated = notifier.justReactivated;
+      final bool needsRegistration = hasStartedRegistration || (hasToken && !isLoggedIn && !justReactivated) || isProfileIncomplete;
 
       // 1. App Initialization Guard
       if (authState.isLoading) {
-        final allowedLoadingRoutes = ['/register-photos', '/otp-verification', '/theme-selection', '/profile-confirmation', '/register-name', '/register-identity', '/register-birth', '/register-intentions', '/register-values', '/register-hobbies', '/register-career', '/register-bio'];
+        final allowedLoadingRoutes = ['/register-photos', '/otp-verification', '/theme-selection', '/profile-confirmation', '/register-name', '/register-identity', '/register-birth', '/register-intentions', '/register-values', '/register-hobbies', '/register-career', '/register-bio', '/reactivation'];
         if (allowedLoadingRoutes.contains(location)) return null;
         return location == '/' ? null : '/';
       }
 
       // 2. Logged-in users with a completed profile should not stay on auth/registration entry routes.
       if (isLoggedIn && !isProfileIncomplete) {
+        // Clear the reactivated flag and stale registration data once the profile is confirmed complete
+        if (justReactivated) {
+          notifier.clearJustReactivated();
+          ref.read(registrationProvider.notifier).reset();
+        }
         final authEntryRoutes = {'/', '/landing', '/login-method', '/otp-verification', '/login', '/register'};
         final registrationRoutes = {'/register-name', '/register-photos', '/register-identity', '/register-birth', '/register-intentions', '/register-values', '/register-hobbies', '/register-career', '/register-bio', '/theme-selection', '/profile-confirmation'};
         if (authEntryRoutes.contains(location) || registrationRoutes.contains(location)) {
@@ -172,11 +185,19 @@ final routerProvider =Provider<GoRouter>((ref) {
       // 3. Authentication & Registration Flow Guard
       if (!isLoggedIn) {
         // Routes allowed during the entry/auth/registration process
-        final authFlowRoutes = {'/landing', '/login-method', '/otp-verification', '/login', '/register', '/onboarding', '/terms', '/privacy'};
+        final authFlowRoutes = {'/landing', '/login-method', '/otp-verification', '/login', '/register', '/onboarding', '/terms', '/privacy', '/reactivation'};
         final registrationRoutes = {'/register-name', '/register-photos', '/register-identity', '/register-birth', '/register-intentions', '/register-values', '/register-hobbies', '/register-career', '/register-bio', '/theme-selection', '/profile-confirmation'};
 
         if (authFlowRoutes.contains(location)) return null;
         if (needsRegistration && registrationRoutes.contains(location)) return null;
+        // If user just reactivated, allow registration routes directly (skip OTP)
+        if (justReactivated && registrationRoutes.contains(location)) return null;
+        if (justReactivated) {
+          // Reactivation succeeded but user fetch failed — clear flag and go to landing
+          notifier.clearJustReactivated();
+          ref.read(registrationProvider.notifier).reset();
+          return '/landing';
+        }
         if (needsRegistration) return '/register-name';
         return '/landing';
       }
@@ -367,8 +388,18 @@ final routerProvider =Provider<GoRouter>((ref) {
           ),
 
           GoRoute(
+            path: '/recommendations',
+            builder: (context, state) => const RecommendationsScreen(),
+          ),
+
+          GoRoute(
             path: '/likes',
             builder: (context, state) => const LikesListScreen(),
+          ),
+
+          GoRoute(
+            path: '/matches',
+            builder: (context, state) => const MatchesListScreen(),
           ),
 
           GoRoute(
@@ -454,6 +485,32 @@ final routerProvider =Provider<GoRouter>((ref) {
           return SynastryDetailScreen(match: match);
         },
       ),
+
+      GoRoute(
+        path: '/compatibility-report',
+        name: 'compatibility-report',
+        builder: (context, state) {
+          final args = state.extra as Map<String, dynamic>;
+          final int matchId = args['matchId'] as int;
+          final String matchedUserName = args['matchedUserName'] as String;
+          return CompatibilityReportScreen(
+            matchId: matchId,
+            matchedUserName: matchedUserName,
+          );
+        },
+      ),
+
+      GoRoute(
+        path: '/analytics',
+        name: 'analytics',
+        builder: (context, state) => const AnalyticsScreen(),
+      ),
+
+      GoRoute(
+        path: '/reactivation',
+        name: 'reactivation',
+        builder: (context, state) => const ReactivationScreen(),
+      ),
     ],
   );
 });
@@ -513,6 +570,13 @@ class MyApp extends ConsumerWidget {
         child: Stack(
           children: [
             if (child != null) child,
+            Consumer(builder: (context, ref, _) {
+              final WebSocketStatus wsStatus = ref.watch(webSocketProvider);
+              if (wsStatus == WebSocketStatus.connected) {
+                return const SizedBox.shrink();
+              }
+              return const SizedBox.shrink();
+            }),
             Consumer(builder: (context, ref, _) {
               if (!ref.watch(loadingStateProvider)) return const SizedBox.shrink();
               return Container(

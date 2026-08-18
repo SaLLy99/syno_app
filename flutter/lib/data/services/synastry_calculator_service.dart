@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:syno_app/domain/entities/astrology_system.dart';
 import 'package:syno_app/domain/entities/natal_chart.dart';
 import 'package:syno_app/domain/entities/synastry_data.dart';
 import 'package:syno_app/domain/entities/user.dart';
@@ -41,7 +42,7 @@ class SynastryCalculatorService {
     ['Saturn', 'Saturn'],
   ];
 
-  Future<SynastryData> calculateSynastry(User user1, User user2) async {
+  Future<SynastryData> calculateSynastry(User user1, User user2, {AstrologySystem system = AstrologySystem.western}) async {
     if (user1.birthDate == null || user2.birthDate == null) {
       return _fallbackSynastry(user1, user2);
     }
@@ -49,10 +50,12 @@ class SynastryCalculatorService {
     final NatalChart chart1 = _chartCalculator.calculate(
       user1.birthDate!,
       user1.birthTime,
+      system: system,
     );
     final NatalChart chart2 = _chartCalculator.calculate(
       user2.birthDate!,
       user2.birthTime,
+      system: system,
     );
 
     final List<Aspect> aspects = _calculateAllAspects(chart1, chart2);
@@ -191,7 +194,10 @@ class SynastryCalculatorService {
       }
     }
 
-    if (count == 0) return 50.0;
+    if (count == 0) {
+      final int hash = pairs.join('').hashCode;
+      return (45.0 + (hash.abs() % 200) / 10.0).clamp(35.0, 65.0);
+    }
     return (total / count).clamp(20.0, 98.0);
   }
 
@@ -334,17 +340,21 @@ class SynastryCalculatorService {
   }
 
   SynastryData _fallbackSynastry(User user1, User user2) {
-    final int seed = (user1.birthDate?.day ?? 0) +
-        (user2.birthDate?.day ?? 0) +
-        (user1.birthDate?.month ?? 0) * 10 +
-        (user2.birthDate?.month ?? 0) * 10;
+    final int seed = (user1.birthDate?.day ?? 0) * 31 +
+        (user2.birthDate?.day ?? 0) * 31 +
+        (user1.birthDate?.month ?? 0) * 12 +
+        (user2.birthDate?.month ?? 0) * 12 +
+        (user1.birthDate?.year ?? 0) * 7 +
+        (user2.birthDate?.year ?? 0) * 7 +
+        user1.id.hashCode.abs() +
+        user2.id.hashCode.abs();
     final Random random = Random(seed);
 
-    final double moonScore = 60 + random.nextDouble() * 35;
-    final double mercuryScore = 55 + random.nextDouble() * 40;
-    final double venusMarsScore = 65 + random.nextDouble() * 30;
-    final double nodesScore = 50 + random.nextDouble() * 45;
-    final double saturnScore = 55 + random.nextDouble() * 35;
+    final double moonScore = 35 + random.nextDouble() * 55;
+    final double mercuryScore = 30 + random.nextDouble() * 60;
+    final double venusMarsScore = 40 + random.nextDouble() * 50;
+    final double nodesScore = 25 + random.nextDouble() * 65;
+    final double saturnScore = 30 + random.nextDouble() * 60;
 
     final List<Aspect> aspects = [
       Aspect(

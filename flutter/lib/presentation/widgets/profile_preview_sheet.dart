@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:syno_app/domain/entities/astrology_system.dart';
 import 'package:syno_app/domain/entities/match.dart';
 import 'package:syno_app/domain/entities/user.dart';
 import 'package:syno_app/presentation/providers/auth_providers.dart';
 import 'package:syno_app/presentation/widgets/match_score_badge.dart';
 import 'package:syno_app/theme.dart';
 
-class ProfilePreviewSheet extends ConsumerWidget {
+class ProfilePreviewSheet extends ConsumerStatefulWidget {
   final Match match;
 
   ProfilePreviewSheet({super.key, required this.match});
@@ -22,8 +23,28 @@ class ProfilePreviewSheet extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final User user = match.matchedUser;
+  ConsumerState<ProfilePreviewSheet> createState() => _ProfilePreviewSheetState();
+}
+
+class _ProfilePreviewSheetState extends ConsumerState<ProfilePreviewSheet> {
+  int _currentPhotoIndex = 0;
+  late final PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final User user = widget.match.matchedUser;
     final double screenHeight = MediaQuery.of(context).size.height;
 
     return DraggableScrollableSheet(
@@ -62,7 +83,7 @@ class ProfilePreviewSheet extends ConsumerWidget {
                       const SizedBox(height: 16),
                     _buildInterests(user),
                     const SizedBox(height: 16),
-                    _buildBirthChartSummary(user),
+                    _buildBirthChartSummary(user, ref.read(astrologySystemProvider)),
                     const SizedBox(height: 16),
                     _buildCompatibility(),
                     const SizedBox(height: 24),
@@ -79,35 +100,62 @@ class ProfilePreviewSheet extends ConsumerWidget {
   }
 
   Widget _buildPhotoCarousel(User user, WidgetRef ref) {
-    return SizedBox(
-      height: 200,
-      child: user.photos.isNotEmpty
-          ? ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: user.photos.length.clamp(0, 6),
-              itemBuilder: (context, index) {
-                return Container(
-                  width: 150,
-                  margin: const EdgeInsets.only(right: 8),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                    image: DecorationImage(
-                      image: NetworkImage(user.photos[index].getFullUrl(ref.read(backendUrlProvider))),
-                      fit: BoxFit.cover,
-                    ),
+    if (user.photos.isEmpty) {
+      return Container(
+        height: 250,
+        decoration: BoxDecoration(
+          color: CosmicColors.cosmicPurple.withOpacity(0.3),
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+        child: const Center(
+          child: Icon(Icons.person, size: 64, color: Colors.white38),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        SizedBox(
+          height: 250,
+          child: PageView.builder(
+            controller: _pageController,
+            itemCount: user.photos.length.clamp(0, 6),
+            onPageChanged: (idx) => setState(() => _currentPhotoIndex = idx),
+            itemBuilder: (context, index) {
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  image: DecorationImage(
+                    image: NetworkImage(user.photos[index].getFullUrl(ref.read(backendUrlProvider))),
+                    fit: BoxFit.cover,
                   ),
-                );
-              },
-            )
-          : Container(
-              decoration: BoxDecoration(
-                color: CosmicColors.cosmicPurple.withOpacity(0.3),
-                borderRadius: BorderRadius.circular(AppRadius.md),
-              ),
-              child: const Center(
-                child: Icon(Icons.person, size: 64, color: Colors.white38),
+                ),
+              );
+            },
+          ),
+        ),
+        if (user.photos.length > 1) ...[
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(
+              user.photos.length.clamp(0, 6),
+              (index) => Container(
+                width: _currentPhotoIndex == index ? 20 : 6,
+                height: 6,
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                decoration: BoxDecoration(
+                  color: _currentPhotoIndex == index
+                      ? CosmicColors.cosmicPink
+                      : Colors.white.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(3),
+                ),
               ),
             ),
+          ),
+        ],
+      ],
     );
   }
 
@@ -139,7 +187,7 @@ class ProfilePreviewSheet extends ConsumerWidget {
             ],
           ),
         ),
-        MatchScoreBadge(score: match.finalScore, size: 64),
+        MatchScoreBadge(score: widget.match.finalScore, size: 64),
       ],
     );
   }
@@ -180,8 +228,8 @@ class ProfilePreviewSheet extends ConsumerWidget {
     );
   }
 
-  Widget _buildBirthChartSummary(User user) {
-    final String? zodiac = user.zodiacSign;
+  Widget _buildBirthChartSummary(User user, AstrologySystem system) {
+    final String? zodiac = user.getZodiacSign(system);
     if (zodiac == null) return const SizedBox.shrink();
     return Container(
       padding: const EdgeInsets.all(12),
@@ -226,9 +274,9 @@ class ProfilePreviewSheet extends ConsumerWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _compatColumn('Emotional', match.synastryData.emotionalScore, '🌙'),
-          _compatColumn('Communication', match.synastryData.communicationScore, '🧠'),
-          _compatColumn('Romance', match.synastryData.romanceScore, '❤️'),
+          _compatColumn('Emotional', widget.match.synastryData.emotionalScore, '🌙'),
+          _compatColumn('Communication', widget.match.synastryData.communicationScore, '🧠'),
+          _compatColumn('Romance', widget.match.synastryData.romanceScore, '❤️'),
         ],
       ),
     );
@@ -271,7 +319,7 @@ class ProfilePreviewSheet extends ConsumerWidget {
         ),
         onPressed: () {
           Navigator.pop(context);
-          context.push('/match-details', extra: match);
+          context.push('/match-details', extra: widget.match);
         },
         child: const Text(
           'View Full Profile',

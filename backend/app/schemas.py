@@ -49,6 +49,8 @@ class Location(OrmBaseModel):
     parent_id: Optional[int] = None
     parent: Optional[LocationParent] = None
     translation_key: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 class UserPhoto(OrmBaseModel):
     id: int
@@ -316,6 +318,23 @@ class UserPreferencesResponse(OrmBaseModel):
     photos_only: bool
     complete_profiles_only: bool
 
+class AccountDeactivationRequest(BaseModel):
+    reason: Optional[str] = None
+
+class AccountReactivationRequest(BaseModel):
+    email: Optional[EmailStr] = None
+    phone_number: Optional[str] = None
+
+class AccountReactivationVerify(BaseModel):
+    email: Optional[EmailStr] = None
+    phone_number: Optional[str] = None
+    code: str
+
+class AccountReactivationResponse(BaseModel):
+    message: str
+    access_token: Optional[str] = None
+    token_type: Optional[str] = None
+
 class BlockByNameRequest(BaseModel):
     name: str
 
@@ -361,27 +380,80 @@ class MutualMatchCheck(BaseModel):
 
 class MessageCreate(BaseModel):
     match_id: int
-    content: str
+    content: Optional[str] = None
+    image_url: Optional[str] = None
+    video_url: Optional[str] = None
+    gif_url: Optional[str] = None
+    message_type: str = "text"
 
 class MessageResponse(OrmBaseModel):
     id: int
     match_id: int
     sender_id: int
-    content: str
+    content: Optional[str] = None
+    image_url: Optional[str] = None
+    video_url: Optional[str] = None
+    gif_url: Optional[str] = None
+    message_type: str
     is_read: bool
+    is_edited: bool
     created_at: datetime
+
+class MessageEdit(BaseModel):
+    content: str
+
+class MessageForward(BaseModel):
+    target_match_id: int
 
 class ChatListResponse(OrmBaseModel):
     match_id: int
     matched_user_id: int
     matched_profile: Optional[dict] = None
+    compatibility_score: Optional[int] = None
     last_message: Optional[str] = None
     last_message_at: Optional[datetime] = None
+    last_message_sender_id: Optional[int] = None
     is_read: bool = True
+    unread_count: int = 0
 
 class ReceivedLikeResponse(OrmBaseModel):
     match_id: int
     user_id: int
     compatibility_score: Optional[int] = None
     created_at: datetime
+    profile: Optional[dict] = None
+
+
+class SmartDiscoverItem(OrmBaseModel):
+    id: int
+    user_id: int
+    name: str
+    last_name: str
+    birth_date: Optional[str] = None
+    birth_time: Optional[str] = None
+    bio: Optional[str] = None
+    height: Optional[int] = None
+    location: Optional[dict] = None
+    sex: Optional[dict] = None
+    orientation: Optional[dict] = None
+    photos: List[dict] = []
+    hobbies: List[dict] = []
+    intentions: List[dict] = []
+    core_values: List[dict] = []
+    professions: List[dict] = []
+    educations: List[dict] = []
+    compatibility_score: int = 0
+    weighted_score: int = 0
+    top_reasons: List[str] = []
+    cosmic_insight: str = ""
+    liked_by_user: bool = False
+
+
+class RecommendationResponse(OrmBaseModel):
+    id: int
+    recommended_user_id: int
+    score: int
+    reasons: List[str] = []
+    cosmic_insight: str = ""
+    recommendation_date: str
     profile: Optional[dict] = None

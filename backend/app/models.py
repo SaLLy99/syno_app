@@ -1,5 +1,5 @@
 import json
-from sqlalchemy import Column, Integer, String, Date, Text, TIMESTAMP, ForeignKey, Table, LargeBinary, Boolean, func, Enum as SAEnum
+from sqlalchemy import Column, Integer, String, Date, Text, TIMESTAMP, ForeignKey, Table, LargeBinary, Boolean, Float, func, Enum as SAEnum
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.types import TypeDecorator, TEXT
 from sqlalchemy.orm import relationship
@@ -40,6 +40,9 @@ class SynoUser(Base):
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
+    is_deactivated = Column(Boolean, default=False, nullable=False)
+    deactivated_at = Column(TIMESTAMP, nullable=True)
+    last_active_at = Column(TIMESTAMP, server_default=func.now())
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
@@ -71,6 +74,8 @@ class Location(Base):
     parent_id = Column(Integer, ForeignKey('locations.id'), nullable=True)
     parent = relationship("Location", remote_side=[id])
     translation_key = Column(String, nullable=True)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
 
 
 profile_hobbies = Table('profile_hobbies', Base.metadata,
@@ -301,9 +306,60 @@ class Message(Base):
     id = Column(Integer, primary_key=True, index=True)
     match_id = Column(Integer, ForeignKey("matches.id", ondelete="CASCADE"), nullable=False)
     sender_id = Column(Integer, ForeignKey("syno_users.id", ondelete="CASCADE"), nullable=False)
-    content = Column(Text, nullable=False)
+    content = Column(Text, nullable=True)
+    image_url = Column(String(500), nullable=True)
+    video_url = Column(String(500), nullable=True)
+    gif_url = Column(String(500), nullable=True)
+    message_type = Column(String(20), default="text")
     is_read = Column(Boolean, default=False)
+    is_edited = Column(Boolean, default=False)
     created_at = Column(TIMESTAMP, server_default=func.now())
 
     match = relationship("Match")
     sender = relationship("SynoUser")
+
+
+class MatchCache(Base):
+    __tablename__ = "match_cache"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_a_id = Column(Integer, ForeignKey("syno_users.id", ondelete="CASCADE"), nullable=False)
+    user_b_id = Column(Integer, ForeignKey("syno_users.id", ondelete="CASCADE"), nullable=False)
+    synastry_data = Column(Text, nullable=False)
+    final_score = Column(Integer, nullable=False)
+    weighted_score = Column(Integer, nullable=True)
+    top_reasons = Column(Text, nullable=True)
+    cosmic_insight = Column(Text, nullable=True)
+    computed_at = Column(TIMESTAMP, server_default=func.now())
+
+    __table_args__ = (
+        {'sqlite_autoincrement': True},
+    )
+
+
+class Recommendation(Base):
+    __tablename__ = "recommendations"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("syno_users.id", ondelete="CASCADE"), nullable=False)
+    recommended_user_id = Column(Integer, ForeignKey("syno_users.id", ondelete="CASCADE"), nullable=False)
+    score = Column(Integer, nullable=False)
+    reasons = Column(Text, nullable=True)
+    cosmic_insight = Column(Text, nullable=True)
+    recommendation_date = Column(Date, nullable=False)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+
+    user = relationship("SynoUser", foreign_keys=[user_id])
+    recommended_user = relationship("SynoUser", foreign_keys=[recommended_user_id])
+
+
+class AnalyticsEvent(Base):
+    __tablename__ = "analytics_events"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("syno_users.id", ondelete="CASCADE"), nullable=False)
+    event_type = Column(String(50), nullable=False)
+    event_metadata = Column(Text, nullable=True)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+
+    user = relationship("SynoUser")

@@ -61,43 +61,34 @@ class MatchesListScreen extends ConsumerWidget {
       padding: AppSpacing.paddingMd,
       child: Row(
         children: <Widget>[
+          const SizedBox(width: 48),
           Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-                  onPressed: () => context.go('/discover'),
-                ),
-                Expanded(
-                  child: Center(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: <Widget>[
-                        Padding(
-                          padding: const EdgeInsets.only(right: 8.0),
-                          child: SizedBox(
-                            width: 30,
-                            height: 30,
-                            child: ClipOval(
-                              child: Image.asset(
-                                'assets/icons/dreamflow_icon.jpg',
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
+            child: Center(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: SizedBox(
+                      width: 30,
+                      height: 30,
+                      child: ClipOval(
+                        child: Image.asset(
+                          'assets/icons/dreamflow_icon.jpg',
+                          fit: BoxFit.cover,
                         ),
-                        Text(
-                          'matches_list.title'.tr(),
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                  Text(
+                    'matches_list.title'.tr(),
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
             ),
           ),
+          const SizedBox(width: 48),
         ],
       ),
     );
@@ -109,44 +100,43 @@ class MatchesListScreen extends ConsumerWidget {
         ? '$baseUrl${match.matchedPhotoUrl}'
         : '';
 
-    return GestureDetector(
-      onTap: () {
-        final matchObj = Match(
-          id: match.matchId.toString(),
-          userId: '0',
-          matchedUserId: match.matchedUserId.toString(),
-          matchedUser: User(
-            id: match.matchedUserId,
-            userId: match.matchedUserId,
-            name: match.matchedName ?? 'Unknown',
-            photos: photoUrl.isNotEmpty ? [Photo(id: 0, url: photoUrl, isPrimary: true)] : [],
-          ),
-          finalScore: (match.compatibilityScore ?? 0).toDouble(),
-          synastryScore: 0,
-          behavioralScore: 0,
-          topReasons: const <String>[],
-          cosmicInsight: 'Cosmic connection found',
-          synastryData: SynastryData(
-            moonScore: 0, mercuryScore: 0, venusMarsScore: 0,
-            nodesScore: 0, saturnScore: 0,
-            detailedAspects: const <Aspect>[],
-            interpretation: '',
-          ),
-          status: MatchStatus.accepted,
-          createdAt: DateTime.now(),
-          backendMatchId: match.matchId,
-        );
-        context.push('/match-details', extra: matchObj);
-      },
-      child: Container(
-        height: 100,
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-        ),
-        child: Row(
-          children: <Widget>[
-            ClipRRect(
+    final matchObj = Match(
+      id: match.matchId.toString(),
+      userId: '0',
+      matchedUserId: match.matchedUserId.toString(),
+      matchedUser: User(
+        id: match.matchedUserId,
+        userId: match.matchedUserId,
+        name: match.matchedName ?? 'Unknown',
+        photos: photoUrl.isNotEmpty ? [Photo(id: 0, url: photoUrl, isPrimary: true)] : [],
+      ),
+      finalScore: (match.compatibilityScore ?? 0).toDouble(),
+      synastryScore: 0,
+      behavioralScore: 0,
+      topReasons: const <String>[],
+      cosmicInsight: 'Cosmic connection found',
+      synastryData: SynastryData(
+        moonScore: 0, mercuryScore: 0, venusMarsScore: 0,
+        nodesScore: 0, saturnScore: 0,
+        detailedAspects: const <Aspect>[],
+        interpretation: '',
+      ),
+      status: MatchStatus.accepted,
+      createdAt: DateTime.now(),
+      backendMatchId: match.matchId,
+    );
+
+    return Container(
+      height: 80,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+      ),
+      child: Row(
+        children: <Widget>[
+          GestureDetector(
+            onTap: () => context.push('/match-details', extra: matchObj),
+            child: ClipRRect(
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(AppRadius.lg),
                 bottomLeft: Radius.circular(AppRadius.lg),
@@ -154,52 +144,89 @@ class MatchesListScreen extends ConsumerWidget {
               child: photoUrl.isNotEmpty
                   ? Image.network(
                       photoUrl,
-                      width: 100,
-                      height: 100,
+                      width: 80,
+                      height: 80,
                       fit: BoxFit.cover,
-                      errorBuilder: (BuildContext context, Object error, StackTrace? stackTrace) => Container(
-                        width: 100,
-                        height: 100,
-                        color: CosmicColors.cosmicPurple,
-                        child: const Icon(Icons.person, size: 40, color: Colors.white),
-                      ),
+                      errorBuilder: (BuildContext context, Object error, StackTrace? stackTrace) => _buildPlaceholderPhoto(),
                     )
-                  : Container(
-                      width: 100,
-                      height: 100,
-                      color: CosmicColors.cosmicPurple,
-                      child: const Icon(Icons.person, size: 40, color: Colors.white),
-                    ),
+                  : _buildPlaceholderPhoto(),
             ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    Row(
-                      children: <Widget>[
-                        Expanded(
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Row(
+                    children: <Widget>[
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => context.push('/match-details', extra: matchObj),
                           child: Text(
                             match.matchedName ?? 'Unknown',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
+                              fontSize: 14,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        MatchScoreBadge(score: (match.compatibilityScore ?? 0).toDouble(), size: 40),
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                      MatchScoreBadge(score: (match.compatibilityScore ?? 0).toDouble(), size: 34),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => context.push('/match-details', extra: matchObj),
+                          child: Text(
+                            '${(match.compatibilityScore ?? 0)}% compatible',
+                            style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => context.push('/chat', extra: matchObj),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF6C63FF), Color(0xFF3B82F6)],
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.chat_bubble_outline, color: Colors.white, size: 12),
+                              SizedBox(width: 3),
+                              Text('Message', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildPlaceholderPhoto() {
+    return Container(
+      width: 80,
+      height: 80,
+      color: CosmicColors.cosmicPurple,
+      child: const Icon(Icons.person, size: 32, color: Colors.white),
     );
   }
 

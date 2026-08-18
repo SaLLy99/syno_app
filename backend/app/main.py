@@ -31,6 +31,255 @@ app = FastAPI(
     version="1.0.0",
 )
 
+from fastapi import WebSocket, WebSocketDisconnect, Query
+from .astrology.router import router as astrology_router
+from .websocket_manager import websocket_endpoint, manager
+from jose import JWTError, jwt
+from .config import settings as app_settings
+
+app.include_router(astrology_router)
+
+@app.websocket("/ws/{user_id}")
+async def websocket_handler(websocket: WebSocket, user_id: int, token: str = Query(...)):
+    try:
+        payload = jwt.decode(token, app_settings.secret_key, algorithms=[app_settings.algorithm])
+        email: str = payload.get("sub")
+        if not email:
+            await websocket.close(code=4001, reason="Invalid token")
+            return
+        from . import crud as _crud
+        from .database import SessionLocal
+        db = SessionLocal()
+        try:
+            db_user = _crud.get_user_by_email(db, email=email)
+            if not db_user or db_user.id != user_id:
+                await websocket.close(code=4003, reason="Unauthorized")
+                return
+        finally:
+            db.close()
+    except JWTError:
+        await websocket.close(code=4001, reason="Invalid token")
+        return
+    await websocket_endpoint(websocket, user_id)
+
+@app.get("/api/online-status")
+def get_online_status(
+    user_ids: Optional[List[int]] = None,
+    current_user: models.SynoUser = Depends(get_current_active_user)
+):
+    online = manager.get_online_users()
+    if user_ids:
+        return {"online_users": [uid for uid in user_ids if uid in online]}
+    return {"online_users": list(online)}
+
+
+@app.get("/api/analytics/dashboard", summary="Get analytics dashboard data")
+def get_analytics_dashboard(
+    db: Session = Depends(get_db),
+    current_user: models.SynoUser = Depends(get_current_active_user)
+):
+    profile = crud.get_profile_by_user_id(db, user_id=current_user.id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    total_likes_given = db.query(models.Match).filter(
+        models.Match.user_id == current_user.id
+    ).count()
+
+    total_likes_received = db.query(models.Match).filter(
+        models.Match.matched_user_id == current_user.id,
+        models.Match.status == "accepted"
+    ).count()
+
+    mutual_matches = db.query(models.Match).filter(
+        models.Match.user_id == current_user.id,
+        models.Match.status == "accepted"
+    ).count()
+
+    reverse_matches = db.query(models.Match).filter(
+        models.Match.matched_user_id == current_user.id,
+        models.Match.status == "accepted"
+    ).count()
+    mutual_count = min(mutual_matches, reverse_matches)
+
+    match_rate = 0.0
+    if total_likes_given > 0:
+        match_rate = (mutual_count / total_likes_given) * 100
+
+    response_rate = 0.0
+    if total_likes_received > 0:
+        reverse_given = db.query(models.Match).filter(
+            models.Match.user_id == current_user.id,
+            models.Match.matched_user_id.in_(
+                db.query(models.Match.user_id).filter(
+                    models.Match.matched_user_id == current_user.id,
+                    models.Match.status == "accepted"
+                )
+            )
+        ).count()
+        response_rate = (reverse_given / total_likes_received) * 100
+
+    total_messages = db.query(models.Message).join(
+        models.Match
+    ).filter(
+        (models.Match.user_id == current_user.id) | (models.Match.matched_user_id == current_user.id)
+    ).count()
+
+    unread_messages = db.query(models.Message).join(
+        models.Match
+    ).filter(
+        (models.Match.user_id == current_user.id) | (models.Match.matched_user_id == current_user.id),
+        models.Message.sender_id != current_user.id,
+        models.Message.is_read == False
+    ).count()
+
+    tips = _generate_profile_tips(profile, total_likes_given, total_likes_received, mutual_count)
+
+    return {
+        "stats": {
+            "likes_given": total_likes_given,
+            "likes_received": total_likes_received,
+            "mutual_matches": mutual_count,
+            "match_rate": round(match_rate, 1),
+            "response_rate": round(response_rate, 1),
+            "total_messages": total_messages,
+            "unread_messages": unread_messages,
+        },
+        "profile_strength": _calculate_profile_strength(profile),
+        "tips": tips,
+    }
+
+
+def _calculate_profile_strength(profile: models.Profile) -> dict:
+    score = 0
+    items = []
+
+    if profile.photos:
+        photo_score = min(len(profile.photos) * 15, 30)
+        score += photo_score
+        if len(profile.photos) >= 3:
+            items.append({"label": "Multiple photos", "score": 15, "max": 15, "status": "good"})
+        else:
+            items.append({"label": "Add more photos", "score": photo_score, "max": 15, "status": "needs_work"})
+    else:
+        items.append({"label": "Add photos", "score": 0, "max": 15, "status": "critical"})
+
+    if profile.bio and len(profile.bio) > 20:
+        score += 20
+        items.append({"label": "Bio completed", "score": 20, "max": 20, "status": "good"})
+    elif profile.bio:
+        score += 10
+        items.append({"label": "Expand your bio", "score": 10, "max": 20, "status": "needs_work"})
+    else:
+        items.append({"label": "Add a bio", "score": 0, "max": 20, "status": "critical"})
+
+    if profile.hobbies:
+        hobby_score = min(len(profile.hobbies) * 5, 15)
+        score += hobby_score
+        items.append({"label": "Interests listed", "score": hobby_score, "max": 15, "status": "good"})
+    else:
+        items.append({"label": "Add interests", "score": 0, "max": 15, "status": "critical"})
+
+    if profile.core_values:
+        score += 15
+        items.append({"label": "Core values set", "score": 15, "max": 15, "status": "good"})
+    else:
+        items.append({"label": "Set core values", "score": 0, "max": 15, "status": "critical"})
+
+    if profile.intentions:
+        score += 10
+        items.append({"label": "Intentions clear", "score": 10, "max": 10, "status": "good"})
+    else:
+        items.append({"label": "Set intentions", "score": 0, "max": 10, "status": "critical"})
+
+    if profile.birth_date:
+        score += 5
+    if profile.birth_time:
+        score += 5
+    if profile.height:
+        score += 5
+
+    return {"score": min(score, 100), "items": items}
+
+
+def _generate_profile_tips(profile, likes_given, likes_received, mutual_matches):
+    tips = []
+
+    if not profile.photos or len(profile.photos) < 3:
+        tips.append({
+            "icon": "photo_camera",
+            "title": "Add more photos",
+            "description": "Profiles with 3+ photos get 5x more likes",
+            "priority": "high"
+        })
+
+    if not profile.bio or len(profile.bio) < 30:
+        tips.append({
+            "icon": "edit_note",
+            "title": "Write a compelling bio",
+            "description": "Tell people what makes you unique",
+            "priority": "high"
+        })
+
+    if not profile.hobbies or len(profile.hobbies) < 3:
+        tips.append({
+            "icon": "interests",
+            "title": "Add more interests",
+            "description": "Shared interests help find compatible matches",
+            "priority": "medium"
+        })
+
+    if likes_received > 0 and mutual_matches == 0:
+        tips.append({
+            "icon": "favorite",
+            "title": "Be more active",
+            "description": "You have likes waiting! Try liking back more often",
+            "priority": "high"
+        })
+
+    if likes_given > 10 and mutual_matches == 0:
+        tips.append({
+            "icon": "tune",
+            "title": "Adjust your preferences",
+            "description": "Your filters might be too narrow. Try expanding your criteria",
+            "priority": "medium"
+        })
+
+    if profile.birth_time is None:
+        tips.append({
+            "icon": "schedule",
+            "title": "Add birth time",
+            "description": "Accurate birth time improves astrological compatibility scores",
+            "priority": "low"
+        })
+
+    if not tips:
+        tips.append({
+            "icon": "celebration",
+            "title": "Your profile is great!",
+            "description": "Keep being active and engaging with matches",
+            "priority": "low"
+        })
+
+    return tips
+
+
+@app.post("/api/analytics/event", summary="Track an analytics event")
+def track_event(
+    event_type: str,
+    event_metadata: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: models.SynoUser = Depends(get_current_active_user)
+):
+    event = models.AnalyticsEvent(
+        user_id=current_user.id,
+        event_type=event_type,
+        event_metadata=event_metadata,
+    )
+    db.add(event)
+    db.commit()
+    return {"status": "ok"}
+
 # Run startup migrations to fix schema issues on existing databases
 @app.on_event("startup")
 def run_startup_migrations():
@@ -104,9 +353,13 @@ def run_startup_migrations():
             UPDATE orientations SET translation_key = CASE name
                 WHEN 'Straight' THEN 'profile.orientations.straight'
                 WHEN 'Gay' THEN 'profile.orientations.gay'
+                WHEN 'Lesbian' THEN 'profile.orientations.lesbian'
                 WHEN 'Bisexual' THEN 'profile.orientations.bisexual'
                 WHEN 'Pansexual' THEN 'profile.orientations.pansexual'
                 WHEN 'Asexual' THEN 'profile.orientations.asexual'
+                WHEN 'Demisexual' THEN 'profile.orientations.demisexual'
+                WHEN 'Queer' THEN 'profile.orientations.queer'
+                WHEN 'Questioning' THEN 'profile.orientations.questioning'
                 WHEN 'Other' THEN 'profile.orientations.other'
             END WHERE translation_key IS NULL;
         """))
@@ -115,6 +368,11 @@ def run_startup_migrations():
                 WHEN 'Male' THEN 'profile.sexes.male'
                 WHEN 'Female' THEN 'profile.sexes.female'
                 WHEN 'Non-binary' THEN 'profile.sexes.non_binary'
+                WHEN 'Transgender Male' THEN 'profile.sexes.transgender_male'
+                WHEN 'Transgender Female' THEN 'profile.sexes.transgender_female'
+                WHEN 'Genderqueer' THEN 'profile.sexes.genderqueer'
+                WHEN 'Genderfluid' THEN 'profile.sexes.genderfluid'
+                WHEN 'Agender' THEN 'profile.sexes.agender'
                 WHEN 'Other' THEN 'profile.sexes.other'
             END WHERE translation_key IS NULL;
         """))
@@ -141,7 +399,72 @@ def run_startup_migrations():
                 WHEN 'Toronto' THEN 'profile.locations.toronto'
             END WHERE type = 'city' AND translation_key IS NULL;
         """))
+        # Create match_cache table if it doesn't exist
+        db.execute(text("""
+            CREATE TABLE IF NOT EXISTS match_cache (
+                id SERIAL PRIMARY KEY,
+                user_a_id INTEGER REFERENCES syno_users(id) ON DELETE CASCADE,
+                user_b_id INTEGER REFERENCES syno_users(id) ON DELETE CASCADE,
+                synastry_data TEXT NOT NULL,
+                final_score INTEGER NOT NULL,
+                weighted_score INTEGER,
+                top_reasons TEXT,
+                cosmic_insight TEXT,
+                computed_at TIMESTAMP DEFAULT NOW(),
+                UNIQUE(user_a_id, user_b_id)
+            );
+        """))
+        # Create recommendations table if it doesn't exist
+        db.execute(text("""
+            CREATE TABLE IF NOT EXISTS recommendations (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES syno_users(id) ON DELETE CASCADE,
+                recommended_user_id INTEGER REFERENCES syno_users(id) ON DELETE CASCADE,
+                score INTEGER NOT NULL,
+                reasons TEXT,
+                cosmic_insight TEXT,
+                recommendation_date DATE NOT NULL,
+                created_at TIMESTAMP DEFAULT NOW()
+            );
+        """))
+        # Create analytics_events table if it doesn't exist
+        db.execute(text("""
+            CREATE TABLE IF NOT EXISTS analytics_events (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES syno_users(id) ON DELETE CASCADE,
+                event_type VARCHAR(50) NOT NULL,
+                metadata TEXT,
+                created_at TIMESTAMP DEFAULT NOW()
+            );
+        """))
+        # Add missing media columns to messages table
+        db.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS image_url VARCHAR(500);"))
+        db.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS video_url VARCHAR(500);"))
+        db.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS gif_url VARCHAR(500);"))
+        db.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS message_type VARCHAR(20) DEFAULT 'text';"))
+        db.execute(text("ALTER TABLE messages ADD COLUMN IF NOT EXISTS is_edited BOOLEAN DEFAULT FALSE;"))
+        db.execute(text("ALTER TABLE syno_users ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMP DEFAULT NOW();"))
+        db.execute(text("ALTER TABLE syno_users ADD COLUMN IF NOT EXISTS is_deactivated BOOLEAN DEFAULT FALSE;"))
+        db.execute(text("ALTER TABLE syno_users ADD COLUMN IF NOT EXISTS deactivated_at TIMESTAMP;"))
+        # Hard-delete deactivated accounts older than 30 days
+        try:
+            from . import crud as _crud
+            _count = _crud.cleanup_expired_deactivated_accounts(db, days=30)
+            if _count > 0:
+                logging.info(f"Startup cleanup: permanently deleted {_count} deactivated accounts older than 30 days.")
+        except Exception as e:
+            logging.warning(f"Startup cleanup of expired deactivated accounts skipped: {e}")
+        # Add lat/lon columns to locations table
+        db.execute(text("ALTER TABLE locations ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;"))
+        db.execute(text("ALTER TABLE locations ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;"))
         db.commit()
+        # Auto-seed locations from REST Countries API if empty
+        try:
+            from .location_service import seed_locations_from_api
+            import asyncio
+            asyncio.get_event_loop().run_until_complete(seed_locations_from_api(db))
+        except Exception as e:
+            logging.warning(f"Location seeding skipped: {e}")
         logging.info("Startup migrations completed successfully.")
     except Exception as e:
         db.rollback()
@@ -206,8 +529,8 @@ def send_otp_email(to_email: str, subject: str, html_content: str) -> bool:
 def send_sms_otp(phone_number: str, message: str) -> bool:
     try:
         # These values must be in your .env / settings.py
-        if not settings.twilio_sid or not settings.twilio_auth_token:
-            logger.error("Twilio credentials are missing in settings. Skipping SMS.")
+        if not settings.twilio_sid or not settings.twilio_auth_token or settings.twilio_sid == "your_sid_here":
+            logger.warning(f"[DEV MODE] Twilio not configured. SMS OTP for {phone_number}: {message}")
             return False
             
         client = Client(settings.twilio_sid, settings.twilio_auth_token)
@@ -290,6 +613,11 @@ def login_for_access_token(user_credentials: schemas.UserLogin, db: Session = De
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
+        )
+    if user.is_deactivated:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="account.deactivated"
         )
     access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
     access_token = create_access_token(
@@ -453,6 +781,11 @@ async def verify_otp_phone(otp_data: schemas.SMSOTPVerify, db: Session = Depends
         db_user = db.query(models.SynoUser).filter(models.SynoUser.id == existing_profile.user_id).first()
         
         if db_user:
+            if db_user.is_deactivated:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="account.deactivated"
+                )
             access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
             access_token = create_access_token(
                 data={"sub": db_user.email}, expires_delta=access_token_expires
@@ -467,6 +800,11 @@ async def verify_otp_phone(otp_data: schemas.SMSOTPVerify, db: Session = Depends
     # New Phone User: Create a placeholder user account to allow token issuance
     temp_email = f"phone_{formatted_phone.replace('+', '')}@syno.app".lower()
     db_user = crud.get_user_by_email(db, temp_email)
+    if db_user and db_user.is_deactivated:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="account.deactivated"
+        )
     if not db_user:
         db_user = crud.create_user(
             db, 
@@ -509,6 +847,12 @@ async def verify_otp(otp_data: schemas.OTPVerify, db: Session = Depends(get_db))
     # 2. Check if user is registered
     db_user = crud.get_user_by_email(db, email.lower())
     db_profile = crud.get_profile_by_user_id(db, db_user.id) if db_user else None
+
+    if db_user and db_user.is_deactivated:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="account.deactivated"
+        )
     
     if db_user and db_profile:
         # Existing User with Profile - Issue login token
@@ -585,6 +929,19 @@ def read_intentions(db: Session = Depends(get_db)):
 @app.get("/api/location/search", response_model=List[schemas.Location])
 def search_locations(q: Optional[str] = None, db: Session = Depends(get_db)):
     return crud.search_locations(db, query=q)
+
+
+@app.post("/api/locations/seed", summary="Seed locations from REST Countries API (run once)")
+async def seed_locations(db: Session = Depends(get_db)):
+    from app.location_service import seed_locations_from_api
+    result = await seed_locations_from_api(db)
+    return result
+
+
+@app.get("/api/locations/search-async", summary="Search locations with API fallback")
+async def search_locations_async(q: Optional[str] = None, db: Session = Depends(get_db)):
+    from app.location_service import search_locations_api
+    return await search_locations_api(query=q, db=db)
 
 
 # ----------------- USER PROFILE -----------------
@@ -719,7 +1076,7 @@ def get_photo(
     photo_id: int,
     db: Session = Depends(get_db),
 ):
-    """Retrieves and serves a photo by ID. No auth required for viewing."""
+    """Retrieves and serves a photo by ID. Public endpoint for viewing profile photos."""
     photo = db.query(models.UserPhoto).filter(models.UserPhoto.id == photo_id).first()
     if not photo:
         raise HTTPException(status_code=404, detail="Photo not found.")
@@ -741,15 +1098,154 @@ def delete_a_photo(
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@app.delete("/api/users/me", status_code=status.HTTP_204_NO_CONTENT, summary="Deactivate or delete your account permanently")
-def delete_current_user(
+@app.delete("/api/users/me", status_code=status.HTTP_204_NO_CONTENT, summary="Deactivate your account (soft-delete)")
+def deactivate_current_user(
     db: Session = Depends(get_db),
     current_user: models.SynoUser = Depends(get_current_active_user)
 ):
-    success = crud.delete_user(db, user_id=current_user.id)
+    success = crud.deactivate_user(db, user_id=current_user.id)
     if not success:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@app.post("/api/auth/request-reactivation", status_code=status.HTTP_200_OK)
+async def request_reactivation(
+    reactivation_data: schemas.AccountReactivationRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    """
+    Request a reactivation OTP for a deactivated account.
+    Accepts email or phone_number. Always returns 200 to prevent enumeration.
+    """
+    # Resolve identifier: email or phone → email on SynoUser
+    resolved_email = None
+    is_phone = False
+
+    if reactivation_data.phone_number:
+        is_phone = True
+        is_valid, formatted_phone = validate_phone_number(reactivation_data.phone_number)
+        logger.info(f"[Reactivation] Phone input: '{reactivation_data.phone_number}', valid: {is_valid}, formatted: {formatted_phone}")
+        if is_valid:
+            resolved_email = f"phone_{formatted_phone.replace('+', '')}@syno.app".lower()
+        else:
+            # Fallback: use raw digits as formatted_phone for consistent user lookup
+            clean_phone = re.sub(r'[^\d]', '', reactivation_data.phone_number)
+            formatted_phone = clean_phone
+            if clean_phone:
+                resolved_email = f"phone_{clean_phone}@syno.app".lower()
+                logger.info(f"[Reactivation] Fallback resolved_email: {resolved_email}")
+    elif reactivation_data.email:
+        resolved_email = reactivation_data.email.lower()
+    else:
+        # Always return success to prevent enumeration
+        return {"message": "If an account with that identifier exists and is deactivated, a recovery code has been sent."}
+
+    logger.info(f"[Reactivation] resolved_email: {resolved_email}")
+    if resolved_email:
+        user = crud.get_user_by_email(db, email=resolved_email)
+        logger.info(f"[Reactivation] user found: {user is not None}, is_deactivated: {user.is_deactivated if user else 'N/A'}")
+        if user and user.is_deactivated:
+            try:
+                otp_code = "".join([str(secrets.randbelow(10)) for _ in range(6)])
+                logger.info(f"[Reactivation] Creating OTP code: {otp_code}, is_phone: {is_phone}")
+                if is_phone:
+                    crud.create_otp_phone(db, phone=formatted_phone, code=otp_code, expires_in_minutes=15)
+                    sms_message = tr("otp.sms_message", code=otp_code)
+                    background_tasks.add_task(send_sms_otp, reactivation_data.phone_number, sms_message)
+                else:
+                    crud.create_otp(db, email=resolved_email, code=otp_code, expires_in_minutes=15)
+                    subject = "SYNO - Account Recovery"
+                    html_content = f"""
+                    <html>
+                    <body style="font-family: sans-serif; padding: 20px;">
+                        <h2 style="color: #6200ee;">SYNO Account Recovery</h2>
+                        <p>Your recovery code is: <strong style="font-size: 24px; letter-spacing: 4px;">{otp_code}</strong></p>
+                        <p>This code expires in 15 minutes.</p>
+                        <p>If you did not request this, please ignore this email.</p>
+                    </body>
+                    </html>
+                    """
+                    background_tasks.add_task(send_otp_email, resolved_email, subject, html_content)
+            except Exception as e:
+                logger.error(f"[Reactivation] OTP creation error: {e}")
+
+    # Always return success to prevent enumeration
+    return {"message": "If an account with that identifier exists and is deactivated, a recovery code has been sent."}
+
+
+@app.post("/api/auth/verify-reactivation", response_model=schemas.AccountReactivationResponse)
+async def verify_reactivation(
+    reactivation_data: schemas.AccountReactivationVerify,
+    db: Session = Depends(get_db)
+):
+    """
+    Verify the reactivation OTP and reactivate the account.
+    Accepts email or phone_number. Returns a new access token on success.
+    """
+    # Resolve identifier
+    resolved_email = None
+    is_phone = False
+
+    if reactivation_data.phone_number:
+        is_phone = True
+        is_valid, formatted_phone = validate_phone_number(reactivation_data.phone_number)
+        if is_valid:
+            resolved_email = f"phone_{formatted_phone.replace('+', '')}@syno.app".lower()
+        else:
+            # Fallback: use raw digits as formatted_phone (matches request-reactivation fallback)
+            clean_phone = re.sub(r'[^\d]', '', reactivation_data.phone_number)
+            formatted_phone = clean_phone
+            if clean_phone:
+                resolved_email = f"phone_{clean_phone}@syno.app".lower()
+            else:
+                raise HTTPException(status_code=400, detail="otp.invalid_phone_format")
+    elif reactivation_data.email:
+        resolved_email = reactivation_data.email.lower()
+    else:
+        raise HTTPException(status_code=400, detail="auth.email_or_phone_required")
+
+    user = crud.get_user_by_email(db, email=resolved_email)
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="auth.invalid_code")
+
+    if not user.is_deactivated:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="auth.account_not_deactivated")
+
+    # Verify OTP based on method
+    if is_phone:
+        is_valid, msg_key = crud.verify_otp_phone_logic(db, formatted_phone, reactivation_data.code)
+    else:
+        is_valid, msg_key = crud.verify_otp_logic(db, resolved_email, reactivation_data.code)
+
+    if not is_valid:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg_key)
+
+    # Reactivate the account
+    crud.reactivate_user(db, user_id=user.id)
+
+    # Issue a new access token
+    access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+    access_token = create_access_token(
+        data={"sub": user.email}, expires_delta=access_token_expires
+    )
+    return {
+        "message": "Account reactivated successfully",
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
+
+
+@app.post("/api/admin/cleanup-deactivated", summary="Permanently delete deactivated accounts past recovery window")
+def cleanup_deactivated_accounts(
+    days: int = 30,
+    db: Session = Depends(get_db)
+):
+    """Admin endpoint to permanently delete accounts deactivated more than N days ago."""
+    count = crud.cleanup_expired_deactivated_accounts(db, days=days)
+    return {"deleted_count": count}
 
 
 # ----------------- BLOCK / UNBLOCK -----------------
@@ -885,6 +1381,21 @@ def get_discover(
     )
     blocked_ids = [r[0] for r in blocked_ids_query.all()]
 
+    swiped_user_ids = set()
+    swiped = db.query(models.Match.matched_user_id).filter(
+        models.Match.user_id == current_user.id
+    ).all()
+    swiped_user_ids = {r[0] for r in swiped}
+
+    received_like_ids = set()
+    received = db.query(models.Match.user_id).filter(
+        models.Match.matched_user_id == current_user.id,
+        models.Match.status == "accepted"
+    ).all()
+    received_like_ids = {r[0] for r in received}
+
+    exclude_ids = set(blocked_ids) | swiped_user_ids | received_like_ids
+
     query = db.query(models.Profile).options(
         joinedload(models.Profile.location),
         joinedload(models.Profile.sex),
@@ -897,12 +1408,12 @@ def get_discover(
         joinedload(models.Profile.educations),
     ).filter(
         models.Profile.user_id != current_user.id,
-        ~models.Profile.user_id.in_(blocked_ids) if blocked_ids else True,
+        ~models.Profile.user_id.in_(exclude_ids) if exclude_ids else True,
     )
 
     profiles = query.all()
 
-    received_like_ids = set(crud.get_received_like_user_ids(db, user_id=current_user.id))
+    received_like_ids_display = set(crud.get_received_like_user_ids(db, user_id=current_user.id))
 
     profile_list = [
         {
@@ -914,7 +1425,7 @@ def get_discover(
             "birth_time": p.birth_time,
             "bio": p.bio,
             "height": p.height,
-            "location": {"id": p.location.id, "name": p.location.name, "type": p.location.type, "translation_key": p.location.translation_key or ''} if p.location else None,
+            "location": {"id": p.location.id, "name": p.location.name, "type": p.location.type, "translation_key": p.location.translation_key or '', "latitude": p.location.latitude, "longitude": p.location.longitude} if p.location else None,
             "sex": {"id": p.sex.id, "name": p.sex.name, "translation_key": p.sex.translation_key or ''} if p.sex else None,
             "orientation": {"id": p.orientation.id, "name": p.orientation.name, "translation_key": p.orientation.translation_key or ''} if p.orientation else None,
             "photos": [{"id": ph.id, "is_primary": ph.is_primary, "upload_order": ph.upload_order, "url": f"/api/photos/{ph.id}"} for ph in p.photos],
@@ -923,7 +1434,7 @@ def get_discover(
             "core_values": [{"id": cv.id, "key": cv.key, "translation_key": cv.translation_key or ''} for cv in p.core_values],
             "professions": [{"id": pr.id, "name": pr.name, "translation_key": pr.translation_key or ''} for pr in p.professions],
             "educations": [{"id": e.id, "name": e.name, "translation_key": e.translation_key or ''} for e in p.educations],
-            "liked_by_user": p.user_id in received_like_ids,
+            "liked_by_user": p.user_id in received_like_ids_display,
         }
         for p in profiles
     ]
@@ -931,6 +1442,40 @@ def get_discover(
     profile_list.sort(key=lambda x: (not x["liked_by_user"], x["user_id"]))
 
     return profile_list
+
+
+@app.get("/api/discover/smart", response_model=List[schemas.SmartDiscoverItem], summary="Smart discovery with server-side scoring")
+def get_smart_discover(
+    db: Session = Depends(get_db),
+    current_user: models.SynoUser = Depends(get_current_active_user)
+):
+    from .matching_engine import get_smart_discover_list
+
+    db_profile = crud.get_profile_by_user_id(db, user_id=current_user.id)
+    if not db_profile:
+        return []
+
+    preferences = db.query(models.UserPreferences).filter(
+        models.UserPreferences.profile_id == db_profile.id
+    ).first()
+
+    results = get_smart_discover_list(db, current_user, preferences)
+    return results
+
+
+@app.get("/api/recommendations/daily", response_model=List[schemas.RecommendationResponse], summary="Get daily top pick recommendations")
+def get_daily_recommendations(
+    db: Session = Depends(get_db),
+    current_user: models.SynoUser = Depends(get_current_active_user)
+):
+    from .recommendation_engine import generate_daily_recommendations
+
+    db_profile = crud.get_profile_by_user_id(db, user_id=current_user.id)
+    if not db_profile:
+        return []
+
+    results = generate_daily_recommendations(db, current_user)
+    return results
 
 
 @app.put("/api/users/me/settings", response_model=schemas.Profile)
@@ -1001,6 +1546,9 @@ def create_or_update_match(
     if match_data.matched_user_id == current_user.id:
         raise HTTPException(status_code=400, detail="Cannot match with yourself")
 
+    if match_data.status not in ("pending", "accepted", "declined", "hidden", "saved"):
+        raise HTTPException(status_code=400, detail="Invalid match status")
+
     target_user = db.query(models.SynoUser).filter(models.SynoUser.id == match_data.matched_user_id).first()
     if not target_user:
         raise HTTPException(status_code=404, detail="Target user not found")
@@ -1019,12 +1567,45 @@ def create_or_update_match(
     return match
 
 
-@app.get("/api/matches", response_model=List[schemas.MatchResponse], summary="Get all matches for current user")
+@app.get("/api/matches", response_model=List[schemas.MatchWithProfileResponse], summary="Get all matches for current user")
 def get_my_matches(
     db: Session = Depends(get_db),
     current_user: models.SynoUser = Depends(get_current_active_user)
 ):
-    return crud.get_matches_for_user(db, user_id=current_user.id)
+    matches = crud.get_matches_for_user(db, user_id=current_user.id)
+    result = []
+    for m in matches:
+        other_id = m.matched_user_id if m.user_id == current_user.id else m.user_id
+        profile = db.query(models.Profile).options(
+            joinedload(models.Profile.photos).load_only(models.UserPhoto.id, models.UserPhoto.is_primary),
+            joinedload(models.Profile.location),
+            joinedload(models.Profile.sex),
+        ).filter(models.Profile.user_id == other_id).first()
+        matched_profile = None
+        if profile:
+            primary_photo = next((p for p in profile.photos if p.is_primary), (profile.photos[0] if profile.photos else None))
+            matched_profile = {
+                "id": profile.user_id,
+                "user_id": profile.user_id,
+                "name": profile.name,
+                "last_name": profile.last_name,
+                "birth_date": profile.birth_date.isoformat() if profile.birth_date else None,
+                "bio": profile.bio,
+                "location": {"id": profile.location.id, "name": profile.location.name, "latitude": profile.location.latitude, "longitude": profile.location.longitude} if profile.location else None,
+                "sex": {"id": profile.sex.id, "name": profile.sex.name} if profile.sex else None,
+                "photo_url": f"/api/photos/{primary_photo.id}" if primary_photo else None,
+            }
+        result.append(schemas.MatchWithProfileResponse(
+            id=m.id,
+            user_id=m.user_id,
+            matched_user_id=m.matched_user_id,
+            status=m.status,
+            compatibility_score=m.compatibility_score,
+            created_at=m.created_at,
+            updated_at=m.updated_at,
+            matched_profile=matched_profile,
+        ))
+    return result
 
 
 @app.patch("/api/matches/{match_id}", response_model=schemas.MatchResponse, summary="Update match status")
@@ -1034,6 +1615,8 @@ def update_match_status(
     db: Session = Depends(get_db),
     current_user: models.SynoUser = Depends(get_current_active_user)
 ):
+    if update_data.status not in ("pending", "accepted", "declined", "hidden", "saved"):
+        raise HTTPException(status_code=400, detail="Invalid match status")
     match = crud.update_match_status(db, match_id=match_id, user_id=current_user.id, status=update_data.status)
     if not match:
         raise HTTPException(status_code=404, detail="Match not found")
@@ -1053,6 +1636,103 @@ def check_mutual_match(
     )
 
 
+@app.get("/api/matches/{match_id}/compatibility", summary="Get detailed compatibility report for a match")
+def get_compatibility_report(
+    match_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.SynoUser = Depends(get_current_active_user)
+):
+    match = db.query(models.Match).filter(models.Match.id == match_id).first()
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+
+    if match.user_id != current_user.id and match.matched_user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not part of this match")
+
+    other_user_id = match.matched_user_id if match.user_id == current_user.id else match.user_id
+
+    current_profile = crud.get_profile_by_user_id(db, user_id=current_user.id)
+    other_profile = crud.get_profile_by_user_id(db, user_id=other_user_id)
+
+    if not current_profile or not other_profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    if not current_profile.birth_time or not other_profile.birth_time:
+        raise HTTPException(status_code=400, detail="Birth time required for detailed report")
+
+    if not current_profile.location or not other_profile.location:
+        raise HTTPException(status_code=400, detail="Location required for detailed report")
+
+    try:
+        from datetime import time as dtime
+        from .astrology.domain.models import BirthData
+        from .astrology.providers.western import SwissEphProvider
+        from .astrology.services.report_service import ReportService
+
+        def _parse_birth_time(time_str: str) -> dtime:
+            parts = time_str.split(":")
+            return dtime(int(parts[0]), int(parts[1]))
+
+        birth_a = BirthData(
+            birth_date=current_profile.birth_date,
+            birth_time=_parse_birth_time(current_profile.birth_time),
+            timezone="+00:00",
+            latitude=current_profile.location.latitude if hasattr(current_profile.location, 'latitude') else 41.7151,
+            longitude=current_profile.location.longitude if hasattr(current_profile.location, 'longitude') else 44.8271,
+            location_name=current_profile.location.name,
+        )
+        birth_b = BirthData(
+            birth_date=other_profile.birth_date,
+            birth_time=_parse_birth_time(other_profile.birth_time),
+            timezone="+00:00",
+            latitude=other_profile.location.latitude if hasattr(other_profile.location, 'latitude') else 41.7151,
+            longitude=other_profile.location.longitude if hasattr(other_profile.location, 'longitude') else 44.8271,
+            location_name=other_profile.location.name,
+        )
+
+        hobbies_a = {h.name for h in current_profile.hobbies} if current_profile.hobbies else set()
+        hobbies_b = {h.name for h in other_profile.hobbies} if other_profile.hobbies else set()
+        shared_hobbies = list(hobbies_a & hobbies_b)
+
+        values_a = {cv.key for cv in current_profile.core_values} if current_profile.core_values else set()
+        values_b = {cv.key for cv in other_profile.core_values} if other_profile.core_values else set()
+        shared_values = list(values_a & values_b)
+
+        intentions_a = {i.key for i in current_profile.intentions} if current_profile.intentions else set()
+        intentions_b = {i.key for i in other_profile.intentions} if other_profile.intentions else set()
+        shared_intentions = list(intentions_a & intentions_b)
+
+        from .recommendation_engine import calculate_activity_score, calculate_profile_quality_score, calculate_mutual_interest_score
+
+        activity = calculate_activity_score(db, other_user_id)
+        profile_quality = calculate_profile_quality_score(other_profile)
+        mutual = calculate_mutual_interest_score(db, current_user.id, other_user_id)
+
+        provider = SwissEphProvider()
+        report_service = ReportService(provider)
+
+        report = report_service.generate_report(
+            person_a=birth_a,
+            person_b=birth_b,
+            shared_hobbies=shared_hobbies,
+            shared_values=shared_values,
+            shared_intentions=shared_intentions,
+            user_a_name=current_profile.name or "",
+            user_b_name=other_profile.name or "",
+            behavior_activity=activity,
+            behavior_profile_quality=profile_quality,
+            behavior_mutual_interest=mutual,
+        )
+
+        return report_service.report_to_dict(report)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Compatibility report failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Report generation failed: {str(e)}")
+
+
 @app.delete("/api/matches/{match_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete a match")
 def delete_match(
     match_id: int,
@@ -1062,6 +1742,23 @@ def delete_match(
     success = crud.delete_match(db, match_id=match_id, user_id=current_user.id)
     if not success:
         raise HTTPException(status_code=404, detail="Match not found")
+
+
+@app.post("/api/matches/undo-last", summary="Undo the last swipe")
+def undo_last_swipe(
+    db: Session = Depends(get_db),
+    current_user: models.SynoUser = Depends(get_current_active_user)
+):
+    last_match = db.query(models.Match).filter(
+        models.Match.user_id == current_user.id
+    ).order_by(models.Match.created_at.desc()).first()
+
+    if not last_match:
+        raise HTTPException(status_code=404, detail="No swipes to undo")
+
+    db.delete(last_match)
+    db.commit()
+    return {"status": "undone", "undone_match_id": last_match.id}
 
 
 # ============================================================
@@ -1079,7 +1776,7 @@ def get_messages(
 
 
 @app.post("/api/messages", response_model=schemas.MessageResponse, summary="Send a message")
-def send_message(
+async def send_message(
     msg_data: schemas.MessageCreate,
     db: Session = Depends(get_db),
     current_user: models.SynoUser = Depends(get_current_active_user)
@@ -1092,13 +1789,44 @@ def send_message(
         raise HTTPException(status_code=403, detail="Not part of this match")
 
     other_user_id = match.matched_user_id if match.user_id == current_user.id else match.user_id
-    mutual = crud.get_mutual_match(db, user_id=current_user.id, other_user_id=other_user_id)
-    if not mutual:
-        raise HTTPException(status_code=403, detail="Messaging requires a mutual match")
 
-    message = crud.create_message(db, match_id=msg_data.match_id, sender_id=current_user.id, content=msg_data.content)
+    blocked_ids = crud.get_blocked_user_ids(db, user_id=current_user.id)
+    if other_user_id in blocked_ids:
+        raise HTTPException(status_code=403, detail="Cannot message this user")
+
+    other_blocked_ids = crud.get_blocked_user_ids(db, user_id=other_user_id)
+    if current_user.id in other_blocked_ids:
+        raise HTTPException(status_code=403, detail="Cannot message this user")
+
+    reverse_match = db.query(models.Match).filter(
+        models.Match.user_id == other_user_id,
+        models.Match.matched_user_id == current_user.id,
+    ).first()
+
+    canonical_match_id = min(match.id, reverse_match.id) if reverse_match else match.id
+
+    message = crud.create_message(
+        db,
+        match_id=canonical_match_id,
+        sender_id=current_user.id,
+        content=msg_data.content,
+        image_url=msg_data.image_url,
+        video_url=msg_data.video_url,
+        gif_url=msg_data.gif_url,
+        message_type=msg_data.message_type
+    )
     if not message:
         raise HTTPException(status_code=400, detail="Failed to send message")
+
+    sender_profile = crud.get_profile_by_user_id(db, user_id=current_user.id)
+    sender_name = f"{sender_profile.name} {sender_profile.last_name or ''}".strip() if sender_profile else "Someone"
+    await manager.notify_new_message(
+        recipient_id=other_user_id,
+        sender_id=current_user.id,
+        sender_name=sender_name,
+        content=msg_data.content
+    )
+
     return message
 
 
@@ -1109,6 +1837,132 @@ def mark_read(
     current_user: models.SynoUser = Depends(get_current_active_user)
 ):
     crud.mark_messages_read(db, match_id=match_id, user_id=current_user.id)
+
+
+@app.delete("/api/messages/{match_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete all messages for a match")
+def delete_chat(
+    match_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.SynoUser = Depends(get_current_active_user)
+):
+    success = crud.delete_chat_messages(db, match_id=match_id, user_id=current_user.id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Match not found or not authorized")
+
+
+@app.delete("/api/messages/message/{message_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete a single message")
+def delete_single_message(
+    message_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.SynoUser = Depends(get_current_active_user)
+):
+    message = crud.delete_single_message(db, message_id=message_id, user_id=current_user.id)
+    if not message:
+        raise HTTPException(status_code=404, detail="Message not found or not authorized")
+
+
+@app.patch("/api/messages/message/{message_id}", response_model=schemas.MessageResponse, summary="Edit a message")
+def edit_message(
+    message_id: int,
+    edit_data: schemas.MessageEdit,
+    db: Session = Depends(get_db),
+    current_user: models.SynoUser = Depends(get_current_active_user)
+):
+    message = crud.edit_message(db, message_id=message_id, user_id=current_user.id, new_content=edit_data.content)
+    if not message:
+        raise HTTPException(status_code=404, detail="Message not found or not authorized")
+    return message
+
+
+@app.post("/api/messages/message/{message_id}/forward", response_model=schemas.MessageResponse, summary="Forward a message to another match")
+def forward_message(
+    message_id: int,
+    forward_data: schemas.MessageForward,
+    db: Session = Depends(get_db),
+    current_user: models.SynoUser = Depends(get_current_active_user)
+):
+    original = db.query(models.Message).filter(models.Message.id == message_id).first()
+    if not original:
+        raise HTTPException(status_code=404, detail="Message not found")
+
+    target_match = db.query(models.Match).filter(models.Match.id == forward_data.target_match_id).first()
+    if not target_match:
+        raise HTTPException(status_code=404, detail="Target match not found")
+    if target_match.user_id != current_user.id and target_match.matched_user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not part of this match")
+
+    message = crud.create_message(
+        db,
+        match_id=forward_data.target_match_id,
+        sender_id=current_user.id,
+        content=original.content,
+        image_url=original.image_url,
+        video_url=original.video_url,
+        gif_url=original.gif_url,
+        message_type=original.message_type
+    )
+    if not message:
+        raise HTTPException(status_code=400, detail="Failed to forward message")
+    return message
+
+
+@app.post("/api/chat/media", summary="Upload chat media (image/video)")
+async def upload_chat_media(
+    file: UploadFile = File(...),
+    current_user: models.SynoUser = Depends(get_current_active_user)
+):
+    allowed_image_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+    allowed_video_types = ["video/mp4", "video/quicktime", "video/webm"]
+    max_image_size = 10 * 1024 * 1024
+    max_video_size = 50 * 1024 * 1024
+
+    if file.content_type in allowed_image_types:
+        media_type = "image"
+        max_size = max_image_size
+    elif file.content_type in allowed_video_types:
+        media_type = "video"
+        max_size = max_video_size
+    else:
+        raise HTTPException(status_code=400, detail="Unsupported file type. Use JPEG, PNG, GIF, WebP for images or MP4, MOV, WebM for videos.")
+
+    contents = await file.read()
+    if len(contents) > max_size:
+        raise HTTPException(status_code=400, detail=f"File too large. Max size: {max_size // (1024 * 1024)}MB")
+
+    upload_dir = os.path.join("uploads", "chat_media")
+    os.makedirs(upload_dir, exist_ok=True)
+
+    file_ext = file.filename.split(".")[-1] if file.filename else "bin"
+    filename = f"{current_user.id}_{secrets.token_hex(16)}.{file_ext}"
+    filepath = os.path.join(upload_dir, filename)
+
+    with open(filepath, "wb") as f:
+        f.write(contents)
+
+    return {
+        "url": f"/api/chat/media/{filename}",
+        "media_type": media_type,
+        "filename": filename
+    }
+
+
+@app.get("/api/chat/media/{filename}", summary="Get chat media file")
+async def get_chat_media(filename: str):
+    filepath = os.path.join("uploads", "chat_media", filename)
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Media not found")
+
+    ext = filename.split(".")[-1].lower()
+    content_type_map = {
+        "jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
+        "gif": "image/gif", "webp": "image/webp",
+        "mp4": "video/mp4", "mov": "video/quicktime", "webm": "video/webm",
+    }
+    content_type = content_type_map.get(ext, "application/octet-stream")
+
+    with open(filepath, "rb") as f:
+        contents = f.read()
+    return Response(content=contents, media_type=content_type)
 
 
 @app.get("/api/chats", response_model=List[schemas.ChatListResponse], summary="Get chat list (mutual matches)")

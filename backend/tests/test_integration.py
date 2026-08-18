@@ -144,10 +144,22 @@ def test_full_user_lifecycle(client: TestClient, seed_db):
     unblock_res = client.delete(f"/api/users/{user2_id}/unblock", headers=headers1)
     assert unblock_res.status_code == 204
 
-    # --- User 1 deactivates their account ---
+    # --- User 1 deactivates their account (soft-delete) ---
     delete_res = client.delete("/api/users/me", headers=headers1)
     assert delete_res.status_code == 204
 
-    # --- Verify User 1 can no longer access protected endpoints ---
+    # --- Verify User 1 can no longer access protected endpoints (deactivated = 403) ---
     profile_res_after_delete = client.get("/api/users/me", headers=headers1)
-    assert profile_res_after_delete.status_code == 401
+    assert profile_res_after_delete.status_code == 403
+
+    # --- Verify User 1 cannot login with password (deactivated = 403) ---
+    login_after_deactivate = client.post("/api/auth/login", json={"email": "user1@example.com", "password": "password123"})
+    assert login_after_deactivate.status_code == 403
+
+    # --- User 1 requests reactivation ---
+    reactivation_res = client.post("/api/auth/request-reactivation", json={"email": "user1@example.com"})
+    assert reactivation_res.status_code == 200
+
+    # --- Verify User 1 still cannot login before reactivation ---
+    login_before_reactivate = client.post("/api/auth/login", json={"email": "user1@example.com", "password": "password123"})
+    assert login_before_reactivate.status_code == 403

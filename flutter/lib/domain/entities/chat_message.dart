@@ -2,17 +2,27 @@ class ChatMessage {
   final String id;
   final String matchId;
   final String senderId;
-  final String content;
-  final DateTime timestamp;
+  final String? content;
+  final String? imageUrl;
+  final String? videoUrl;
+  final String? gifUrl;
+  final String messageType;
   final bool isRead;
+  final bool isEdited;
+  final DateTime timestamp;
 
   ChatMessage({
     required this.id,
     required this.matchId,
     required this.senderId,
-    required this.content,
+    this.content,
+    this.imageUrl,
+    this.videoUrl,
+    this.gifUrl,
+    this.messageType = "text",
+    this.isRead = false,
+    this.isEdited = false,
     required this.timestamp,
-    required this.isRead,
   });
 
   Map<String, dynamic> toJson() => <String, dynamic>{
@@ -20,17 +30,27 @@ class ChatMessage {
         'matchId': matchId,
         'senderId': senderId,
         'content': content,
-        'timestamp': timestamp.toIso8601String(),
+        'imageUrl': imageUrl,
+        'videoUrl': videoUrl,
+        'gifUrl': gifUrl,
+        'messageType': messageType,
         'isRead': isRead,
+        'isEdited': isEdited,
+        'timestamp': timestamp.toIso8601String(),
       };
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) => ChatMessage(
         id: json['id'] as String,
         matchId: json['matchId'] as String,
         senderId: json['senderId'] as String,
-        content: json['content'] as String,
+        content: json['content'] as String?,
+        imageUrl: json['imageUrl'] as String?,
+        videoUrl: json['videoUrl'] as String?,
+        gifUrl: json['gifUrl'] as String?,
+        messageType: json['messageType'] as String? ?? 'text',
+        isRead: json['isRead'] as bool? ?? false,
+        isEdited: json['isEdited'] as bool? ?? false,
         timestamp: DateTime.parse(json['timestamp'] as String),
-        isRead: json['isRead'] as bool,
       );
 
   ChatMessage copyWith({
@@ -38,15 +58,25 @@ class ChatMessage {
     String? matchId,
     String? senderId,
     String? content,
-    DateTime? timestamp,
+    String? imageUrl,
+    String? videoUrl,
+    String? gifUrl,
+    String? messageType,
     bool? isRead,
+    bool? isEdited,
+    DateTime? timestamp,
   }) =>
       ChatMessage(
         id: id ?? this.id,
         matchId: matchId ?? this.matchId,
         senderId: senderId ?? this.senderId,
         content: content ?? this.content,
-        timestamp: timestamp ?? this.timestamp,
+        imageUrl: imageUrl ?? this.imageUrl,
+        videoUrl: videoUrl ?? this.videoUrl,
+        gifUrl: gifUrl ?? this.gifUrl,
+        messageType: messageType ?? this.messageType,
         isRead: isRead ?? this.isRead,
+        isEdited: isEdited ?? this.isEdited,
+        timestamp: timestamp ?? this.timestamp,
       );
 }

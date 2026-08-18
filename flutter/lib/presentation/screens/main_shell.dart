@@ -33,6 +33,11 @@ class MainShell extends StatelessWidget {
             label: 'bottom_nav.likes'.tr(),
           ),
           BottomNavigationBarItem(
+            icon: const Icon(Icons.people_outline),
+            activeIcon: const Icon(Icons.people),
+            label: 'bottom_nav.matches'.tr(),
+          ),
+          BottomNavigationBarItem(
             icon: const Icon(Icons.chat_bubble_outline),
             activeIcon: const Icon(Icons.chat_bubble),
             label: 'bottom_nav.chats'.tr(),
@@ -55,17 +60,20 @@ class MainShell extends StatelessWidget {
     if (location.startsWith('/likes')) {
       return 1;
     }
-    if (location.startsWith('/chats')) {
+    if (location.startsWith('/matches')) {
       return 2;
     }
-    if (location.startsWith('/profile')) {
+    if (location.startsWith('/chats')) {
       return 3;
+    }
+    if (location.startsWith('/profile')) {
+      return 4;
     }
     return 0;
   }
 
   void _onItemTapped(int index, BuildContext context) {
-    const List<String> paths = <String>['/discover', '/likes', '/chats', '/profile'];
+    const List<String> paths = <String>['/discover', '/likes', '/matches', '/chats', '/profile'];
     if (index >= 0 && index < paths.length) {
       context.go(paths[index]);
     }

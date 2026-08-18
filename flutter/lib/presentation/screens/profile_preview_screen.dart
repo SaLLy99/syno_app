@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:syno_app/domain/entities/astrology_system.dart';
 import 'package:syno_app/domain/entities/user.dart';
 import 'package:syno_app/presentation/providers/auth_providers.dart';
 import 'package:syno_app/presentation/providers/theme_provider.dart';
@@ -38,7 +39,8 @@ class ProfilePreviewScreen extends ConsumerWidget {
               return Center(child: Text('chat.no_user'.tr(), style: TextStyle(color: theme.primaryTextColor)));
             }
 
-            final String? zodiac = user.zodiacSign != null ? _getZodiacName(user.zodiacSign!) : null;
+            final AstrologySystem system = ref.read(astrologySystemProvider);
+            final String? zodiac = user.getZodiacSign(system) != null ? _getZodiacName(user.getZodiacSign(system)!) : null;
             return SafeArea(
               child: Center(
                 child: Padding(

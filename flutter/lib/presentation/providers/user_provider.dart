@@ -25,8 +25,8 @@ final FutureProvider<List<User>> allUsersProvider = FutureProvider<List<User>>((
   if (token == null || token.isEmpty) return <User>[];
 
   final String backendUrl = ref.watch(backendUrlProvider);
-  final String url = '$backendUrl/api/discover';
 
+  String url = '$backendUrl/api/discover/smart';
   try {
     final dio.Response response = await dio.Dio().get(
       url,
@@ -41,14 +41,50 @@ final FutureProvider<List<User>> allUsersProvider = FutureProvider<List<User>>((
       final List<User> users = usersJson
           .map((dynamic json) => User.fromJson(json as Map<String, dynamic>))
           .toList();
-      debugPrint('[allUsersProvider] Loaded ${users.length} profiles from /api/discover');
+      debugPrint('[allUsersProvider] Loaded ${users.length} profiles from /api/discover/smart');
       return users;
     } else {
-      debugPrint('[allUsersProvider] Failed: ${response.statusCode}');
+      debugPrint('[allUsersProvider] Smart endpoint failed (${response.statusCode}), falling back to /api/discover');
+      url = '$backendUrl/api/discover';
+      final dio.Response fallbackResponse = await dio.Dio().get(
+        url,
+        options: dio.Options(headers: <String, dynamic>{
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        }),
+      );
+      if (fallbackResponse.statusCode == 200) {
+        final List<dynamic> usersJson = fallbackResponse.data as List<dynamic>;
+        final List<User> users = usersJson
+            .map((dynamic json) => User.fromJson(json as Map<String, dynamic>))
+            .toList();
+        debugPrint('[allUsersProvider] Loaded ${users.length} profiles from /api/discover (fallback)');
+        return users;
+      }
       return <User>[];
     }
   } catch (e) {
-    debugPrint('[allUsersProvider] Error: $e');
+    debugPrint('[allUsersProvider] Error on smart endpoint: $e, trying fallback...');
+    try {
+      url = '$backendUrl/api/discover';
+      final dio.Response fallbackResponse = await dio.Dio().get(
+        url,
+        options: dio.Options(headers: <String, dynamic>{
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        }),
+      );
+      if (fallbackResponse.statusCode == 200) {
+        final List<dynamic> usersJson = fallbackResponse.data as List<dynamic>;
+        final List<User> users = usersJson
+            .map((dynamic json) => User.fromJson(json as Map<String, dynamic>))
+            .toList();
+        debugPrint('[allUsersProvider] Loaded ${users.length} profiles from /api/discover (fallback)');
+        return users;
+      }
+    } catch (fallbackError) {
+      debugPrint('[allUsersProvider] Fallback error: $fallbackError');
+    }
     return <User>[];
   }
 });

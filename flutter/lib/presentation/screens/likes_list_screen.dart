@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
 import 'package:syno_app/domain/entities/match.dart';
+import 'package:syno_app/presentation/providers/auth_providers.dart';
+import 'package:syno_app/presentation/widgets/match_found_dialog.dart';
 import 'package:syno_app/domain/entities/synastry_data.dart';
 import 'package:syno_app/domain/entities/user.dart';
 import 'package:syno_app/presentation/providers/match_provider.dart';
@@ -60,62 +62,53 @@ class LikesListScreen extends ConsumerWidget {
       padding: AppSpacing.paddingMd,
       child: Row(
         children: <Widget>[
+          const SizedBox(width: 48),
           Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-                  onPressed: () => context.go('/discover'),
-                ),
-                Expanded(
-                  child: Center(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: <Widget>[
-                        Padding(
-                          padding: const EdgeInsets.only(right: 8.0),
-                          child: SizedBox(
-                            width: 30,
-                            height: 30,
-                            child: ClipOval(
-                              child: Image.asset(
-                                'assets/icons/dreamflow_icon.jpg',
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
+            child: Center(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: SizedBox(
+                      width: 30,
+                      height: 30,
+                      child: ClipOval(
+                        child: Image.asset(
+                          'assets/icons/dreamflow_icon.jpg',
+                          fit: BoxFit.cover,
                         ),
-                        Text(
-                          'likes_list.title'.tr(),
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
-                        ),
-                        likesAsync.when(
-                          data: (List<IncomingLike> likes) {
-                            if (likes.isEmpty) return const SizedBox.shrink();
-                            return Container(
-                              margin: const EdgeInsets.only(left: 8),
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: Colors.red,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                '${likes.length}',
-                                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                              ),
-                            );
-                          },
-                          loading: () => const SizedBox.shrink(),
-                          error: (_, __) => const SizedBox.shrink(),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                  Text(
+                    'likes_list.title'.tr(),
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                  likesAsync.when(
+                    data: (List<IncomingLike> likes) {
+                      if (likes.isEmpty) return const SizedBox.shrink();
+                      return Container(
+                        margin: const EdgeInsets.only(left: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '${likes.length}',
+                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                      );
+                    },
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                  ),
+                ],
+              ),
             ),
           ),
+          const SizedBox(width: 48),
         ],
       ),
     );
@@ -273,11 +266,43 @@ class LikesListScreen extends ConsumerWidget {
                     onPressed: () async {
                       final bool success = await ref.read(matchActionsProvider).acceptIncomingLike(like.matchId);
                       if (success && context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('likes_list.match_created'.tr()),
-                            backgroundColor: Colors.green,
+                        final String? baseUrl = ref.read(backendUrlProvider);
+                        final String fullPhotoUrl = (like.photoUrl != null && baseUrl != null)
+                            ? '$baseUrl${like.photoUrl}'
+                            : '';
+                        final User matchedUser = User(
+                          id: like.userId,
+                          userId: like.userId,
+                          name: like.name ?? 'Unknown',
+                          lastName: like.lastName,
+                          bio: like.bio,
+                          photos: fullPhotoUrl.isNotEmpty ? [Photo(id: 0, url: fullPhotoUrl, isPrimary: true)] : [],
+                        );
+                        final Match matchedMatch = Match(
+                          id: like.matchId.toString(),
+                          userId: '0',
+                          matchedUserId: like.userId.toString(),
+                          matchedUser: matchedUser,
+                          finalScore: (like.compatibilityScore ?? 50).toDouble(),
+                          synastryScore: (like.compatibilityScore ?? 50).toDouble(),
+                          behavioralScore: 50.0,
+                          topReasons: const <String>[],
+                          cosmicInsight: '',
+                          synastryData: SynastryData(
+                            moonScore: 50, mercuryScore: 50, venusMarsScore: 50,
+                            nodesScore: 50, saturnScore: 50,
+                            detailedAspects: const <Aspect>[],
+                            interpretation: '',
                           ),
+                          status: MatchStatus.accepted,
+                          createdAt: DateTime.now(),
+                          backendMatchId: like.matchId,
+                        );
+                        MatchFoundDialog.show(
+                          context,
+                          matchedUser: matchedUser,
+                          match: matchedMatch,
+                          baseUrl: baseUrl ?? '',
                         );
                       }
                     },

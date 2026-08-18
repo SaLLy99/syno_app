@@ -48,7 +48,15 @@
          "nodes_high":"✨ Profound karmic soul connection",
          "nodes_good":"✨ Meaningful spiritual alignment",
          "saturn_high":"🔒 Exceptional long-term commitment potential",
-         "saturn_good":"🔒 Strong foundation for lasting bond"
+         "saturn_good":"🔒 Strong foundation for lasting bond",
+         "dimension_emotional":"❤️ Deep emotional compatibility — you both feel understood",
+         "dimension_communication":"💬 Natural communication flow — conversations are effortless",
+         "dimension_passion":"🔥 Intense romantic and physical chemistry",
+         "dimension_intellectual":"🧠 Strong intellectual connection — minds that click",
+         "dimension_values":"🤝 Shared core values and life vision",
+         "dimension_spiritual":"✨ Spiritual alignment — souls on the same wavelength",
+         "dimension_lifestyle":"🏠 Compatible lifestyles and daily rhythms",
+         "dimension_growth":"🌱 Mutual growth potential — you bring out the best in each other"
       },
       "cosmic_insight":{
          "high":[
@@ -269,7 +277,30 @@
       "unblock_button":"Unblock",
       "start_conversation":"Start the conversation!",
       "say_hello":"Say hello to {name}",
-      "message_hint":"Type a message..."
+      "message_hint":"Type a message...",
+      "delete_chat":"Delete Chat",
+      "delete_chat_subtitle":"Delete all messages in this conversation",
+      "delete_chat_confirm_title":"Delete Chat?",
+      "delete_chat_confirm_message":"This will permanently delete all messages in this conversation. This cannot be undone.",
+      "chat_deleted":"Chat deleted",
+      "cancel":"Cancel",
+      "send":"Send",
+      "send_image":"Send Image",
+      "send_video":"Send Video",
+      "gallery":"Gallery",
+      "camera":"Camera",
+      "video":"Video",
+      "copy":"Copy",
+      "copied":"Copied to clipboard",
+      "edit":"Edit",
+      "reply":"Reply",
+      "forward":"Forward",
+      "delete_for_me":"Delete for me",
+      "editing":"Editing",
+      "replying_to":"Replying to {name}",
+      "edit_hint":"Edit message...",
+      "forward_message":"Forward Message",
+      "select_chat":"Select a chat to forward this message"
    },
    "discover":{
       "title":"Discover",
@@ -445,12 +476,12 @@
          },
          "deactivate":{
             "title":"Deactivate Account",
-            "subtitle":"Deactivate your account permanently",
+            "subtitle":"Temporarily deactivate your account",
             "confirm_title":"Deactivate Account?",
-            "confirm_subtitle":"Are you sure you want to deactivate your account? This action cannot be undone.",
+            "confirm_subtitle":"Are you sure you want to deactivate your account?",
             "cancel":"Cancel",
             "deactivate":"Deactivate",
-            "confirm_message":"Your account will be deactivated immediately. You can reactivate within a month.",
+            "confirm_message":"Your account will be deactivated immediately. You can reactivate within 30 days using your email or phone number.",
             "action":"Deactivate"
          },
          "cancel":"Cancel"
@@ -518,8 +549,16 @@
    "bottom_nav":{
       "discover":"Discover",
       "likes":"Likes",
+      "matches":"Matches",
       "chats":"Chats",
       "profile":"Profile"
+   },
+   "recommendations":{
+      "title":"Daily Picks",
+      "empty_title":"No Picks Today",
+      "empty_subtitle":"Check back tomorrow for your daily cosmic matches! We curate the best profiles based on your preferences and compatibility.",
+      "loading":"Loading your daily picks...",
+      "error":"Error loading recommendations"
    },
    "likes_list":{
       "title":"Likes",
@@ -615,5 +654,26 @@
       "october":"October",
       "november":"November",
       "december":"December"
+   },
+   "account":{
+      "deactivated_title":"Account Deactivated",
+      "deactivated_message":"Your account has been deactivated. You can recover it using your email address or phone number.",
+      "reactivate":"Recover Account"
+   },
+   "reactivation":{
+      "title":"Account Recovery",
+      "subtitle":"Enter the email or phone number associated with your deactivated account to receive a recovery code.",
+      "send_code":"Send Recovery Code",
+      "code_sent_title":"Recovery code sent",
+      "code_sent_message_email":"A code has been sent to {}. Check your email and enter the code below.",
+      "code_sent_message_phone":"A code has been sent to {}. Check your messages and enter the code below.",
+      "enter_code":"Enter the 6-digit code sent to {}",
+      "reactivate":"Reactivate Account",
+      "success_title":"Account Reactivated",
+      "success_message":"Your account has been restored. Welcome back!",
+      "recover_account":"Recover Account",
+      "use_email":"Email",
+      "use_phone":"Phone",
+      "phone_hint":"Enter your phone number"
    }
 }

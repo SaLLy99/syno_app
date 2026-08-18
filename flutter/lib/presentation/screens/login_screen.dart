@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syno_app/presentation/providers/auth_service_provider.dart';
 import 'package:syno_app/data/services/otp_verification_args.dart';
 import 'package:syno_app/theme.dart';
@@ -22,8 +23,52 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _isLoading = false;
 
   final RegExp _emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
-  // Simple regex for international phone numbers (e.g., +995555123456)
   final RegExp _phoneRegex = RegExp(r'^\+?[1-9]\d{1,14}$');
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPendingReactivation();
+  }
+
+  Future<void> _checkPendingReactivation() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    final bool? pending = prefs.getBool('pending_reactivation');
+    if (pending == true) {
+      await prefs.remove('pending_reactivation');
+      if (mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _showReactivationDialog();
+        });
+      }
+    }
+  }
+
+  void _showReactivationDialog() {
+    showDialog<bool>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('account.deactivated_title'.tr(), style: const TextStyle(color: Colors.white)),
+        content: Text('account.deactivated_message'.tr(), style: const TextStyle(color: Colors.white70)),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('dialog.cancel'.tr(), style: const TextStyle(color: Colors.white70)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('reactivation.recover_account'.tr(), style: const TextStyle(color: Colors.cyanAccent)),
+          ),
+        ],
+      ),
+    ).then((bool? goToReactivation) {
+      if (goToReactivation == true && mounted) {
+        context.push('/reactivation');
+      }
+    });
+  }
 
   void _validateInput(String value) {
     setState(() {
@@ -57,22 +102,52 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         context.push('/otp-verification', extra: args);
       }
     } catch (e) {
-      final String message = resolveLocalizedMessage(e.toString(), context: context);
-      showDialog(
-        context: context,
-        builder: (BuildContext ctx) => AlertDialog(
-          backgroundColor: const Color(0xFF1A1A1A),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Text('dialog.error_title'.tr(), style: const TextStyle(color: Colors.white)),
-          content: Text(message, style: const TextStyle(color: Colors.white70)),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text('dialog.ok'.tr(), style: const TextStyle(color: Colors.cyanAccent)),
+      final String rawMessage = e.toString();
+      final String message = resolveLocalizedMessage(rawMessage, context: context);
+      
+      // Check if the error indicates a deactivated account
+      if (rawMessage.contains('account.deactivated')) {
+        if (mounted) {
+          final bool? goToReactivation = await showDialog<bool>(
+            context: context,
+            builder: (BuildContext ctx) => AlertDialog(
+              backgroundColor: const Color(0xFF1A1A1A),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Text('account.deactivated_title'.tr(), style: const TextStyle(color: Colors.white)),
+              content: Text('account.deactivated_message'.tr(), style: const TextStyle(color: Colors.white70)),
+              actions: <Widget>[
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: Text('dialog.cancel'.tr(), style: const TextStyle(color: Colors.white70)),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: Text('reactivation.recover_account'.tr(), style: const TextStyle(color: Colors.cyanAccent)),
+                ),
+              ],
             ),
-          ],
-        ),
-      );
+          );
+          if (goToReactivation == true && mounted) {
+            context.push('/reactivation');
+          }
+        }
+      } else {
+        showDialog(
+          context: context,
+          builder: (BuildContext ctx) => AlertDialog(
+            backgroundColor: const Color(0xFF1A1A1A),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Text('dialog.error_title'.tr(), style: const TextStyle(color: Colors.white)),
+            content: Text(message, style: const TextStyle(color: Colors.white70)),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text('dialog.ok'.tr(), style: const TextStyle(color: Colors.cyanAccent)),
+              ),
+            ],
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
