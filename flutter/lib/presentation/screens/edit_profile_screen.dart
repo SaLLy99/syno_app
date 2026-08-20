@@ -550,26 +550,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   // --- ASTROLOGY SYSTEM ---
                   Text("Astrology System", style: TextStyle(fontSize: 16, color: theme.primaryTextColor.withOpacity(0.7))),
                   const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildAstrologySystemChip(
-                          system: AstrologySystem.western,
-                          icon: '♈',
-                          label: 'Western (Tropical)',
-                          theme: theme,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _buildAstrologySystemChip(
-                          system: AstrologySystem.eastern,
-                          icon: '🕉',
-                          label: 'Eastern (Sidereal)',
-                          theme: theme,
-                        ),
-                      ),
-                    ],
+                  _buildAstrologySystemChip(
+                    system: AstrologySystem.western,
+                    icon: '♈',
+                    label: 'Western (Tropical)',
+                    theme: theme,
                   ),
                   const SizedBox(height: 20),
 
@@ -597,30 +582,130 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  Row(
-                    children: <Widget>[
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          value: _sexes.any((s) => s['id'].toString() == _selectedSexId) ? _selectedSexId : null,
-                          style: TextStyle(color: theme.primaryTextColor),
-                          dropdownColor: Theme.of(context).cardColor,
-                          decoration: _getInputDecoration('profile.sex'.tr(), Icons.transgender, theme.primaryTextColor),
-                          items: _sexes.map((s) => DropdownMenuItem(value: s['id'].toString(), child: Text((s['translation_key']?.toString().isNotEmpty == true && (s['translation_key'] as String).tr() != s['translation_key']) ? (s['translation_key'] as String).tr() : s['name'].toString()))).toList(),
-                          onChanged: (String? val) => setState(() => _selectedSexId = val),
+                  // --- SEX ---
+                  Text('profile.sex'.tr(), style: TextStyle(fontSize: 16, color: theme.primaryTextColor.withOpacity(0.7))),
+                  const SizedBox(height: 8),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: EdgeInsets.zero,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      childAspectRatio: 1.0,
+                      crossAxisSpacing: 8,
+                      mainAxisSpacing: 8,
+                    ),
+                    itemCount: _sexes.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      final sex = _sexes[index];
+                      final bool isSelected = _selectedSexId == sex['id'].toString();
+                      final String name = sex['name'].toString();
+                      final String? emoji = _lookupEmoji(name, _sexEmojiMap);
+                      return GestureDetector(
+                        onTap: () => setState(() => _selectedSexId = sex['id'].toString()),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? CosmicColors.cosmicPink.withOpacity(0.2)
+                                : Colors.white.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSelected
+                                  ? CosmicColors.cosmicPink
+                                  : Colors.white.withOpacity(0.15),
+                              width: isSelected ? 2 : 1,
+                            ),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (emoji != null) Text(emoji, style: const TextStyle(fontSize: 22)),
+                              const SizedBox(height: 4),
+                              Text(
+                                (sex['translation_key']?.toString().isNotEmpty == true &&
+                                    (sex['translation_key'] as String).tr() != sex['translation_key'])
+                                    ? (sex['translation_key'] as String).tr()
+                                    : name,
+                                style: TextStyle(
+                                  color: isSelected ? Colors.white : Colors.white70,
+                                  fontSize: 11,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          value: _orientations.any((o) => o['id'].toString() == _selectedOrientationId) ? _selectedOrientationId : null,
-                          style: TextStyle(color: theme.primaryTextColor),
-                          dropdownColor: Theme.of(context).cardColor,
-                          decoration: _getInputDecoration('profile.orientation'.tr(), Icons.explore_outlined, theme.primaryTextColor),
-                          items: _orientations.map((o) => DropdownMenuItem(value: o['id'].toString(), child: Text((o['translation_key']?.toString().isNotEmpty == true && (o['translation_key'] as String).tr() != o['translation_key']) ? (o['translation_key'] as String).tr() : o['name'].toString()))).toList(),
-                          onChanged: (String? val) => setState(() => _selectedOrientationId = val),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 20),
+
+                  // --- ORIENTATION ---
+                  Text('profile.orientation'.tr(), style: TextStyle(fontSize: 16, color: theme.primaryTextColor.withOpacity(0.7))),
+                  const SizedBox(height: 8),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: EdgeInsets.zero,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 2.2,
+                      crossAxisSpacing: 8,
+                      mainAxisSpacing: 8,
+                    ),
+                    itemCount: _orientations.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      final orientation = _orientations[index];
+                      final bool isSelected = _selectedOrientationId == orientation['id'].toString();
+                      final String name = orientation['name'].toString();
+                      final String? emoji = _lookupEmoji(name, _orientationEmojiMap);
+                      return GestureDetector(
+                        onTap: () => setState(() => _selectedOrientationId = orientation['id'].toString()),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? CosmicColors.cosmicPink.withOpacity(0.2)
+                                : Colors.white.withOpacity(0.05),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: isSelected
+                                  ? CosmicColors.cosmicPink
+                                  : Colors.white.withOpacity(0.15),
+                              width: isSelected ? 2 : 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if (emoji != null) ...[
+                                Text(emoji, style: const TextStyle(fontSize: 16)),
+                                const SizedBox(width: 6),
+                              ],
+                              Flexible(
+                                child: Text(
+                                  (orientation['translation_key']?.toString().isNotEmpty == true &&
+                                      (orientation['translation_key'] as String).tr() != orientation['translation_key'])
+                                      ? (orientation['translation_key'] as String).tr()
+                                      : name,
+                                  style: TextStyle(
+                                    color: isSelected ? Colors.white : Colors.white70,
+                                    fontSize: 12,
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      );
+                    },
                   ),
                   const SizedBox(height: 30),
 
@@ -728,5 +813,74 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
         ),
       ),
     );
+  }
+
+  static const Map<String, String> _sexEmojiMap = {
+    'Male': '👨',
+    'Female': '👩',
+    'Non-binary': '🧑',
+    'Transgender Male': '🧑‍🦱',
+    'Transgender Female': '🧑‍🦰',
+    'Transsexual': '⚧️',
+    'Transfeminine': '💗',
+    'Transmasculine': '💙',
+    'Third Gender': '3️⃣',
+    'Androgyne': '🔮',
+    'Neutrois': '👻',
+    'Demiboy': '👦',
+    'Demigirl': '👧',
+    'Genderqueer': '🌈',
+    'Genderfluid': '🌊',
+    'Agender': '⭕',
+    'Bigender': '🔮',
+    'Pangender': '✨',
+    'Maverique': '🌟',
+    'Xenogender': '🪐',
+    'Two-Spirit': '🪶',
+    'Intersex': '⚪',
+    'Gender Non-conforming': '🌈',
+    'Questioning': '❓',
+    'Other': '📝',
+  };
+
+  static const Map<String, String> _orientationEmojiMap = {
+    'Straight': '💑',
+    'Gay': '👨‍❤️‍👨',
+    'Lesbian': '👩‍❤️‍👩',
+    'Bisexual': '💛💜',
+    'Pansexual': '💗💛💙',
+    'Asexual': '🖤',
+    'Demisexual': '🔺',
+    'Queer': '🌈',
+    'Questioning': '❓',
+    'Polysexual': '💗💜',
+    'Omnisexual': '💗💛💙',
+    'Graysexual': '🩶',
+    'Grayromantic': '🩶',
+    'Polyamorous': '💕',
+    'Heteroflexible': '💗',
+    'Homoflexible': '🏳️‍🌈',
+    'Androsexual': '💙',
+    'Gynesexual': '💗',
+    'Skoliosexual': '🌈',
+    'Aroace': '🤍',
+    'Aceflux': '🩶',
+    'Aromantic': '🤍',
+    'Demiromantic': '💗',
+    'Abrosexual': '🌈',
+    'Reciprosexual': '💗',
+    'Cupiosexual': '💜',
+    'Fraysexual': '💙',
+    'Lithromantic': '🖤',
+    'Quoiromantic': '❓',
+    'Sapphic': '👩‍❤️‍👩',
+    'Achillean': '👨‍❤️‍👨',
+    'Uranic': '💜',
+    'Ceterosexual': '🌈',
+    'Other': '📝',
+  };
+
+  String? _lookupEmoji(String name, Map<String, String> map) {
+    return map[name];
   }
 }               

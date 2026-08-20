@@ -12,6 +12,7 @@ import 'package:syno_app/presentation/providers/user_provider.dart';
 import 'package:syno_app/presentation/widgets/app_dialogs.dart'; 
 import 'package:syno_app/theme.dart';
 import 'package:syno_app/presentation/utils/error_localization.dart';
+import 'package:syno_app/presentation/utils/emoji_mappings.dart';
 import 'package:syno_app/presentation/providers/theme_provider.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -274,7 +275,10 @@ class ProfileScreen extends ConsumerWidget {
           : Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: user.coreValues.map((CoreValue item) => _TagChip(label: item.translationKey.tr(), textColor: theme.primaryTextColor)).toList(),
+              children: user.coreValues.map((CoreValue item) {
+                final String? emoji = EmojiMappings.lookup(item.translationKey, EmojiMappings.coreValues);
+                return _TagChip(label: item.translationKey.tr(), emoji: emoji, textColor: theme.primaryTextColor);
+              }).toList(),
             ),
     );
   }
@@ -292,7 +296,8 @@ class ProfileScreen extends ConsumerWidget {
                 final String label = h.translationKey.isNotEmpty && h.translationKey.tr() != h.translationKey
                     ? h.translationKey.tr()
                     : h.name;
-                return _TagChip(label: label, textColor: theme.primaryTextColor);
+                final String? emoji = EmojiMappings.lookup(h.translationKey, EmojiMappings.hobbies);
+                return _TagChip(label: label, emoji: emoji, textColor: theme.primaryTextColor);
               }).toList(),
             ),
     );
@@ -519,7 +524,8 @@ class _SectionWrapper extends StatelessWidget {
 class _TagChip extends StatelessWidget {
   final String label;
   final Color? textColor;
-  const _TagChip({required this.label, this.textColor});
+  final String? emoji;
+  const _TagChip({required this.label, this.textColor, this.emoji});
 
   @override
   Widget build(BuildContext context) {
@@ -530,7 +536,16 @@ class _TagChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: (textColor ?? Colors.white).withOpacity(0.2)),
       ),
-      child: Text(label, style: TextStyle(color: textColor ?? Colors.white, fontWeight: FontWeight.w500)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (emoji != null) ...[
+            Text(emoji!, style: const TextStyle(fontSize: 14)),
+            const SizedBox(width: 4),
+          ],
+          Text(label, style: TextStyle(color: textColor ?? Colors.white, fontWeight: FontWeight.w500)),
+        ],
+      ),
     );
   }
 }

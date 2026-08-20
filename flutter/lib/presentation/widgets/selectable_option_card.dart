@@ -6,6 +6,7 @@ class SelectableOptionCard extends StatelessWidget {
   final bool selected;
   final VoidCallback? onTap;
   final String? subtitle;
+  final String? emoji;
 
   const SelectableOptionCard({
     super.key,
@@ -13,12 +14,13 @@ class SelectableOptionCard extends StatelessWidget {
     this.selected = false,
     this.onTap,
     this.subtitle,
+    this.emoji,
   });
 
   @override
   Widget build(BuildContext context) {
     return AnimatedScale(
-      scale: selected ? 1.05 : 1.0,
+      scale: selected ? 1.03 : 1.0,
       duration: const Duration(milliseconds: 180),
       curve: Curves.easeOut,
       child: AnimatedContainer(
@@ -46,30 +48,52 @@ class SelectableOptionCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(16),
             onTap: onTap,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    label,
-                    style: TextStyle(
-                      color: selected ? Colors.white : Colors.white70,
-                      fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                      fontSize: 15,
+              padding: emoji != null
+                  ? const EdgeInsets.symmetric(horizontal: 12, vertical: 14)
+                  : const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+              child: emoji != null
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        Text(emoji!, style: const TextStyle(fontSize: 20)),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            label,
+                            style: TextStyle(
+                              color: selected ? Colors.white : Colors.white70,
+                              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                              fontSize: 14,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          label,
+                          style: TextStyle(
+                            color: selected ? Colors.white : Colors.white70,
+                            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                            fontSize: 15,
+                          ),
+                        ),
+                        if (subtitle != null) ...<Widget>[
+                          const SizedBox(height: 8),
+                          Text(
+                            subtitle!,
+                            style: TextStyle(
+                              color: selected ? Colors.white70 : Colors.white54,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
-                  ),
-                  if (subtitle != null) ...<Widget>[
-                    const SizedBox(height: 8),
-                    Text(
-                      subtitle!,
-                      style: TextStyle(
-                        color: selected ? Colors.white70 : Colors.white54,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
             ),
           ),
         ),
