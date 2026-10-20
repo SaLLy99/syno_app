@@ -6,20 +6,19 @@ class NatalChartCalculator {
   NatalChart calculate(DateTime birthDate, String? birthTime, {AstrologySystem system = AstrologySystem.western}) {
     final double julianDay = _toJulianDay(birthDate);
     final double centuries = (julianDay - 2451545.0) / 36525.0;
-    final double ayanamsa = system == AstrologySystem.eastern ? _lahiriAyanamsa(birthDate) : 0.0;
 
     final Map<String, double> positions = {};
 
-    positions['Sun'] = _applyAyanamsa(_calculateSun(centuries), ayanamsa);
-    positions['Moon'] = _applyAyanamsa(_calculateMoon(centuries, birthDate), ayanamsa);
-    positions['Mercury'] = _applyAyanamsa(_calculateMercury(centuries), ayanamsa);
-    positions['Venus'] = _applyAyanamsa(_calculateVenus(centuries), ayanamsa);
-    positions['Mars'] = _applyAyanamsa(_calculateMars(centuries), ayanamsa);
-    positions['Jupiter'] = _applyAyanamsa(_calculateJupiter(centuries), ayanamsa);
-    positions['Saturn'] = _applyAyanamsa(_calculateSaturn(centuries), ayanamsa);
-    positions['Uranus'] = _applyAyanamsa(_calculateUranus(centuries), ayanamsa);
-    positions['Neptune'] = _applyAyanamsa(_calculateNeptune(centuries), ayanamsa);
-    positions['Pluto'] = _applyAyanamsa(_calculatePluto(centuries), ayanamsa);
+    positions['Sun'] = _calculateSun(centuries);
+    positions['Moon'] = _calculateMoon(centuries, birthDate);
+    positions['Mercury'] = _calculateMercury(centuries);
+    positions['Venus'] = _calculateVenus(centuries);
+    positions['Mars'] = _calculateMars(centuries);
+    positions['Jupiter'] = _calculateJupiter(centuries);
+    positions['Saturn'] = _calculateSaturn(centuries);
+    positions['Uranus'] = _calculateUranus(centuries);
+    positions['Neptune'] = _calculateNeptune(centuries);
+    positions['Pluto'] = _calculatePluto(centuries);
 
     Map<String, double>? houses;
     double? ascendantDeg;
@@ -27,8 +26,8 @@ class NatalChartCalculator {
 
     if (birthTime != null && birthTime.isNotEmpty) {
       final double houseOffset = _calculateHouseOffset(birthTime);
-      ascendantDeg = _applyAyanamsa(_calculateAscendantDegree(centuries, houseOffset), ayanamsa);
-      midheavenDeg = _applyAyanamsa(_calculateMidheavenDegree(centuries, houseOffset), ayanamsa);
+      ascendantDeg = _calculateAscendantDegree(centuries, houseOffset);
+      midheavenDeg = _calculateMidheavenDegree(centuries, houseOffset);
       positions['Ascendant'] = ascendantDeg;
       positions['Midheaven'] = midheavenDeg;
 
@@ -214,18 +213,4 @@ class NatalChartCalculator {
   }
 
   double _toRadians(double degrees) => degrees * pi / 180.0;
-
-  double _lahiriAyanamsa(DateTime birthDate) {
-    final double year = birthDate.year + (birthDate.month - 1) / 12.0 + birthDate.day / 365.25;
-    final double baseAyanamsa = 23.85313;
-    final double rate = 0.013969;
-    return baseAyanamsa + rate * (year - 2000.0);
-  }
-
-  double _applyAyanamsa(double tropicalDegree, double ayanamsa) {
-    double sidereal = tropicalDegree - ayanamsa;
-    sidereal = sidereal % 360;
-    if (sidereal < 0) sidereal += 360;
-    return sidereal;
-  }
 }

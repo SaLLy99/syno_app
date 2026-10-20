@@ -6,7 +6,6 @@ from pydantic import BaseModel, Field
 
 class AstrologySystem(str, Enum):
     WESTERN_TROPICAL = "western_tropical"
-    VEDIC_SIDEREAL = "vedic_sidereal"
 
 
 class ZodiacSign(str, Enum):
@@ -35,8 +34,6 @@ class PlanetName(str, Enum):
     URANUS = "Uranus"
     NEPTUNE = "Neptune"
     PLUTO = "Pluto"
-    RAHU = "Rahu"
-    KETU = "Ketu"
     ASCENDANT = "Ascendant"
 
 
@@ -49,36 +46,6 @@ class AspectType(str, Enum):
     QUINCUNX = "quincunx"
     SEMI_SEXTILE = "semi_sextile"
     SEMI_SQUARE = "semi_square"
-
-
-class Nakshatra(str, Enum):
-    ASHWINI = "Ashwini"
-    BHARANI = "Bharani"
-    KRITTIKA = "Krittika"
-    ROHINI = "Rohini"
-    MRIGASHIRA = "Mrigashira"
-    ARDRA = "Ardra"
-    PUNARVASU = "Punarvasu"
-    PUSHYA = "Pushya"
-    ASHLESHA = "Ashlesha"
-    MAGHA = "Magha"
-    PURVA_PHALGUNI = "Purva Phalguni"
-    UTTARA_PHALGUNI = "Uttara Phalguni"
-    HASTA = "Hasta"
-    CHITRA = "Chitra"
-    SWATI = "Swati"
-    VISHAKHA = "Vishakha"
-    ANURADHA = "Anuradha"
-    JYESHTHA = "Jyeshta"
-    MULA = "Mula"
-    PURVA_ASHADHA = "Purva Ashadha"
-    UTTARA_ASHADHA = "Uttara Ashadha"
-    SHRAVANA = "Shravana"
-    DHANISHTA = "Dhanishta"
-    SHATABHISHA = "Shatabhisha"
-    PURVA_BHADRA = "Purva Bhadra"
-    UTTARA_BHADRA = "Uttara Bhadra"
-    REVATI = "Revati"
 
 
 class BirthData(BaseModel):
@@ -124,27 +91,6 @@ class WesternChart(BaseModel):
     mc: Optional[PlanetPosition] = None
 
 
-class VedicPlanetPosition(BaseModel):
-    planet: PlanetName
-    sign: ZodiacSign
-    degree: float = Field(ge=0, le=30)
-    absolute_degree: float = Field(ge=0, le=360)
-    house: Optional[int] = Field(None, ge=1, le=12)
-    retrograde: bool = False
-    nakshatra: Optional[Nakshatra] = None
-    pada: Optional[int] = Field(None, ge=1, le=4)
-    sign_degree: str = ""
-
-
-class VedicChart(BaseModel):
-    system: AstrologySystem = AstrologySystem.VEDIC_SIDEREAL
-    ayanamsa: str = "Lahiri"
-    planets: List[VedicPlanetPosition] = []
-    ascendant: Optional[VedicPlanetPosition] = None
-    moon_sign: Optional[ZodiacSign] = None
-    sun_sign: Optional[ZodiacSign] = None
-
-
 class PlanetToPlanetAspect(BaseModel):
     planet_a: PlanetName
     planet_b: PlanetName
@@ -176,14 +122,6 @@ class SynastryResult(BaseModel):
     sextiles: List[PlanetToPlanetAspect] = []
 
 
-class VedicCompatibilityResult(BaseModel):
-    person_a_chart: Optional[VedicChart] = None
-    person_b_chart: Optional[VedicChart] = None
-    kuta_score: Optional[int] = None
-    kuta_details: dict = {}
-    summary: Optional[str] = None
-
-
 class CompatibilityDimensions(BaseModel):
     emotional: float = Field(default=50.0, ge=0, le=100)
     communication: float = Field(default=50.0, ge=0, le=100)
@@ -204,3 +142,11 @@ class InterpretationResult(BaseModel):
     values: str = ""
     growth_dynamic: str = ""
     important_aspects: List[dict] = []
+    personality_a: str = ""
+    personality_b: str = ""
+    love_language: str = ""
+    trust_loyalty: str = ""
+    intimacy_text: str = ""
+    conflict_style: str = ""
+    overall_verdict: str = ""
+    coach_tips: List[str] = []

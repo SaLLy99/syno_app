@@ -70,7 +70,7 @@ class _RegisterBirthScreenState extends ConsumerState<RegisterBirthScreen> {
   Widget build(BuildContext context) {
     return OnboardingScaffold(
       title: 'register.natal_chart_title'.tr(),
-      progress: 4 / 9,
+      progress: 5 / 10,
       onContinue: _onContinue,
       child: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 20.0),

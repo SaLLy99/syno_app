@@ -265,6 +265,30 @@ class _ProfilePreviewSheetState extends ConsumerState<ProfilePreviewSheet> {
   }
 
   Widget _buildCompatibility() {
+    final syn = widget.match.synastryData;
+    if (syn == null) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.auto_awesome, color: CosmicColors.cosmicPurple, size: 16),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Open the full profile to calculate your cosmic match.',
+                style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -274,9 +298,9 @@ class _ProfilePreviewSheetState extends ConsumerState<ProfilePreviewSheet> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _compatColumn('Emotional', widget.match.synastryData.emotionalScore, '🌙'),
-          _compatColumn('Communication', widget.match.synastryData.communicationScore, '🧠'),
-          _compatColumn('Romance', widget.match.synastryData.romanceScore, '❤️'),
+          _compatColumn('Emotional', syn.emotionalScore, '🌙'),
+          _compatColumn('Communication', syn.communicationScore, '🧠'),
+          _compatColumn('Romance', syn.romanceScore, '❤️'),
         ],
       ),
     );

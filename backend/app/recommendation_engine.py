@@ -116,17 +116,20 @@ def calculate_intention_alignment(
 def generate_daily_recommendations(
     db: Session,
     current_user: models.SynoUser,
+    mode: str = "dating",
     max_recommendations: int = 10,
 ) -> List[dict]:
     """
     Generate daily top pick recommendations.
     Combines compatibility, profile quality, activity, and mutual interest.
+    Mode-aware: uses mode-specific scoring and filtering.
     """
     today = date.today()
 
     existing_today = db.query(models.Recommendation).filter(
         models.Recommendation.user_id == current_user.id,
         models.Recommendation.recommendation_date == today,
+        models.Recommendation.mode == mode,
     ).all()
 
     if existing_today:
@@ -152,7 +155,8 @@ def generate_daily_recommendations(
 
     swiped_ids = set()
     swiped = db.query(models.Match.matched_user_id).filter(
-        models.Match.user_id == current_user.id
+        models.Match.user_id == current_user.id,
+        models.Match.mode == mode,
     ).all()
     swiped_ids = {r[0] for r in swiped}
 
@@ -201,21 +205,31 @@ def generate_daily_recommendations(
                 if profile.height > preferences.max_height:
                     continue
 
-        compatibility_score, _, cosmic_insight = compute_compatibility_score(current_profile, profile)
-        top_reasons = generate_top_reasons(current_profile, profile, compatibility_score)
+        compatibility_score, _, cosmic_insight = compute_compatibility_score(current_profile, profile, mode=mode)
+        top_reasons = generate_top_reasons(current_profile, profile, compatibility_score, mode=mode)
 
         profile_quality = calculate_profile_quality_score(profile)
         activity_score = calculate_activity_score(db, profile.user_id)
         mutual_interest = calculate_mutual_interest_score(db, current_user.id, profile.user_id)
         intention_alignment = calculate_intention_alignment(current_profile, profile)
 
-        final_score = (
-            compatibility_score * 0.40 +
-            profile_quality * 0.20 +
-            activity_score * 0.15 +
-            mutual_interest * 0.15 +
-            intention_alignment * 0.10
-        )
+        # BFF mode weights: more on shared interests and profile quality
+        if mode == "bff":
+            final_score = (
+                compatibility_score * 0.30 +
+                profile_quality * 0.25 +
+                activity_score * 0.15 +
+                mutual_interest * 0.15 +
+                intention_alignment * 0.15
+            )
+        else:
+            final_score = (
+                compatibility_score * 0.40 +
+                profile_quality * 0.20 +
+                activity_score * 0.15 +
+                mutual_interest * 0.15 +
+                intention_alignment * 0.10
+            )
 
         candidates.append({
             "profile": profile,
@@ -237,6 +251,7 @@ def generate_daily_recommendations(
             reasons=json.dumps(pick["reasons"]),
             cosmic_insight=pick["cosmic_insight"],
             recommendation_date=today,
+            mode=mode,
         )
         db.add(rec)
         recommendations.append(rec)
@@ -268,11 +283,36 @@ def _format_existing_recommendations(
     ).filter(models.Profile.user_id.in_(user_ids)).all()
     profile_map = {p.user_id: p for p in profiles}
 
+    viewer_profiles = {
+        p.user_id: p
+        for p in db.query(models.Profile)
+        .options(
+            joinedload(models.Profile.hobbies),
+            joinedload(models.Profile.core_values),
+            joinedload(models.Profile.intentions),
+        )
+        .filter(models.Profile.user_id.in_({r.user_id for r in recommendations}))
+        .all()
+    }
+
     results = []
     for rec in recommendations:
         profile = profile_map.get(rec.recommended_user_id)
         if not profile:
             continue
+
+        # Displayed % = the natal chart score, the same number every other
+        # screen shows. `score` (pick_score) only orders the daily picks.
+        viewer_profile = viewer_profiles.get(rec.user_id)
+        chart_value = None
+        chart_partial = False
+        if viewer_profile is not None:
+            try:
+                from .matching_engine import compute_chart_score
+
+                chart_value, chart_partial = compute_chart_score(viewer_profile, profile)
+            except Exception:
+                chart_value = None
 
         primary_photo = next(
             (p for p in profile.photos if p.is_primary),
@@ -289,9 +329,13 @@ def _format_existing_recommendations(
             "id": rec.id,
             "recommended_user_id": rec.recommended_user_id,
             "score": rec.score,
+            "pick_score": rec.score,
+            "compatibility_score": round(chart_value) if chart_value is not None else None,
+            "chart_partial": bool(chart_partial),
             "reasons": reasons,
             "cosmic_insight": rec.cosmic_insight or "",
             "recommendation_date": rec.recommendation_date.isoformat(),
+            "mode": rec.mode or "dating",
             "profile": {
                 "id": profile.user_id,
                 "user_id": profile.user_id,

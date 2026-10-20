@@ -6,9 +6,11 @@ import 'package:easy_localization/easy_localization.dart';
 
 // Assuming these paths exist in your project
 import 'package:syno_app/domain/entities/astrology_system.dart';
+import 'package:syno_app/domain/entities/app_mode.dart';
 import 'package:syno_app/domain/entities/user.dart';
 import 'package:syno_app/presentation/providers/auth_providers.dart';
 import 'package:syno_app/presentation/providers/user_provider.dart';
+import 'package:syno_app/presentation/providers/app_mode_provider.dart';
 import 'package:syno_app/presentation/widgets/app_dialogs.dart'; 
 import 'package:syno_app/theme.dart';
 import 'package:syno_app/presentation/utils/error_localization.dart';
@@ -169,6 +171,8 @@ class ProfileScreen extends ConsumerWidget {
                 fontWeight: FontWeight.bold,
               ),
         ),
+        const SizedBox(height: AppSpacing.sm),
+        _buildModeBadge(context, ref),
         if (!isReadOnly) ...<Widget>[
           const SizedBox(height: AppSpacing.md),
           _buildActionButtons(context, user),
@@ -211,6 +215,54 @@ class ProfileScreen extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildModeBadge(BuildContext context, WidgetRef ref) {
+    final currentMode = ref.watch(appModeProvider);
+    final isBff = currentMode == AppMode.bff;
+    
+    return GestureDetector(
+      onTap: () {
+        ref.read(appModeProvider.notifier).switchMode(
+          isBff ? AppMode.dating : AppMode.bff,
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: currentMode.color.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: currentMode.color.withOpacity(0.5),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              currentMode.icon,
+              style: const TextStyle(fontSize: 14),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              'Mode: ${currentMode.label}',
+              style: TextStyle(
+                color: currentMode.color,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.swap_horiz,
+              color: currentMode.color.withOpacity(0.7),
+              size: 16,
+            ),
+          ],
+        ),
       ),
     );
   }

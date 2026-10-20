@@ -13,20 +13,14 @@ def create_astrology_provider(
     """Factory function to create astrology providers.
 
     Args:
-        provider_type: "swisseph" for Western, "vedastro" for Vedic, "combined" for both
-        api_key: VedAstro API key (required for vedastro provider)
+        provider_type: "swisseph" for Western astrology
+        api_key: Not used (kept for API compatibility)
 
     Returns:
         An AstrologyProvider instance
     """
-    if provider_type == "vedastro":
-        from .vedastro import VedAstroProvider
-        return VedAstroProvider(api_key=api_key or "FreeAPIUser")
-    elif provider_type == "swisseph":
+    if provider_type == "swisseph":
         from .western import SwissEphProvider
         return SwissEphProvider()
-    elif provider_type == "combined":
-        from .composite import CompositeProvider
-        return CompositeProvider(api_key=api_key)
     else:
         raise ValueError(f"Unknown provider type: {provider_type}")

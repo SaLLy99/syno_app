@@ -9,6 +9,7 @@ import 'package:syno_app/domain/entities/astrology_system.dart';
 import 'package:syno_app/presentation/providers/auth_providers.dart';
 import 'package:syno_app/presentation/providers/user_provider.dart';
 import 'package:syno_app/presentation/providers/theme_provider.dart';
+import 'package:syno_app/presentation/widgets/score_breakdown.dart';
 import 'package:syno_app/presentation/widgets/zodiac_wheel_widget.dart';
 import 'package:syno_app/theme.dart';
 
@@ -24,33 +25,60 @@ class SynastryReportScreen extends ConsumerStatefulWidget {
 class _SynastryReportScreenState extends ConsumerState<SynastryReportScreen> {
   NatalChart? _chart1;
   NatalChart? _chart2;
+  SynastryData? _loadedSynastry;
   bool _loading = true;
+  String? _error;
+
+  SynastryData get _effectiveSynastry => _loadedSynastry ?? widget.match.synastryDataOrEmpty;
 
   @override
   void initState() {
     super.initState();
-    _loadCharts();
+    _loadData();
   }
 
-  Future<void> _loadCharts() async {
+  Future<void> _loadData() async {
     final currentUser = ref.read(currentUserProvider).value;
-    if (currentUser?.birthDate == null || widget.match.matchedUser.birthDate == null) {
-      setState(() => _loading = false);
-      return;
-    }
 
     final backendUrl = ref.read(backendUrlProvider);
     final apiService = AstrologyApiService(backendUrl);
-    final c1 = await apiService.getChart(currentUser!);
-    final c2 = await apiService.getChart(widget.match.matchedUser);
 
-    if (mounted) {
-      setState(() {
-        _chart1 = c1;
-        _chart2 = c2;
-        _loading = false;
-      });
+    debugPrint('[SynastryReport] _loadData: currentUser=${currentUser?.name}, matchedUser=${widget.match.matchedUser.name}');
+
+    if (currentUser?.birthDate == null || widget.match.matchedUser.birthDate == null) {
+      debugPrint('[SynastryReport] _loadData: missing birth data');
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = 'missing_birth_data';
+        });
+      }
+      return;
     }
+
+    try {
+      debugPrint('[SynastryReport] _loadData: fetching charts + synastry from API...');
+      final c1 = await apiService.getChart(currentUser!);
+      final c2 = await apiService.getChart(widget.match.matchedUser);
+      if (mounted) setState(() { _chart1 = c1; _chart2 = c2; });
+
+      final synastry = await apiService.getSynastry(currentUser, widget.match.matchedUser);
+      debugPrint('[SynastryReport] _loadData: synastry=${synastry != null ? 'loaded (overall=${synastry.overallScore}, aiUsed=${synastry.aiUsed})' : 'null'}');
+      if (mounted) {
+        if (synastry != null) {
+          setState(() => _loadedSynastry = synastry);
+        } else if (widget.match.synastryData == null) {
+          setState(() => _error = 'load_error');
+        }
+      }
+    } catch (e) {
+      debugPrint('[SynastryReport] Error loading data: $e');
+      if (mounted && widget.match.synastryData == null) {
+        setState(() => _error = 'load_error');
+      }
+    }
+
+    if (mounted) setState(() => _loading = false);
   }
 
   @override
@@ -62,49 +90,44 @@ class _SynastryReportScreenState extends ConsumerState<SynastryReportScreen> {
       extendBodyBehindAppBar: true,
       body: Container(
         decoration: BoxDecoration(gradient: theme.gradient),
-        child: CustomScrollView(
-          slivers: <Widget>[
-            SliverAppBar(
-              pinned: true,
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              leading: IconButton(
-                icon: Icon(Icons.arrow_back, color: theme.primaryTextColor),
-                onPressed: () => context.pop(),
-              ),
-              title: Text(
-                'Full Synastry Report',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: theme.primaryTextColor,
-                  fontWeight: FontWeight.bold,
-                ),
+        child: SafeArea(
+          child: _loading
+              ? _buildLoadingState()
+              : _error == 'missing_birth_data'
+                  ? _buildMissingBirthDataState()
+                  : _error != null
+                      ? _buildErrorState()
+                      : _buildBody(context, system),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 60, height: 60,
+              child: CircularProgressIndicator(
+                strokeWidth: 3,
+                valueColor: AlwaysStoppedAnimation<Color>(CosmicColors.cosmicPurple),
               ),
             ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: AppSpacing.paddingLg,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    _buildHeader(context),
-                    const SizedBox(height: AppSpacing.xl),
-                    _buildWhyWeMatched(context),
-                    const SizedBox(height: AppSpacing.xl),
-                    if (_chart1 != null && _chart2 != null) ...[
-                      _buildDualChart(context, _chart1!, _chart2!, system),
-                      const SizedBox(height: AppSpacing.xl),
-                    ],
-                    _buildOverallInterpretation(context),
-                    const SizedBox(height: AppSpacing.xl),
-                    if (_chart1 != null && _chart2 != null) ...[
-                      _buildPlanetComparison(context, _chart1!, _chart2!),
-                      const SizedBox(height: AppSpacing.xl),
-                    ],
-                    _buildDetailedAspects(context),
-                    const SizedBox(height: AppSpacing.xl),
-                  ],
-                ),
-              ),
+            const SizedBox(height: 20),
+            Text(
+              'Writing your full match report...',
+              style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 16, fontWeight: FontWeight.w500),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Analyzing planetary alignments between you two',
+              style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 13),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -112,7 +135,125 @@ class _SynastryReportScreenState extends ConsumerState<SynastryReportScreen> {
     );
   }
 
+  Widget _buildMissingBirthDataState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.cake_outlined, color: Colors.white.withOpacity(0.5), size: 48),
+            const SizedBox(height: 16),
+            Text('Need Both Birthdays', style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 16, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            Text(
+              'We need both your birthdays to write this report.',
+              style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, color: Colors.white.withOpacity(0.5), size: 48),
+            const SizedBox(height: 16),
+            Text('Something went wrong', style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 16, fontWeight: FontWeight.w500)),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: CosmicColors.cosmicPurple, foregroundColor: Colors.white),
+              onPressed: () { setState(() { _loading = true; _error = null; }); _loadData(); },
+              child: const Text('Try Again'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBody(BuildContext context, AstrologySystem system) {
+    final AppThemeData theme = ref.watch(themeProvider);
+    return CustomScrollView(
+      slivers: <Widget>[
+        SliverAppBar(
+          pinned: true,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: theme.primaryTextColor),
+            onPressed: () => context.pop(),
+          ),
+          title: Text(
+            'Full Match Report',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: theme.primaryTextColor,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: AppSpacing.paddingLg,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                _buildHeader(context),
+                const SizedBox(height: AppSpacing.xl),
+                _buildWhyWeMatched(context),
+                const SizedBox(height: AppSpacing.xl),
+                if (_effectiveSynastry.topAspects.isNotEmpty) ...[
+                  TopAspectsCard(aspects: _effectiveSynastry.topAspects),
+                  const SizedBox(height: AppSpacing.xl),
+                ],
+                if (_chart1 != null && _chart2 != null) ...[
+                  _buildDualChart(context, _chart1!, _chart2!, system),
+                  const SizedBox(height: AppSpacing.xl),
+                ],
+                _buildOverallInterpretation(context),
+                const SizedBox(height: AppSpacing.xl),
+                if (_chart1 != null && _chart2 != null) ...[
+                  _buildPlanetComparison(context, _chart1!, _chart2!),
+                  const SizedBox(height: AppSpacing.xl),
+                ],
+                _buildDetailedAspects(context),
+                const SizedBox(height: AppSpacing.xl),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildHeader(BuildContext context) {
+    final SynastryData data = _effectiveSynastry;
+    // Canonical match score first so every screen shows the same %.
+    final double matchScore = widget.match.finalScore;
+    final double score = matchScore > 0
+        ? matchScore
+        : data.primaryScore(fallback: widget.match.synastryScore);
+    final List<Map<String, dynamic>> scoreParts = widget.match.scoreParts.isNotEmpty
+        ? widget.match.scoreParts
+        : <Map<String, dynamic>>[
+            <String, dynamic>{
+              'key': 'chart',
+              'value': widget.match.synastryScore.round(),
+              'partial': widget.match.chartPartial,
+            },
+            <String, dynamic>{
+              'key': 'behavior',
+              'value': widget.match.behavioralScore?.round(),
+              'partial': false,
+            },
+          ];
     return Container(
       padding: AppSpacing.paddingLg,
       decoration: BoxDecoration(
@@ -145,12 +286,27 @@ class _SynastryReportScreenState extends ConsumerState<SynastryReportScreen> {
           ),
           const SizedBox(height: AppSpacing.md),
           Text(
-            'Overall Score: ${widget.match.synastryScore.toStringAsFixed(0)}%',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            '${score.toStringAsFixed(0)}%',
+            style: Theme.of(context).textTheme.displaySmall?.copyWith(
               color: Colors.white,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.bold,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Overall Compatibility',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Colors.white.withOpacity(0.7),
+              letterSpacing: 1.2,
             ),
           ),
+          const SizedBox(height: AppSpacing.sm),
+          ScoreBandLabel(score: score),
+          if (scoreParts.isNotEmpty) ...[
+            const SizedBox(height: AppSpacing.md),
+            ScorePartsRow(parts: scoreParts),
+          ],
         ],
       ),
     );
@@ -211,7 +367,7 @@ class _SynastryReportScreenState extends ConsumerState<SynastryReportScreen> {
   }
 
   Widget _buildWhyWeMatched(BuildContext context) {
-    final List<Aspect> topAspects = List<Aspect>.from(widget.match.synastryData.detailedAspects)
+    final List<Aspect> topAspects = List<Aspect>.from(_effectiveSynastry.detailedAspects)
       ..sort((a, b) => b.score.compareTo(a.score));
     final List<Aspect> bestAspects = topAspects.where((a) => a.isHarmonious).take(5).toList();
     if (bestAspects.isEmpty) return const SizedBox.shrink();
@@ -307,16 +463,10 @@ class _SynastryReportScreenState extends ConsumerState<SynastryReportScreen> {
       'Overall Interpretation',
       Icons.auto_stories,
       CosmicColors.cosmicPurple,
-      Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.06),
-          borderRadius: BorderRadius.circular(AppRadius.md),
-        ),
-        child: Text(
-          widget.match.synastryData.interpretation,
-          style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 14, height: 1.6),
-        ),
+      _ExpandableText(
+        text: _effectiveSynastry.interpretation,
+        style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 14, height: 1.6),
+        accentColor: CosmicColors.cosmicPurple,
       ),
     );
   }
@@ -417,7 +567,7 @@ class _SynastryReportScreenState extends ConsumerState<SynastryReportScreen> {
       Icons.psychology,
       CosmicColors.sunsetOrange,
       Column(
-        children: widget.match.synastryData.detailedAspects.map((Aspect aspect) {
+        children: _effectiveSynastry.detailedAspects.map((Aspect aspect) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: Container(
@@ -546,5 +696,55 @@ class _SynastryReportScreenState extends ConsumerState<SynastryReportScreen> {
     if (score >= 65) return CosmicColors.cosmicPink;
     if (score >= 50) return CosmicColors.cosmicBlue;
     return Colors.grey;
+  }
+}
+
+class _ExpandableText extends StatefulWidget {
+  final String text;
+  final TextStyle? style;
+  final Color accentColor;
+  final int previewMax;
+
+  const _ExpandableText({
+    required this.text,
+    this.style,
+    this.accentColor = CosmicColors.cosmicPurple,
+    this.previewMax = 220,
+  });
+
+  @override
+  State<_ExpandableText> createState() => _ExpandableTextState();
+}
+
+class _ExpandableTextState extends State<_ExpandableText> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool longText = widget.text.length > widget.previewMax;
+    final String body = longText && !_expanded
+        ? '${widget.text.substring(0, widget.previewMax).trimRight()}…'
+        : widget.text;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(body, style: widget.style),
+        if (longText) ...[
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: () => setState(() => _expanded = !_expanded),
+            child: Text(
+              _expanded ? 'Show less' : 'Read more',
+              style: TextStyle(
+                color: widget.accentColor,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
   }
 }

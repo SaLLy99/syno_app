@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
 import 'package:syno_app/domain/entities/match.dart';
-import 'package:syno_app/domain/entities/synastry_data.dart';
+
 import 'package:syno_app/domain/entities/user.dart';
 import 'package:syno_app/presentation/providers/auth_providers.dart';
 import 'package:syno_app/presentation/providers/recommendation_provider.dart';
@@ -229,7 +229,7 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
               Positioned(
                 top: 16,
                 right: 16,
-                child: _buildScoreBadge(rec.score),
+                child: _buildScoreBadge(rec.compatibilityScore ?? rec.score),
               ),
               Positioned(
                 bottom: 0,
@@ -441,20 +441,11 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
                 userId: '',
                 matchedUserId: profile.userId.toString(),
                 matchedUser: profile,
-                finalScore: currentRec.score.toDouble(),
-                synastryScore: currentRec.score.toDouble(),
-                behavioralScore: 50.0,
+                finalScore: (currentRec.compatibilityScore ?? currentRec.score).toDouble(),
+                synastryScore: (currentRec.compatibilityScore ?? currentRec.score).toDouble(),
+                behavioralScore: null,
                 topReasons: currentRec.reasons,
                 cosmicInsight: currentRec.cosmicInsight,
-                synastryData: SynastryData(
-                  moonScore: currentRec.score.toDouble(),
-                  mercuryScore: currentRec.score.toDouble(),
-                  venusMarsScore: currentRec.score.toDouble(),
-                  nodesScore: currentRec.score.toDouble(),
-                  saturnScore: currentRec.score.toDouble(),
-                  detailedAspects: [],
-                  interpretation: currentRec.cosmicInsight,
-                ),
                 status: MatchStatus.pending,
                 createdAt: DateTime.now(),
               );
@@ -478,20 +469,11 @@ class _RecommendationsScreenState extends ConsumerState<RecommendationsScreen> {
                 userId: '',
                 matchedUserId: profile.userId.toString(),
                 matchedUser: profile,
-                finalScore: currentRec.score.toDouble(),
-                synastryScore: currentRec.score.toDouble(),
-                behavioralScore: 50.0,
+                finalScore: (currentRec.compatibilityScore ?? currentRec.score).toDouble(),
+                synastryScore: (currentRec.compatibilityScore ?? currentRec.score).toDouble(),
+                behavioralScore: null,
                 topReasons: currentRec.reasons,
                 cosmicInsight: currentRec.cosmicInsight,
-                synastryData: SynastryData(
-                  moonScore: currentRec.score.toDouble(),
-                  mercuryScore: currentRec.score.toDouble(),
-                  venusMarsScore: currentRec.score.toDouble(),
-                  nodesScore: currentRec.score.toDouble(),
-                  saturnScore: currentRec.score.toDouble(),
-                  detailedAspects: [],
-                  interpretation: currentRec.cosmicInsight,
-                ),
                 status: MatchStatus.pending,
                 createdAt: DateTime.now(),
               );

@@ -5,7 +5,6 @@ from datetime import date, time
 from ..domain.models import (
     BirthData,
     WesternChart,
-    VedicChart,
     AstrologySystem,
 )
 from ..domain.provider import AstrologyProvider
@@ -35,27 +34,6 @@ class ChartService:
             return self._cache[cache_key]
 
         chart = self.provider.get_western_chart(birth_data)
-
-        if use_cache:
-            self._cache[cache_key] = chart
-
-        return chart
-
-    def get_vedic_chart(
-        self,
-        birth_data: BirthData,
-        ayanamsa: str = "Lahiri",
-        use_cache: bool = True,
-    ) -> VedicChart:
-        cache_key = generate_chart_cache_key(
-            birth_data, AstrologySystem.VEDIC_SIDEREAL, ayanamsa
-        )
-
-        if use_cache and cache_key in self._cache:
-            logger.debug(f"Cache hit for vedic chart: {cache_key[:12]}...")
-            return self._cache[cache_key]
-
-        chart = self.provider.get_vedic_chart(birth_data, ayanamsa)
 
         if use_cache:
             self._cache[cache_key] = chart

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
 import 'package:syno_app/domain/entities/match.dart';
-import 'package:syno_app/domain/entities/synastry_data.dart';
+
 import 'package:syno_app/domain/entities/user.dart';
 import 'package:syno_app/presentation/providers/match_provider.dart';
 import 'package:syno_app/presentation/providers/auth_providers.dart';
@@ -123,16 +123,10 @@ class _ChatsListScreenState extends ConsumerState<ChatsListScreen> {
         photos: photoUrl.isNotEmpty ? [Photo(id: 0, url: photoUrl, isPrimary: true)] : [],
       ),
       finalScore: (chat.compatibilityScore ?? 0).toDouble(),
-      synastryScore: 0,
+      synastryScore: (chat.compatibilityScore ?? 0).toDouble(),
       behavioralScore: 0,
       topReasons: const <String>[],
       cosmicInsight: '',
-      synastryData: SynastryData(
-        moonScore: 0, mercuryScore: 0, venusMarsScore: 0,
-        nodesScore: 0, saturnScore: 0,
-        detailedAspects: const <Aspect>[],
-        interpretation: '',
-      ),
       status: MatchStatus.accepted,
       createdAt: DateTime.now(),
       backendMatchId: chat.matchId,

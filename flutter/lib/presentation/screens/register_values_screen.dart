@@ -42,7 +42,7 @@ class _RegisterValuesScreenState extends ConsumerState<RegisterValuesScreen> {
 
     return OnboardingScaffold(
       title: 'register.core_values_title'.tr(),
-      progress: 6 / 9,
+      progress: 7 / 10,
       onContinue: _onNext,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),

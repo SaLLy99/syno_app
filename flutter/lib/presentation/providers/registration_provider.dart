@@ -20,6 +20,7 @@ class ProfileData {
   final List<int> hobbyIds;
   final List<int> professionIds;
   final List<int> educationIds;
+  final String? activeMode;
   final String? themeId;
   final String? backgroundColor;
   final String? accentColor;
@@ -40,6 +41,7 @@ class ProfileData {
     this.hobbyIds = const <int>[],
     this.professionIds = const <int>[],
     this.educationIds = const <int>[],
+    this.activeMode,
     // Theme preferences
     this.themeId,
     this.backgroundColor,
@@ -67,6 +69,7 @@ class ProfileData {
       hobbyIds: map['hobby_ids'] != null
           ? List<int>.from(map['hobby_ids'])
           : (map['hobbies'] as List?)?.map((e) => e['id'] as int).toList() ?? <int>[],
+      activeMode: map['active_mode'] as String?,
       themeId: map['theme_id'] as String?,
       backgroundColor: map['background_color'] as String?,
       accentColor: map['accent_color'] as String?,
@@ -95,6 +98,7 @@ class ProfileData {
       'hobby_ids': hobbyIds,
       'profession_ids': professionIds,
       'education_ids': educationIds,
+      'active_mode': activeMode,
       'theme_id': themeId,
       'background_color': backgroundColor,
       'accent_color': accentColor,

@@ -1,10 +1,15 @@
 import json
-from sqlalchemy import Column, Integer, String, Date, Text, TIMESTAMP, ForeignKey, Table, LargeBinary, Boolean, Float, func, Enum as SAEnum
+from sqlalchemy import Column, Integer, String, Date, Text, TIMESTAMP, ForeignKey, Table, LargeBinary, Boolean, Float, func, Enum as SAEnum, UniqueConstraint
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.types import TypeDecorator, TEXT
 from sqlalchemy.orm import relationship
 from .database import Base
 import enum
+
+
+class AppMode(str, enum.Enum):
+    dating = "dating"
+    bff = "bff"
 
 # Custom type for handling ARRAY in both PostgreSQL and SQLite
 class ArrayAsJSON(TypeDecorator):
@@ -76,6 +81,7 @@ class Location(Base):
     translation_key = Column(String, nullable=True)
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
+    timezone = Column(String(50), nullable=True)
 
 
 profile_hobbies = Table('profile_hobbies', Base.metadata,
@@ -179,6 +185,7 @@ class Profile(Base):
     height = Column(Integer, nullable=True)
     phone_number = Column(String(20), unique=True, nullable=True)
     bio = Column(Text)
+    active_mode = Column(String(10), default='dating')
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
@@ -247,6 +254,12 @@ class UserPreferences(Base):
     weight_spiritual = Column(Integer, default=50)
     birth_time_requirement = Column(String(20), default='optional')
 
+    # Matching Signal Weights (0-100, normalized to sum to 100)
+    # Controls how much each signal contributes to the final compatibility score
+    weight_natal_chart = Column(Integer, default=60)     # Astrology synastry
+    weight_interests = Column(Integer, default=10)       # Shared hobbies, values, intentions
+    weight_behavior = Column(Integer, default=30)        # Behavioral compatibility
+
     # Lifestyle
     wants_children = Column(String(20), nullable=True)
     smoking = Column(String(20), nullable=True)
@@ -293,6 +306,7 @@ class Match(Base):
     matched_user_id = Column(Integer, ForeignKey("syno_users.id", ondelete="CASCADE"), nullable=False)
     status = Column(String(20), nullable=False, default="pending")
     compatibility_score = Column(Integer, nullable=True)
+    mode = Column(String(10), default='dating')
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
@@ -330,6 +344,7 @@ class MatchCache(Base):
     weighted_score = Column(Integer, nullable=True)
     top_reasons = Column(Text, nullable=True)
     cosmic_insight = Column(Text, nullable=True)
+    mode = Column(String(10), default='dating')
     computed_at = Column(TIMESTAMP, server_default=func.now())
 
     __table_args__ = (
@@ -347,6 +362,7 @@ class Recommendation(Base):
     reasons = Column(Text, nullable=True)
     cosmic_insight = Column(Text, nullable=True)
     recommendation_date = Column(Date, nullable=False)
+    mode = Column(String(10), default='dating')
     created_at = Column(TIMESTAMP, server_default=func.now())
 
     user = relationship("SynoUser", foreign_keys=[user_id])
@@ -360,6 +376,87 @@ class AnalyticsEvent(Base):
     user_id = Column(Integer, ForeignKey("syno_users.id", ondelete="CASCADE"), nullable=False)
     event_type = Column(String(50), nullable=False)
     event_metadata = Column(Text, nullable=True)
+    mode = Column(String(10), nullable=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
+
+    user = relationship("SynoUser")
+
+
+class UserAppMode(Base):
+    __tablename__ = "user_app_modes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    profile_id = Column(Integer, ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False)
+    mode = Column(String(10), nullable=False)
+
+    # Mode-specific filter overrides
+    min_age = Column(Integer, default=18)
+    max_age = Column(Integer, default=50)
+    max_distance = Column(Integer, default=100)
+    genders = Column(postgresql.ARRAY(String), default=[])
+    orientations = Column(postgresql.ARRAY(String), default=[])
+
+    # Mode-specific astrology weight overrides
+    weight_romance = Column(Integer, default=50)
+    weight_emotional = Column(Integer, default=50)
+    weight_communication = Column(Integer, default=50)
+    weight_long_term = Column(Integer, default=50)
+    weight_marriage = Column(Integer, default=50)
+    weight_friendship = Column(Integer, default=50)
+    weight_chemistry = Column(Integer, default=50)
+    weight_spiritual = Column(Integer, default=50)
+
+    # Mode-specific matching signal weight overrides
+    weight_natal_chart = Column(Integer, default=60)
+    weight_interests = Column(Integer, default=30)
+    weight_behavior = Column(Integer, default=10)
+
+    # Mode-specific advanced settings
+    photos_only = Column(Boolean, default=False)
+    complete_profiles_only = Column(Boolean, default=False)
+    hide_swiped = Column(Boolean, default=True)
+    hide_inactive = Column(Boolean, default=False)
+
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+
+    profile = relationship("Profile", backref="app_modes")
+
+    __table_args__ = (
+        UniqueConstraint('profile_id', 'mode', name='uq_profile_mode'),
+    )
+
+
+class UserBehaviorProfile(Base):
+    """Behavioral profile derived from actual user actions (swipes, messages, sessions)."""
+    __tablename__ = "user_behavior_profiles"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("syno_users.id", ondelete="CASCADE"), nullable=False, unique=True)
+
+    # Derived from swipe patterns
+    selectivity = Column(Float, default=0.5)           # like_rate = likes_sent / profiles_viewed
+    avg_profiles_per_session = Column(Float, default=10.0)
+
+    # Derived from messaging behavior
+    avg_response_time_minutes = Column(Float, default=60.0)
+    avg_message_length = Column(Float, default=50.0)
+    conversation_depth = Column(Float, default=5.0)    # avg messages per conversation
+    initiator_ratio = Column(Float, default=0.5)       # % conversations user starts
+
+    # Derived engagement patterns
+    sessions_per_week = Column(Float, default=3.0)
+    avg_session_minutes = Column(Float, default=10.0)
+    peak_hour = Column(Integer, default=20)             # most active hour (0-23)
+
+    # Big Five approximation from behavior (0-100)
+    openness_behavioral = Column(Float, default=50.0)
+    conscientiousness_behavioral = Column(Float, default=50.0)
+    extraversion_behavioral = Column(Float, default=50.0)
+    agreeableness_behavioral = Column(Float, default=50.0)
+    emotional_stability_behavioral = Column(Float, default=50.0)
+
+    computed_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
     user = relationship("SynoUser")

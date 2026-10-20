@@ -1,14 +1,17 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syno_app/domain/entities/astrology_system.dart';
+import 'package:syno_app/domain/entities/app_mode.dart';
 import 'package:syno_app/domain/entities/match.dart';
 import 'package:syno_app/domain/entities/user.dart';
+import 'package:syno_app/presentation/providers/app_mode_provider.dart';
 import 'package:syno_app/theme.dart';
 
-class MatchFoundDialog extends StatefulWidget {
+class MatchFoundDialog extends ConsumerStatefulWidget {
   final User matchedUser;
   final Match match;
   final String baseUrl;
@@ -40,10 +43,10 @@ class MatchFoundDialog extends StatefulWidget {
   }
 
   @override
-  State<MatchFoundDialog> createState() => _MatchFoundDialogState();
+  ConsumerState<MatchFoundDialog> createState() => _MatchFoundDialogState();
 }
 
-class _MatchFoundDialogState extends State<MatchFoundDialog> with SingleTickerProviderStateMixin {
+class _MatchFoundDialogState extends ConsumerState<MatchFoundDialog> with SingleTickerProviderStateMixin {
   late AnimationController _sparkleController;
   AstrologySystem _system = AstrologySystem.western;
 
@@ -107,7 +110,9 @@ class _MatchFoundDialogState extends State<MatchFoundDialog> with SingleTickerPr
                       _buildHeartAnimation(),
                       const SizedBox(height: 24),
                       Text(
-                        'match_found.title'.tr(),
+                        ref.watch(appModeProvider) == AppMode.bff
+                            ? "You're Now Friends!"
+                            : 'match_found.title'.tr(),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 36,
@@ -118,7 +123,9 @@ class _MatchFoundDialogState extends State<MatchFoundDialog> with SingleTickerPr
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'match_found.subtitle'.tr(),
+                        ref.watch(appModeProvider) == AppMode.bff
+                            ? 'You and ${widget.matchedUser.name ?? "someone"} want to be friends'
+                            : 'match_found.subtitle'.tr(),
                         style: TextStyle(
                           color: Colors.white.withOpacity(0.7),
                           fontSize: 15,
@@ -166,6 +173,9 @@ class _MatchFoundDialogState extends State<MatchFoundDialog> with SingleTickerPr
   }
 
   Widget _buildHeartAnimation() {
+    final currentMode = ref.watch(appModeProvider);
+    final modeColor = currentMode == AppMode.bff ? AppMode.bff.color : CosmicColors.cosmicPink;
+    
     return AnimatedBuilder(
       animation: _sparkleController,
       builder: (BuildContext context, Widget? child) {
@@ -178,20 +188,20 @@ class _MatchFoundDialogState extends State<MatchFoundDialog> with SingleTickerPr
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               gradient: LinearGradient(
-                colors: [CosmicColors.cosmicPink, CosmicColors.cosmicPurple],
+                colors: [modeColor, CosmicColors.cosmicPurple],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: CosmicColors.cosmicPink.withOpacity(0.4 + sin(_sparkleController.value * pi * 2) * 0.2),
+                  color: modeColor.withOpacity(0.4 + sin(_sparkleController.value * pi * 2) * 0.2),
                   blurRadius: 30,
                   spreadRadius: 5,
                 ),
               ],
             ),
-            child: const Icon(
-              Icons.favorite,
+            child: Icon(
+              currentMode == AppMode.bff ? Icons.people : Icons.favorite,
               color: Colors.white,
               size: 40,
             ),

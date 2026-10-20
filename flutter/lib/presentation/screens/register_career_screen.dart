@@ -51,7 +51,7 @@ class _RegisterCareerScreenState extends ConsumerState<RegisterCareerScreen> {
   Widget build(BuildContext context) {
     return OnboardingScaffold(
       title: 'register.career_title'.tr(),
-      progress: 8 / 9,
+      progress: 9 / 10,
       onContinue: _onNext,
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),

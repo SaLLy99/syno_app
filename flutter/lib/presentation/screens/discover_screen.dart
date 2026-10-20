@@ -9,6 +9,7 @@ import 'package:syno_app/domain/entities/user_preferences.dart';
 import 'package:syno_app/presentation/providers/match_provider.dart';
 import 'package:syno_app/presentation/providers/preferences_provider.dart';
 import 'package:syno_app/presentation/providers/auth_providers.dart';
+import 'package:syno_app/presentation/providers/app_mode_provider.dart';
 import 'package:syno_app/presentation/widgets/match_found_dialog.dart';
 import 'package:syno_app/presentation/widgets/swipeable_card.dart';
 import 'package:syno_app/theme.dart';
@@ -80,44 +81,51 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
       ),
       body: Container(
         decoration: BoxDecoration(gradient: theme.gradient),
-        child: Stack(
-          children: <Widget>[
-            Positioned(
-              top: 120,
-              left: 0,
-              right: 0,
-              child: Container(
-                height: 250,
-                decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    colors: <Color>[
-                      const Color(0xFFDB2777).withOpacity(0.1),
-                      Colors.transparent,
-                    ],
+        child: Column(
+          children: [
+            const SizedBox(height: 80),
+            Expanded(
+              child: Stack(
+                children: <Widget>[
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      height: 250,
+                      decoration: BoxDecoration(
+                        gradient: RadialGradient(
+                          colors: <Color>[
+                            const Color(0xFFDB2777).withOpacity(0.1),
+                            Colors.transparent,
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ),
-            SafeArea(
-              child: potentialMatchesAsync.when(
-                data: (List<Match> matches) {
-                  if (matches.isEmpty) {
-                    return _buildEmptyState(context);
-                  }
-                  return _buildMatchCards(context, matches);
-                },
-                loading: () => Center(
-                  child: Text(
-                    'discover.loading'.tr(),
-                    style: const TextStyle(color: Colors.white70),
+                  SafeArea(
+                    child: potentialMatchesAsync.when(
+                      data: (List<Match> matches) {
+                        if (matches.isEmpty) {
+                          return _buildEmptyState(context);
+                        }
+                        return _buildMatchCards(context, matches);
+                      },
+                      loading: () => Center(
+                        child: Text(
+                          'discover.loading'.tr(),
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                      ),
+                      error: (Object error, StackTrace stack) => Center(
+                        child: Text(
+                          'discover.error_subtitle'.tr(),
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.white),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-                error: (Object error, StackTrace stack) => Center(
-                  child: Text(
-                    'discover.error_subtitle'.tr(),
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(color: Colors.white),
-                  ),
-                ),
+                ],
               ),
             ),
           ],
@@ -203,6 +211,9 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
                 },
                 onViewProfile: () {
                   context.push('/match-details', extra: matches[i]);
+                },
+                onViewCosmic: () {
+                  context.push('/synastry-detail', extra: matches[i]);
                 },
               ),
             ),
@@ -509,6 +520,10 @@ class _PreferencesBottomSheetState extends ConsumerState<_PreferencesBottomSheet
                       _buildPriorityChips(),
                       _buildWeightSliders(),
                       _buildBirthTimeRequirement(),
+                    ]),
+                    const SizedBox(height: 12),
+                    _buildQuickSection('Matching Signals', Icons.tune, [
+                      _buildMatchingSignalSliders(),
                     ]),
                     const SizedBox(height: 12),
                     _buildQuickSection('Lifestyle', Icons.favorite_border, [
@@ -1016,6 +1031,133 @@ class _PreferencesBottomSheetState extends ConsumerState<_PreferencesBottomSheet
       activeColor: CosmicColors.cosmicPurple,
       contentPadding: EdgeInsets.zero,
       dense: true,
+    );
+  }
+
+  Widget _buildMatchingSignalSliders() {
+    final int total = _prefs.weightNatalChart + _prefs.weightInterests + _prefs.weightBehavior;
+    final bool isValid = total > 0;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'How should we match you?',
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Adjust how much each signal contributes to your compatibility score',
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 11),
+        ),
+        const SizedBox(height: 12),
+        _buildSignalSlider(
+          icon: '🌟',
+          label: 'Natal Chart',
+          description: 'Astrology chart compatibility',
+          value: _prefs.weightNatalChart,
+          onChanged: (v) => setState(() => _prefs = _prefs.copyWith(weightNatalChart: v)),
+          isValid: isValid,
+        ),
+        const SizedBox(height: 8),
+        _buildSignalSlider(
+          icon: '🎯',
+          label: 'Common Interests',
+          description: 'Shared hobbies, values, goals',
+          value: _prefs.weightInterests,
+          onChanged: (v) => setState(() => _prefs = _prefs.copyWith(weightInterests: v)),
+          isValid: isValid,
+        ),
+        const SizedBox(height: 8),
+        _buildSignalSlider(
+          icon: '💫',
+          label: 'User Behavior',
+          description: 'How you interact on the app',
+          value: _prefs.weightBehavior,
+          onChanged: (v) => setState(() => _prefs = _prefs.copyWith(weightBehavior: v)),
+          isValid: isValid,
+        ),
+        const SizedBox(height: 8),
+        // Normalized percentages display
+        if (isValid)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildSignalPercent('🌟', _prefs.weightNatalChart / total * 100),
+                _buildSignalPercent('🎯', _prefs.weightInterests / total * 100),
+                _buildSignalPercent('💫', _prefs.weightBehavior / total * 100),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildSignalSlider({
+    required String icon,
+    required String label,
+    required String description,
+    required int value,
+    required ValueChanged<int> onChanged,
+    required bool isValid,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(icon, style: const TextStyle(fontSize: 16)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+                  ),
+                  Text(
+                    description,
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 10),
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              '$value',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+          ],
+        ),
+        Slider(
+          value: value.toDouble(),
+          min: 0,
+          max: 100,
+          activeColor: CosmicColors.cosmicPurple,
+          inactiveColor: Colors.white.withValues(alpha: 0.15),
+          onChanged: (double v) => onChanged(v.toInt()),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSignalPercent(String icon, double percent) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(icon, style: const TextStyle(fontSize: 12)),
+        const SizedBox(width: 4),
+        Text(
+          '${percent.round()}%',
+          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+        ),
+      ],
     );
   }
 }

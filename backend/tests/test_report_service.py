@@ -95,16 +95,133 @@ class TestReportService:
         assert 0 <= breakdown.saturn_score <= 100
 
     def test_score_composition(self, report_service, person_a, person_b):
+        """Headline % IS the chart score; the weighted blend lives in composite_score."""
         report = report_service.generate_report(
             person_a=person_a,
             person_b=person_b,
             behavior_activity=80.0,
             behavior_profile_quality=70.0,
             behavior_mutual_interest=60.0,
+            behavioral_compatibility=90.0,
+            shared_hobbies=["hiking"],
+            shared_values=["honesty"],
         )
 
-        expected_overall = (report.chart_score * 0.80) + (report.behavior_score * 0.15) + (report.profile_similarity_score * 0.05)
-        assert abs(report.overall_score - round(expected_overall)) <= 1
+        assert report.overall_score == report.chart_score
+
+        expected_composite = (
+            (report.chart_score * 0.60)
+            + (report.behavior_score * 0.30)
+            + (report.profile_similarity_score * 0.10)
+        )
+        assert abs(report.composite_score - round(expected_composite)) <= 1
+
+    def test_score_weights_match_discovery_defaults(self, report_service, person_a, person_b):
+        """Report default weights must equal matching_engine.MODE_WEIGHTS['dating']."""
+        from app.matching_engine import MODE_WEIGHTS
+
+        report = report_service.generate_report(
+            person_a=person_a,
+            person_b=person_b,
+            behavior_activity=80.0,
+            behavior_profile_quality=70.0,
+            behavior_mutual_interest=60.0,
+            behavioral_compatibility=90.0,
+            shared_hobbies=["hiking", "music"],
+            shared_values=["honesty"],
+        )
+        weights = MODE_WEIGHTS["dating"]
+
+        expected = (
+            (report.chart_score * weights["synastry"])
+            + (report.behavior_score * weights["behavioral"])
+            + (report.profile_similarity_score * weights["profile_similarity"])
+        )
+        assert abs(report.composite_score - round(expected)) <= 1
+        assert report.overall_score == report.chart_score
+
+    def test_behaviour_without_data_is_null(self, report_service, person_a, person_b):
+        """No observed behaviour -> behaviour part is None, never a placeholder."""
+        report = report_service.generate_report(
+            person_a=person_a,
+            person_b=person_b,
+            behavior_has_data=False,
+        )
+
+        assert report.behavior_score is None
+        parts = {part["key"]: part["value"] for part in report.score_parts}
+        assert parts["behavior"] is None
+        assert parts["chart"] == report.chart_score
+        # Headline still a real chart number, composite excludes the null part.
+        assert report.overall_score == report.chart_score
+
+    def test_partial_chart_is_flagged(self, report_service, person_a, person_b):
+        report = report_service.generate_report(
+            person_a=person_a,
+            person_b=person_b,
+            score_partial=True,
+        )
+
+        assert report.score_partial is True
+        chart_part = next(p for p in report.score_parts if p["key"] == "chart")
+        assert chart_part["partial"] is True
+
+    def test_top_aspects_are_ranked_and_capped(self, report_service, person_a, person_b):
+        report = report_service.generate_report(
+            person_a=person_a,
+            person_b=person_b,
+        )
+
+        assert 0 < len(report.top_aspects) <= 5
+        scores = [aspect["score"] for aspect in report.top_aspects]
+        assert scores == sorted(scores, reverse=True)
+        for aspect in report.top_aspects:
+            assert {"planet_a", "planet_b", "aspect", "orb", "score"} <= set(aspect)
+
+    def test_overall_score_override(self, report_service, person_a, person_b):
+        report = report_service.generate_report(
+            person_a=person_a,
+            person_b=person_b,
+            overall_score=87.0,
+        )
+        assert report.overall_score == 87
+
+    def test_component_score_overrides(self, report_service, person_a, person_b):
+        report = report_service.generate_report(
+            person_a=person_a,
+            person_b=person_b,
+            overall_score=72.0,
+            behavior_score=40.0,
+            profile_similarity_score=65.0,
+        )
+        assert report.overall_score == 72
+        assert report.behavior_score == 40
+        assert report.profile_similarity_score == 65
+
+    def test_resolve_signal_weights_falls_back_to_mode(self):
+        from app.matching_engine import resolve_signal_weights, MODE_WEIGHTS
+
+        weights = resolve_signal_weights(None, "dating")
+        assert weights["synastry"] == MODE_WEIGHTS["dating"]["synastry"]
+        assert weights["behavioral"] == MODE_WEIGHTS["dating"]["behavioral"]
+
+    def test_resolve_signal_weights_normalizes_user_weights(self):
+        from app.matching_engine import resolve_signal_weights
+
+        weights = resolve_signal_weights(
+            {
+                "weight_natal_chart": 50,
+                "weight_interests": 50,
+                "weight_behavior": 50,
+            },
+            "dating",
+        )
+        assert abs(weights["synastry"] - 1 / 3) < 1e-9
+        assert abs(weights["profile_similarity"] - 1 / 3) < 1e-9
+        assert abs(weights["behavioral"] - 1 / 3) < 1e-9
+        assert abs(
+            weights["synastry"] + weights["profile_similarity"] + weights["behavioral"] - 1.0
+        ) < 1e-9
 
     def test_behavior_affects_score(self, report_service, person_a, person_b):
         report_low = report_service.generate_report(
@@ -271,23 +388,38 @@ class TestReportService:
 class TestBehaviorScore:
     def test_behavior_calculation(self, report_service):
         behavior = report_service._calculate_behavior_score(
-            activity=80.0, profile_quality=70.0, mutual_interest=60.0
+            activity=80.0, profile_quality=70.0, mutual_interest=60.0,
+            behavioral_compatibility=90.0,
         )
 
         assert isinstance(behavior, BehaviorScore)
-        expected = (80.0 * 0.40) + (70.0 * 0.35) + (60.0 * 0.25)
+        supplementary = (80.0 * 0.40) + (70.0 * 0.35) + (60.0 * 0.25)
+        expected = (90.0 * 0.60) + (supplementary * 0.40)
         assert abs(behavior.combined - expected) < 0.01
 
     def test_behavior_bounds(self, report_service):
         behavior = report_service._calculate_behavior_score(
-            activity=100.0, profile_quality=100.0, mutual_interest=100.0
+            activity=100.0, profile_quality=100.0, mutual_interest=100.0,
+            behavioral_compatibility=100.0,
         )
         assert behavior.combined == 100.0
 
         behavior = report_service._calculate_behavior_score(
-            activity=0.0, profile_quality=0.0, mutual_interest=0.0
+            activity=0.0, profile_quality=0.0, mutual_interest=0.0,
+            behavioral_compatibility=0.0,
         )
         assert behavior.combined == 0.0
+
+    def test_behavioral_compatibility_dominates(self, report_service):
+        low = report_service._calculate_behavior_score(
+            activity=100.0, profile_quality=100.0, mutual_interest=100.0,
+            behavioral_compatibility=20.0,
+        )
+        high = report_service._calculate_behavior_score(
+            activity=100.0, profile_quality=100.0, mutual_interest=100.0,
+            behavioral_compatibility=90.0,
+        )
+        assert high.combined > low.combined
 
 
 class TestProfileSimilarity:
@@ -308,3 +440,85 @@ class TestProfileSimilarity:
             ["relationship"],
         )
         assert score >= 80.0
+
+
+class TestInterpretationContent:
+    def test_coach_tips_present(self, report_service, person_a, person_b):
+        report = report_service.generate_report(
+            person_a=person_a,
+            person_b=person_b,
+            user_a_name="Sally Tkhilaishvili",
+            user_b_name="Sally T.",
+        )
+
+        tips = report.interpretation["coach_tips"]
+        assert isinstance(tips, list)
+        assert len(tips) >= 3
+        assert all(isinstance(t, str) and t.strip() for t in tips)
+
+    def test_coach_tips_in_report_to_dict(self, report_service, person_a, person_b):
+        report = report_service.generate_report(
+            person_a=person_a,
+            person_b=person_b,
+        )
+        result = report_service.report_to_dict(report)
+
+        assert "coach_tips" in result["interpretation"]
+        assert len(result["interpretation"]["coach_tips"]) >= 1
+
+    def test_interpretation_enriched_fields(self, report_service, person_a, person_b):
+        report = report_service.generate_report(
+            person_a=person_a,
+            person_b=person_b,
+            user_a_name="Sally Tkhilaishvili",
+            user_b_name="Sally T.",
+        )
+        interp = report.interpretation
+
+        for key in [
+            "personality_a", "personality_b", "love_language", "trust_loyalty",
+            "intimacy_text", "conflict_style", "overall_verdict", "coach_tips",
+        ]:
+            assert key in interp, f"missing {key}"
+
+        assert interp["personality_a"].strip()
+        assert interp["personality_b"].strip()
+
+    def test_no_person_a_or_person_b_labels(self, report_service, person_a, person_b):
+        report = report_service.generate_report(
+            person_a=person_a,
+            person_b=person_b,
+            user_a_name="Sally Tkhilaishvili",
+            user_b_name="Sally T.",
+        )
+        interp = report.interpretation
+
+        assert "Person A" not in interp["personality_a"]
+        assert "Person B" not in interp["personality_a"]
+        assert "Person A" not in interp["personality_b"]
+        assert "Person B" not in interp["personality_b"]
+        assert "Person A" not in interp["overall_verdict"]
+        assert "Person B" not in interp["overall_verdict"]
+
+    def test_names_used_in_personality_text(self, report_service, person_a, person_b):
+        report = report_service.generate_report(
+            person_a=person_a,
+            person_b=person_b,
+            user_a_name="Sally Tkhilaishvili",
+            user_b_name="Nino Beridze",
+        )
+        interp = report.interpretation
+
+        assert "Sally Tkhilaishvili" in interp["personality_a"]
+        assert "Nino Beridze" in interp["personality_b"]
+
+    def test_fallback_names_when_missing(self, report_service, person_a, person_b):
+        report = report_service.generate_report(
+            person_a=person_a,
+            person_b=person_b,
+        )
+        interp = report.interpretation
+
+        assert "Person A" not in interp["personality_a"]
+        assert "Person B" not in interp["personality_b"]
+        assert interp["personality_a"].strip()

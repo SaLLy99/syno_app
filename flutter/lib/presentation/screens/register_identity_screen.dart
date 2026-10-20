@@ -79,7 +79,7 @@ class _RegisterIdentityScreenState
 
     return OnboardingScaffold(
       title: 'register.identity_title'.tr(),
-      progress: 3 / 9,
+      progress: 4 / 10,
       onContinue: _onNext,
       canContinue: _selectedGenderId != null && _selectedOrientationId != null,
       child: SingleChildScrollView(

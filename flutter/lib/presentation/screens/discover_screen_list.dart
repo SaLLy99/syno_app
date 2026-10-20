@@ -6,6 +6,7 @@ import 'package:syno_app/presentation/providers/auth_providers.dart';
 import 'package:syno_app/presentation/providers/match_provider.dart';
 import 'package:syno_app/presentation/widgets/match_found_dialog.dart';
 import 'package:syno_app/presentation/widgets/match_score_badge.dart';
+import 'package:syno_app/presentation/widgets/score_breakdown.dart';
 import 'package:syno_app/theme.dart';
 import 'package:syno_app/presentation/providers/theme_provider.dart';
 
@@ -171,7 +172,14 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
               Positioned(
                 top: AppSpacing.md,
                 right: AppSpacing.md,
-                child: MatchScoreBadge(score: match.finalScore),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    MatchScoreBadge(score: match.finalScore),
+                    const SizedBox(height: 6),
+                    ScoreBandLabel(score: match.finalScore),
+                  ],
+                ),
               ),
               Positioned(
                 bottom: 0,

@@ -37,27 +37,6 @@ class WesternChartResponse(BaseModel):
     mc: Optional[PlanetPositionResponse] = None
 
 
-class VedicPlanetPositionResponse(BaseModel):
-    planet: str
-    sign: str
-    degree: float
-    absolute_degree: float
-    house: Optional[int] = None
-    retrograde: bool = False
-    nakshatra: Optional[str] = None
-    pada: Optional[int] = None
-    sign_degree: str = ""
-
-
-class VedicChartResponse(BaseModel):
-    system: str = "vedic_sidereal"
-    ayanamsa: str = "Lahiri"
-    planets: List[VedicPlanetPositionResponse] = []
-    ascendant: Optional[VedicPlanetPositionResponse] = None
-    moon_sign: Optional[str] = None
-    sun_sign: Optional[str] = None
-
-
 class PlanetToPlanetAspectResponse(BaseModel):
     planet_a: str
     planet_b: str
@@ -89,16 +68,6 @@ class SynastryResponse(BaseModel):
     sextiles: List[PlanetToPlanetAspectResponse] = []
 
 
-class VedicCompatibilityResponse(BaseModel):
-    system: str = "vedic_sidereal"
-    ayanamsa: str = "Lahiri"
-    kuta_score: Optional[int] = None
-    kuta_details: dict = {}
-    summary: Optional[str] = None
-    person_a_chart: Optional[VedicChartResponse] = None
-    person_b_chart: Optional[VedicChartResponse] = None
-
-
 class CompatibilityDimensionsResponse(BaseModel):
     emotional: float = 50.0
     communication: float = 50.0
@@ -119,10 +88,19 @@ class InterpretationResponse(BaseModel):
     values: str = ""
     growth_dynamic: str = ""
     important_aspects: List[dict] = []
+    ai_used: bool = False
+    personality_a: str = ""
+    personality_b: str = ""
+    love_language: str = ""
+    trust_loyalty: str = ""
+    intimacy_text: str = ""
+    conflict_style: str = ""
+    overall_verdict: str = ""
+    coach_tips: List[str] = []
 
 
 class CompatibilityResponse(BaseModel):
     western_synastry: Optional[SynastryResponse] = None
-    vedic_compatibility: Optional[VedicCompatibilityResponse] = None
     dimensions: Optional[CompatibilityDimensionsResponse] = None
     interpretation: Optional[InterpretationResponse] = None
+    ai_used: bool = False

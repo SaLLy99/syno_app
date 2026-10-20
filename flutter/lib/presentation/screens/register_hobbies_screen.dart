@@ -82,7 +82,7 @@ class _RegisterHobbiesScreenState extends ConsumerState<RegisterHobbiesScreen> {
 
     return OnboardingScaffold(
       title: 'register.hobbies_title'.tr(),
-      progress: 7 / 9,
+      progress: 8 / 10,
       onContinue: _onNext,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),

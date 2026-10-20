@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:syno_app/theme.dart';
+import 'package:syno_app/domain/entities/app_mode.dart';
+import 'package:syno_app/presentation/providers/app_mode_provider.dart';
 
-class MainShell extends StatelessWidget {
+class MainShell extends ConsumerWidget {
   final Widget child;
 
   const MainShell({super.key, required this.child});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentMode = ref.watch(appModeProvider);
+    final isBffMode = currentMode == AppMode.bff;
+
     return Scaffold(
       body: child,
       bottomNavigationBar: BottomNavigationBar(
@@ -17,7 +23,7 @@ class MainShell extends StatelessWidget {
         onTap: (int index) => _onItemTapped(index, context),
         type: BottomNavigationBarType.fixed,
         backgroundColor: CosmicColors.deepSpace,
-        selectedItemColor: Colors.white,
+        selectedItemColor: isBffMode ? AppMode.bff.color : AppMode.dating.color,
         unselectedItemColor: Colors.white.withOpacity(0.6),
         selectedFontSize: 12,
         unselectedFontSize: 12,
@@ -25,7 +31,7 @@ class MainShell extends StatelessWidget {
           BottomNavigationBarItem(
             icon: const Icon(Icons.explore_outlined),
             activeIcon: const Icon(Icons.explore),
-            label: 'bottom_nav.discover'.tr(),
+            label: isBffMode ? 'Find Friends' : 'bottom_nav.discover'.tr(),
           ),
           BottomNavigationBarItem(
             icon: const Icon(Icons.favorite_border),

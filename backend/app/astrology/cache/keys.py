@@ -1,6 +1,5 @@
 import hashlib
 import json
-from typing import Optional
 
 from ..domain.models import BirthData, AstrologySystem
 
@@ -8,7 +7,6 @@ from ..domain.models import BirthData, AstrologySystem
 def generate_chart_cache_key(
     birth_data: BirthData,
     system: AstrologySystem,
-    ayanamsa: Optional[str] = None,
 ) -> str:
     """Generate a deterministic cache key for birth chart calculations.
 
@@ -19,7 +17,6 @@ def generate_chart_cache_key(
     - latitude
     - longitude
     - astrology system
-    - ayanamsa (for Vedic)
     """
     key_data = {
         "date": birth_data.birth_date.isoformat(),
@@ -29,8 +26,6 @@ def generate_chart_cache_key(
         "lon": birth_data.longitude,
         "system": system.value,
     }
-    if ayanamsa:
-        key_data["ayanamsa"] = ayanamsa
 
     key_str = json.dumps(key_data, sort_keys=True)
     return hashlib.sha256(key_str.encode()).hexdigest()
@@ -40,7 +35,6 @@ def generate_synastry_cache_key(
     person_a: BirthData,
     person_b: BirthData,
     system: AstrologySystem,
-    ayanamsa: Optional[str] = None,
 ) -> str:
     """Generate a deterministic cache key for synastry calculations.
 
@@ -67,8 +61,6 @@ def generate_synastry_cache_key(
         "pair": sorted_pair,
         "system": system.value,
     }
-    if ayanamsa:
-        full_key["ayanamsa"] = ayanamsa
 
     key_str = json.dumps(full_key, sort_keys=True)
     return hashlib.sha256(key_str.encode()).hexdigest()

@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:go_router/go_router.dart';
 import 'package:syno_app/domain/entities/match.dart';
-import 'package:syno_app/domain/entities/synastry_data.dart';
+
 import 'package:syno_app/domain/entities/user.dart';
 import 'package:syno_app/presentation/providers/match_provider.dart';
 import 'package:syno_app/presentation/providers/auth_providers.dart';
@@ -109,18 +109,23 @@ class MatchesListScreen extends ConsumerWidget {
         userId: match.matchedUserId,
         name: match.matchedName ?? 'Unknown',
         photos: photoUrl.isNotEmpty ? [Photo(id: 0, url: photoUrl, isPrimary: true)] : [],
+        birthDate: match.birthDate != null ? DateTime.tryParse(match.birthDate!) : null,
+        birthTime: match.birthTime,
+        location: match.latitude != null && match.longitude != null
+            ? Location(
+                id: 0,
+                name: match.locationName ?? '',
+                translationKey: '',
+                latitude: match.latitude,
+                longitude: match.longitude,
+              )
+            : null,
       ),
       finalScore: (match.compatibilityScore ?? 0).toDouble(),
-      synastryScore: 0,
+      synastryScore: (match.compatibilityScore ?? 0).toDouble(),
       behavioralScore: 0,
       topReasons: const <String>[],
-      cosmicInsight: 'Cosmic connection found',
-      synastryData: SynastryData(
-        moonScore: 0, mercuryScore: 0, venusMarsScore: 0,
-        nodesScore: 0, saturnScore: 0,
-        detailedAspects: const <Aspect>[],
-        interpretation: '',
-      ),
+      cosmicInsight: '',
       status: MatchStatus.accepted,
       createdAt: DateTime.now(),
       backendMatchId: match.matchId,
@@ -185,7 +190,7 @@ class MatchesListScreen extends ConsumerWidget {
                         child: GestureDetector(
                           onTap: () => context.push('/match-details', extra: matchObj),
                           child: Text(
-                            '${(match.compatibilityScore ?? 0)}% compatible',
+                            'View full report',
                             style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12),
                           ),
                         ),

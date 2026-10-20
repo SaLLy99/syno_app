@@ -3,11 +3,17 @@ Report service for SYNO.
 Generates detailed compatibility reports using real astrology calculations.
 Maps raw chart data to user-facing dimensions with interpretation text.
 
-Score composition: 80% chart + 15% behavior + 5% profile similarity
+Scoring model (chart % + transparent parts):
+  - `overall_score` (the headline %) IS the natal chart score - a real number
+    computed from the inter-chart aspects, nothing else.
+  - `score_parts` exposes every signal separately (chart / behaviour /
+    interests) so the UI can show them side by side; a part with no real data
+    is `null`, never a placeholder.
+  - `composite_score` is the legacy weighted blend, kept for reference only.
 """
 import logging
 from typing import Optional, List, Dict, Any
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from ..domain.models import (
     BirthData,
@@ -22,6 +28,7 @@ from ..domain.models import (
 from ..domain.provider import AstrologyProvider
 from ..services.compatibility_service import CompatibilityService
 from ..services.interpretation_service import ChartInterpreter
+from ..services.aspect_ranking import compute_top_aspects
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +55,7 @@ class BehaviorScore:
     activity: float
     profile_quality: float
     mutual_interest: float
+    behavioral_compatibility: float
     combined: float
 
 
@@ -55,8 +63,8 @@ class BehaviorScore:
 class CompatibilityReport:
     overall_score: float
     chart_score: float
-    behavior_score: float
-    profile_similarity_score: float
+    behavior_score: Optional[float]
+    profile_similarity_score: Optional[float]
     cosmic_insight: str
     top_reasons: List[str]
 
@@ -68,6 +76,12 @@ class CompatibilityReport:
     interpretation: Dict[str, str]
     strengths: List[str]
     challenges: List[str]
+
+    # Transparent breakdown + what is driving the headline number.
+    score_parts: List[Dict[str, Any]] = field(default_factory=list)
+    top_aspects: List[Dict[str, Any]] = field(default_factory=list)
+    score_partial: bool = False
+    composite_score: Optional[float] = None
 
 
 # Aspect scoring weights per planet pair type
@@ -172,10 +186,11 @@ DIMENSION_LABELS = {
 class ReportService:
     """Generates detailed compatibility reports from real astrology data."""
 
-    def __init__(self, provider: AstrologyProvider, interpreter: Optional[ChartInterpreter] = None):
+    def __init__(self, provider: AstrologyProvider, interpreter: Optional[ChartInterpreter] = None, ai_service=None):
         self.provider = provider
         self.compat_service = CompatibilityService(provider)
         self.interpreter = interpreter or ChartInterpreter()
+        self.ai_service = ai_service
 
     def generate_report(
         self,
@@ -189,6 +204,17 @@ class ReportService:
         behavior_activity: float = 50.0,
         behavior_profile_quality: float = 50.0,
         behavior_mutual_interest: float = 0.0,
+        behavioral_compatibility: float = 50.0,
+        overall_score: Optional[float] = None,
+        profile_similarity_score: Optional[float] = None,
+        behavior_score: Optional[float] = None,
+        behavior_has_data: bool = True,
+        profile_has_data: bool = True,
+        score_partial: bool = False,
+        composite_score: Optional[float] = None,
+        chart_weight: float = 0.60,
+        behavior_weight: float = 0.30,
+        profile_weight: float = 0.10,
     ) -> CompatibilityReport:
         synastry = self.provider.get_synastry(person_a, person_b)
         dimensions = self.compat_service.calculate_compatibility(person_a, person_b)
@@ -196,29 +222,122 @@ class ReportService:
         chart_score = dimensions.overall
 
         behavior = self._calculate_behavior_score(
-            behavior_activity, behavior_profile_quality, behavior_mutual_interest
+            behavior_activity, behavior_profile_quality,
+            behavior_mutual_interest, behavioral_compatibility,
         )
+        if behavior_score is not None:
+            behavior = BehaviorScore(
+                activity=behavior.activity,
+                profile_quality=behavior.profile_quality,
+                mutual_interest=behavior.mutual_interest,
+                behavioral_compatibility=behavior.behavioral_compatibility,
+                combined=max(0.0, min(100.0, behavior_score)),
+            )
 
         profile_sim = self._calculate_profile_similarity(
             shared_hobbies, shared_values, shared_intentions
         )
+        if profile_similarity_score is not None:
+            profile_sim = max(0.0, min(100.0, profile_similarity_score))
 
-        overall = (chart_score * 0.80) + (behavior.combined * 0.15) + (profile_sim * 0.05)
+        # Composition weights are only used for the legacy `composite_score`;
+        # the headline number below is the chart score on its own.
+        weight_total = chart_weight + behavior_weight + profile_weight
+        if weight_total <= 0:
+            chart_weight, behavior_weight, profile_weight = 0.60, 0.30, 0.10
+        else:
+            chart_weight /= weight_total
+            behavior_weight /= weight_total
+            profile_weight /= weight_total
+
+        # Headline % = real natal-chart score. Callers may override, but never
+        # with a weighted average - the parts are shown separately instead.
+        if overall_score is not None:
+            overall = max(0.0, min(100.0, overall_score))
+        else:
+            overall = chart_score
+
+        if behavior_has_data:
+            behavior_value = round(max(0.0, min(100.0, behavior.combined)))
+            behavior_combined: Optional[float] = behavior.combined
+        else:
+            # No observed behaviour: the part is null, not a placeholder number.
+            behavior_value = None
+            behavior_combined = None
+
+        # No comparable interests/values on both profiles: the part is null,
+        # not a neutral number.
+        profile_value: Optional[float] = (
+            round(max(0.0, min(100.0, profile_sim))) if profile_has_data else None
+        )
+
+        signals = [(chart_score, chart_weight)]
+        if behavior_combined is not None:
+            signals.append((behavior_combined, behavior_weight))
+        if profile_value is not None:
+            signals.append((profile_sim, profile_weight))
+        signal_total = sum(weight for _, weight in signals) or 1.0
+        computed_composite = sum(score * weight for score, weight in signals) / signal_total
+        composite = computed_composite if composite_score is None else composite_score
+
+        score_parts = [
+            {
+                "key": "chart",
+                "label": "Natal chart",
+                "value": round(chart_score),
+                "partial": bool(score_partial),
+            },
+            {
+                "key": "behavior",
+                "label": "Behaviour",
+                "value": behavior_value,
+                "partial": False,
+            },
+            {
+                "key": "profile",
+                "label": "Interests & values",
+                "value": profile_value,
+                "partial": False,
+            },
+        ]
+
+        aspect_rows = [
+            {
+                "planet_a": aspect.planet_a.value,
+                "planet_b": aspect.planet_b.value,
+                "aspect": aspect.aspect.value,
+                "orb": round(aspect.orb, 1),
+                "sign_a": aspect.sign_a.value,
+                "sign_b": aspect.sign_b.value,
+            }
+            for aspect in synastry.planet_aspects
+        ]
+        top_aspects = compute_top_aspects(aspect_rows, limit=5)
 
         dim_scores = self._calculate_all_dimensions(synastry)
 
         synastry_breakdown = self._calculate_synastry_breakdown(synastry)
 
-        cosmic_insight = self._generate_cosmic_insight(overall, dim_scores)
-        top_reasons = self._generate_top_reasons(dim_scores, shared_hobbies, shared_values, shared_intentions)
+        cosmic_insight = self._generate_cosmic_insight_ai(
+            synastry, dimensions, overall,
+            person_a_name=user_a_name, person_b_name=user_b_name,
+        ) or self._generate_cosmic_insight(overall, dim_scores)
+        top_reasons = self._generate_top_reasons_ai(
+            synastry, dimensions, shared_hobbies, shared_values,
+            person_a_name=user_a_name, person_b_name=user_b_name,
+        ) or self._generate_top_reasons(dim_scores, shared_hobbies, shared_values, shared_intentions)
 
-        interpretation = self._generate_interpretation(synastry, dim_scores)
+        interpretation = self._generate_interpretation(
+            synastry, dim_scores,
+            person_a_name=user_a_name, person_b_name=user_b_name,
+            chart_dimensions=dimensions,
+        )
 
         return CompatibilityReport(
             overall_score=round(overall),
             chart_score=round(chart_score),
-            behavior_score=round(behavior.combined),
-            profile_similarity_score=round(profile_sim),
+            behavior_score=behavior_value,
+            profile_similarity_score=profile_value,
             cosmic_insight=cosmic_insight,
             top_reasons=top_reasons,
             dimensions=dim_scores,
@@ -235,16 +354,30 @@ class ReportService:
             interpretation=interpretation,
             strengths=interpretation.get("strengths", []),
             challenges=interpretation.get("challenges", []),
+            score_parts=score_parts,
+            top_aspects=top_aspects,
+            score_partial=bool(score_partial),
+            composite_score=round(composite) if composite is not None else None,
         )
 
     def _calculate_behavior_score(
-        self, activity: float, profile_quality: float, mutual_interest: float
+        self, activity: float, profile_quality: float,
+        mutual_interest: float, behavioral_compatibility: float = 50.0,
     ) -> BehaviorScore:
-        combined = (activity * 0.40) + (profile_quality * 0.35) + (mutual_interest * 0.25)
+        """
+        Calculate combined behavior score.
+        Now includes behavioral compatibility as the primary factor.
+        """
+        # Primary: behavioral compatibility (60% of behavior score)
+        # Secondary: activity + profile quality + mutual interest (40% of behavior score)
+        supplementary = (activity * 0.40) + (profile_quality * 0.35) + (mutual_interest * 0.25)
+        combined = (behavioral_compatibility * 0.60) + (supplementary * 0.40)
+
         return BehaviorScore(
             activity=activity,
             profile_quality=profile_quality,
             mutual_interest=mutual_interest,
+            behavioral_compatibility=behavioral_compatibility,
             combined=combined,
         )
 
@@ -394,6 +527,45 @@ class ReportService:
                 f"Your {strongest.label.lower()} ({strongest.score}/100) shows where you naturally connect."
             )
 
+    def _generate_cosmic_insight_ai(
+        self,
+        synastry: SynastryResult,
+        dimensions: CompatibilityDimensions,
+        overall_score: float,
+        person_a_name: str = "",
+        person_b_name: str = "",
+    ) -> Optional[str]:
+        if not self.ai_service:
+            return None
+        try:
+            return self.ai_service.generate_cosmic_insight(
+                synastry, dimensions, overall_score,
+                person_a_name=person_a_name, person_b_name=person_b_name,
+            )
+        except Exception as e:
+            logger.warning(f"AI cosmic insight failed, using rule-based: {e}")
+            return None
+
+    def _generate_top_reasons_ai(
+        self,
+        synastry: SynastryResult,
+        dimensions: CompatibilityDimensions,
+        shared_hobbies: Optional[List[str]],
+        shared_values: Optional[List[str]],
+        person_a_name: str = "",
+        person_b_name: str = "",
+    ) -> Optional[List[str]]:
+        if not self.ai_service:
+            return None
+        try:
+            return self.ai_service.generate_top_reasons(
+                synastry, dimensions, shared_hobbies, shared_values,
+                person_a_name=person_a_name, person_b_name=person_b_name,
+            )
+        except Exception as e:
+            logger.warning(f"AI top reasons failed, using rule-based: {e}")
+            return None
+
     def _generate_top_reasons(
         self,
         dimensions: Dict[str, DimensionScore],
@@ -418,9 +590,23 @@ class ReportService:
         return reasons[:5]
 
     def _generate_interpretation(
-        self, synastry: SynastryResult, dimensions: Dict[str, DimensionScore]
+        self,
+        synastry: SynastryResult,
+        dimensions: Dict[str, DimensionScore],
+        person_a_name: str = "",
+        person_b_name: str = "",
+        chart_dimensions: Optional[CompatibilityDimensions] = None,
     ) -> Dict[str, str]:
-        result = self.interpreter.interpret_synastry(synastry)
+        result = self.interpreter.interpret_synastry(
+            synastry,
+            dimensions=chart_dimensions,
+            person_a_name=person_a_name,
+            person_b_name=person_b_name,
+        )
+
+        coach_tips = list(result.coach_tips or [])
+        if not coach_tips:
+            coach_tips = self._fallback_coach_tips(dimensions, person_a_name, person_b_name)
 
         interpretation = {
             "summary": result.summary,
@@ -430,6 +616,14 @@ class ReportService:
             "growth_dynamic": result.growth_dynamic,
             "strengths": result.strengths,
             "challenges": result.challenges,
+            "personality_a": result.personality_a,
+            "personality_b": result.personality_b,
+            "love_language": result.love_language,
+            "trust_loyalty": result.trust_loyalty,
+            "intimacy_text": result.intimacy_text,
+            "conflict_style": result.conflict_style,
+            "overall_verdict": result.overall_verdict,
+            "coach_tips": coach_tips,
         }
 
         for dim_key, dim_score in dimensions.items():
@@ -456,12 +650,49 @@ class ReportService:
 
         return interpretation
 
+    def _fallback_coach_tips(
+        self,
+        dimensions: Dict[str, DimensionScore],
+        name_a: str = "",
+        name_b: str = "",
+    ) -> List[str]:
+        """Dimension-driven coaching tips when no richer interpretation exists."""
+        sorted_dims = sorted(dimensions.values(), key=lambda d: d.score)
+        weakest = sorted_dims[0] if sorted_dims else None
+        strongest = sorted_dims[-1] if sorted_dims else None
+
+        tips: List[str] = []
+        if weakest and weakest.score < 60:
+            tips.append(
+                f"Focus this month on {weakest.label.lower()} ({weakest.score}/100): "
+                f"one small, repeated action beats a big gesture."
+            )
+        if strongest and strongest.score >= 60:
+            tips.append(
+                f"Lean on your {strongest.label.lower()} ({strongest.score}/100) as the "
+                f"foundation when you work on harder areas."
+            )
+        tips.append(
+            "Do a weekly 20-minute check-in: one appreciation, one irritation, one plan."
+        )
+        tips.append(
+            "Name the repair move after a fight - a quick hug or callback joke shortens tension."
+        )
+        tips.append(
+            "Alternate who plans the next date so novelty never depends on one person."
+        )
+        return tips[:6]
+
     def report_to_dict(self, report: CompatibilityReport) -> dict:
         return {
             "overall_score": report.overall_score,
             "chart_score": report.chart_score,
             "behavior_score": report.behavior_score,
             "profile_similarity_score": report.profile_similarity_score,
+            "composite_score": report.composite_score,
+            "score_partial": report.score_partial,
+            "score_parts": report.score_parts,
+            "top_aspects": report.top_aspects,
             "cosmic_insight": report.cosmic_insight,
             "top_reasons": report.top_reasons,
             "dimensions": {
@@ -483,4 +714,9 @@ class ReportService:
             "shared": report.shared,
             "profiles": report.profiles,
             "interpretation": report.interpretation,
+            "score_breakdown": {
+                "chart": report.chart_score,
+                "behavior": report.behavior_score,
+                "profile_similarity": report.profile_similarity_score,
+            },
         }

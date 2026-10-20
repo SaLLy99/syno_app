@@ -22,10 +22,16 @@ class MatchRepository {
     headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
   );
 
+  Future<String> _getMode() async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString('app_mode') ?? 'dating';
+  }
+
   Future<int?> saveMatchToBackend(Match match) async {
     try {
       final String? token = await _getToken();
       final String? baseUrl = await _getBackendUrl();
+      final String mode = await _getMode();
       if (token == null || baseUrl == null) return null;
 
       final response = await _dio.post(
@@ -34,6 +40,7 @@ class MatchRepository {
           'matched_user_id': int.parse(match.matchedUserId),
           'status': match.status.name,
           'compatibility_score': match.averageScore.round(),
+          'mode': mode,
         },
         options: _authOptions(token),
       );
@@ -191,10 +198,12 @@ class MatchRepository {
     try {
       final String? token = await _getToken();
       final String? baseUrl = await _getBackendUrl();
+      final String mode = await _getMode();
       if (token == null || baseUrl == null) return <Map<String, dynamic>>[];
 
       final response = await _dio.get(
         '$baseUrl/api/likes/received',
+        queryParameters: {'mode': mode},
         options: _authOptions(token),
       );
       if (response.statusCode == 200) {

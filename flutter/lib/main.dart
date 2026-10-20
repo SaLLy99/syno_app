@@ -24,6 +24,7 @@ import 'package:syno_app/presentation/screens/analytics_screen.dart';
 import 'package:syno_app/presentation/providers/websocket_provider.dart';
 import 'package:syno_app/presentation/screens/profile_screen.dart';
 import 'package:syno_app/presentation/screens/register_photos_screen.dart';
+import 'package:syno_app/presentation/screens/register_mode_screen.dart';
 import 'package:syno_app/presentation/screens/register_intentions_screen.dart';
 import 'package:syno_app/presentation/screens/register_values_screen.dart';
 import 'package:syno_app/presentation/screens/register_hobbies_screen.dart';
@@ -126,6 +127,7 @@ const _authFlowRoutes = {
 const _registrationRoutes = {
   '/register-name',
   '/register-photos',
+  '/register-mode',
   '/register-identity',
   '/register-birth',
   '/register-intentions',
@@ -163,7 +165,7 @@ final routerProvider =Provider<GoRouter>((ref) {
 
       // 1. App Initialization Guard
       if (authState.isLoading) {
-        final allowedLoadingRoutes = ['/register-photos', '/otp-verification', '/theme-selection', '/profile-confirmation', '/register-name', '/register-identity', '/register-birth', '/register-intentions', '/register-values', '/register-hobbies', '/register-career', '/register-bio', '/reactivation'];
+        final allowedLoadingRoutes = ['/register-photos', '/register-mode', '/otp-verification', '/theme-selection', '/profile-confirmation', '/register-name', '/register-identity', '/register-birth', '/register-intentions', '/register-values', '/register-hobbies', '/register-career', '/register-bio', '/reactivation'];
         if (allowedLoadingRoutes.contains(location)) return null;
         return location == '/' ? null : '/';
       }
@@ -176,7 +178,7 @@ final routerProvider =Provider<GoRouter>((ref) {
           ref.read(registrationProvider.notifier).reset();
         }
         final authEntryRoutes = {'/', '/landing', '/login-method', '/otp-verification', '/login', '/register'};
-        final registrationRoutes = {'/register-name', '/register-photos', '/register-identity', '/register-birth', '/register-intentions', '/register-values', '/register-hobbies', '/register-career', '/register-bio', '/theme-selection', '/profile-confirmation'};
+        final registrationRoutes = {'/register-name', '/register-photos', '/register-mode', '/register-identity', '/register-birth', '/register-intentions', '/register-values', '/register-hobbies', '/register-career', '/register-bio', '/theme-selection', '/profile-confirmation'};
         if (authEntryRoutes.contains(location) || registrationRoutes.contains(location)) {
           return '/discover';
         }
@@ -186,7 +188,7 @@ final routerProvider =Provider<GoRouter>((ref) {
       if (!isLoggedIn) {
         // Routes allowed during the entry/auth/registration process
         final authFlowRoutes = {'/landing', '/login-method', '/otp-verification', '/login', '/register', '/onboarding', '/terms', '/privacy', '/reactivation'};
-        final registrationRoutes = {'/register-name', '/register-photos', '/register-identity', '/register-birth', '/register-intentions', '/register-values', '/register-hobbies', '/register-career', '/register-bio', '/theme-selection', '/profile-confirmation'};
+        final registrationRoutes = {'/register-name', '/register-photos', '/register-mode', '/register-identity', '/register-birth', '/register-intentions', '/register-values', '/register-hobbies', '/register-career', '/register-bio', '/theme-selection', '/profile-confirmation'};
 
         if (authFlowRoutes.contains(location)) return null;
         if (needsRegistration && registrationRoutes.contains(location)) return null;
@@ -204,7 +206,7 @@ final routerProvider =Provider<GoRouter>((ref) {
 
       // 4. In-App Setup Guard (For logged-in users with incomplete data)
       if (isProfileIncomplete) {
-        final setupRoutes = {'/register-name', '/register-photos', '/register-identity', '/register-birth', '/register-intentions', '/register-values', '/register-hobbies', '/register-career', '/register-bio', '/theme-selection', '/profile-confirmation'};
+        final setupRoutes = {'/register-name', '/register-photos', '/register-mode', '/register-identity', '/register-birth', '/register-intentions', '/register-values', '/register-hobbies', '/register-career', '/register-bio', '/theme-selection', '/profile-confirmation'};
         if (setupRoutes.contains(location)) return null;
         return '/register-name';
       }
@@ -263,6 +265,15 @@ final routerProvider =Provider<GoRouter>((ref) {
         pageBuilder: (context, state) => _slideTransitionPage(
           state,
           const RegisterPhotosScreen(),
+        ),
+      ),
+
+      GoRoute(
+        path: '/register-mode',
+        name: 'register-mode',
+        pageBuilder: (context, state) => _slideTransitionPage(
+          state,
+          const RegisterModeScreen(),
         ),
       ),
 

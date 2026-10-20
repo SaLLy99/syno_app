@@ -15,9 +15,6 @@ from ..domain.models import (
     SynastryResult,
     PlanetToPlanetAspect,
     HouseOverlay,
-    VedicChart,
-    VedicPlanetPosition,
-    VedicCompatibilityResult,
 )
 from ..domain.provider import AstrologyProvider
 
@@ -301,16 +298,6 @@ class SwissEphProvider(AstrologyProvider):
             mc=mc,
         )
 
-    def get_vedic_chart(
-        self,
-        birth_data: BirthData,
-        ayanamsa: str = "Lahiri",
-    ) -> VedicChart:
-        raise NotImplementedError(
-            "Vedic calculations require the VedAstro provider. "
-            "Use VedAstroProvider for Vedic charts."
-        )
-
     def get_synastry(
         self,
         person_a: BirthData,
@@ -412,14 +399,3 @@ class SwissEphProvider(AstrologyProvider):
                     break
 
         return overlays
-
-    def get_vedic_compatibility(
-        self,
-        person_a: BirthData,
-        person_b: BirthData,
-        ayanamsa: str = "Lahiri",
-    ) -> VedicCompatibilityResult:
-        raise NotImplementedError(
-            "Vedic compatibility requires the VedAstro provider. "
-            "Use VedAstroProvider for Vedic compatibility."
-        )

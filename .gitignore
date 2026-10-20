@@ -48,6 +48,8 @@ flutter/ios/Flutter/Flutter.framework.dSYM # iOS Flutter debug symbols
 flutter/ios/Flutter/flutter_assets/ # iOS Flutter assets
 
 # Python / FastAPI
+**/__pycache__/
+*.py[cod]
 backend/__pycache__/
 backend/*.py[cod]
 backend/*$py.class
@@ -70,6 +72,7 @@ backend/*.sqlite3
 # Environment Secrets
 *.env
 .env.*
+!backend/.env.example
 !flutter/assets/env/.env.example
 
 # OS specific

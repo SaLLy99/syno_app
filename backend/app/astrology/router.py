@@ -12,7 +12,6 @@ from app.config import settings
 from .domain.models import BirthData, AstrologySystem
 from .providers.base import create_astrology_provider
 from .providers.western import SwissEphProvider
-from .providers.vedastro import VedAstroProvider
 from .services.chart_service import ChartService
 from .services.synastry_service import SynastryService
 from .services.compatibility_service import CompatibilityService
@@ -27,16 +26,13 @@ from .schemas.requests import (
 )
 from .schemas.responses import (
     WesternChartResponse,
-    VedicChartResponse,
     SynastryResponse,
-    VedicCompatibilityResponse,
     CompatibilityResponse,
     InterpretationResponse,
     CompatibilityDimensionsResponse,
     PlanetPositionResponse,
     AspectResponse,
     HouseCuspResponse,
-    VedicPlanetPositionResponse,
     PlanetToPlanetAspectResponse,
     HouseOverlayResponse,
 )
@@ -48,6 +44,11 @@ router = APIRouter(prefix="/api/astrology", tags=["astrology"])
 _ai_service: Optional[AIInterpretationService] = None
 
 
+def _fallback_models() -> list[str]:
+    raw = settings.gemini_fallback_models or ""
+    return [m.strip() for m in raw.split(",") if m.strip()]
+
+
 def _get_ai_interpreter() -> ChartInterpreter:
     """Create a ChartInterpreter with optional Gemini AI backend."""
     global _ai_service
@@ -56,9 +57,24 @@ def _get_ai_interpreter() -> ChartInterpreter:
             _ai_service = AIInterpretationService(
                 api_key=settings.gemini_api_key,
                 model=settings.gemini_model,
+                fallback_models=_fallback_models(),
             )
         return ChartInterpreter(ai_service=_ai_service)
     return ChartInterpreter()
+
+
+def _get_ai_service() -> Optional[AIInterpretationService]:
+    """Get the AI interpretation service instance if configured."""
+    global _ai_service
+    if settings.ai_interpretation_enabled and settings.gemini_api_key and settings.gemini_api_key != "your_gemini_api_key_here":
+        if _ai_service is None:
+            _ai_service = AIInterpretationService(
+                api_key=settings.gemini_api_key,
+                model=settings.gemini_model,
+                fallback_models=_fallback_models(),
+            )
+        return _ai_service
+    return None
 
 
 def _birth_data_request_to_domain(req: BirthDataRequest) -> BirthData:
@@ -70,6 +86,17 @@ def _birth_data_request_to_domain(req: BirthDataRequest) -> BirthData:
         longitude=req.longitude,
         location_name=req.location_name,
     )
+
+
+def _resolve_names(request) -> tuple[str, str]:
+    """Resolve person display names from request, falling back to location names."""
+    name_a = (getattr(request, "person_a_name", None) or "").strip()
+    name_b = (getattr(request, "person_b_name", None) or "").strip()
+    if not name_a:
+        name_a = (request.person_a.location_name or "").strip()
+    if not name_b:
+        name_b = (request.person_b.location_name or "").strip()
+    return name_a, name_b
 
 
 def _planet_to_response(p) -> PlanetPositionResponse:
@@ -103,20 +130,6 @@ def _house_cusp_to_response(h) -> HouseCuspResponse:
     )
 
 
-def _vedic_planet_to_response(p) -> VedicPlanetPositionResponse:
-    return VedicPlanetPositionResponse(
-        planet=p.planet.value,
-        sign=p.sign.value,
-        degree=p.degree,
-        absolute_degree=p.absolute_degree,
-        house=p.house,
-        retrograde=p.retrograde,
-        nakshatra=p.nakshatra.value if p.nakshatra else None,
-        pada=p.pada,
-        sign_degree=p.sign_degree,
-    )
-
-
 def _synastry_aspect_to_response(a) -> PlanetToPlanetAspectResponse:
     return PlanetToPlanetAspectResponse(
         planet_a=a.planet_a.value,
@@ -146,44 +159,31 @@ def calculate_chart(
 ):
     birth_data = _birth_data_request_to_domain(request.birth_data)
 
+    if birth_data.latitude is None or birth_data.longitude is None:
+        raise HTTPException(
+            status_code=400,
+            detail="Birth location coordinates (latitude/longitude) are required for chart calculation"
+        )
+
     try:
-        if request.system == "vedic_sidereal":
-            provider = VedAstroProvider()
-            chart_service = ChartService(provider)
-            vedic_chart = chart_service.get_vedic_chart(
-                birth_data, request.ayanamsa or "Lahiri"
-            )
+        provider = SwissEphProvider()
+        chart_service = ChartService(provider)
+        western_chart = chart_service.get_western_chart(birth_data)
 
-            planets = [_vedic_planet_to_response(p) for p in vedic_chart.planets]
-            ascendant = _vedic_planet_to_response(vedic_chart.ascendant) if vedic_chart.ascendant else None
+        planets = [_planet_to_response(p) for p in western_chart.planets]
+        aspects = [_aspect_to_response(a) for a in western_chart.aspects]
+        house_cusps = [_house_cusp_to_response(h) for h in western_chart.house_cusps]
+        ascendant = _planet_to_response(western_chart.ascendant) if western_chart.ascendant else None
+        mc = _planet_to_response(western_chart.mc) if western_chart.mc else None
 
-            return VedicChartResponse(
-                system=vedic_chart.system.value,
-                ayanamsa=vedic_chart.ayanamsa,
-                planets=planets,
-                ascendant=ascendant,
-                moon_sign=vedic_chart.moon_sign.value if vedic_chart.moon_sign else None,
-                sun_sign=vedic_chart.sun_sign.value if vedic_chart.sun_sign else None,
-            )
-        else:
-            provider = SwissEphProvider()
-            chart_service = ChartService(provider)
-            western_chart = chart_service.get_western_chart(birth_data)
-
-            planets = [_planet_to_response(p) for p in western_chart.planets]
-            aspects = [_aspect_to_response(a) for a in western_chart.aspects]
-            house_cusps = [_house_cusp_to_response(h) for h in western_chart.house_cusps]
-            ascendant = _planet_to_response(western_chart.ascendant) if western_chart.ascendant else None
-            mc = _planet_to_response(western_chart.mc) if western_chart.mc else None
-
-            return WesternChartResponse(
-                system=western_chart.system.value,
-                planets=planets,
-                aspects=aspects,
-                house_cusps=house_cusps,
-                ascendant=ascendant,
-                mc=mc,
-            )
+        return WesternChartResponse(
+            system=western_chart.system.value,
+            planets=planets,
+            aspects=aspects,
+            house_cusps=house_cusps,
+            ascendant=ascendant,
+            mc=mc,
+        )
 
     except Exception as e:
         logger.error(f"Chart calculation failed: {e}")
@@ -200,6 +200,12 @@ def calculate_synastry(
 ):
     person_a = _birth_data_request_to_domain(request.person_a)
     person_b = _birth_data_request_to_domain(request.person_b)
+    name_a, name_b = _resolve_names(request)
+
+    if person_a.latitude is None or person_a.longitude is None:
+        raise HTTPException(status_code=400, detail=f"{name_a or 'First person'} birth location coordinates are required")
+    if person_b.latitude is None or person_b.longitude is None:
+        raise HTTPException(status_code=400, detail=f"{name_b or 'Second person'} birth location coordinates are required")
 
     try:
         provider = SwissEphProvider()
@@ -256,42 +262,39 @@ def calculate_interpretation(
 ):
     person_a = _birth_data_request_to_domain(request.person_a)
     person_b = _birth_data_request_to_domain(request.person_b)
+    name_a, name_b = _resolve_names(request)
+
+    if person_a.latitude is None or person_a.longitude is None:
+        raise HTTPException(status_code=400, detail=f"{name_a or 'First person'} birth location coordinates are required")
+    if person_b.latitude is None or person_b.longitude is None:
+        raise HTTPException(status_code=400, detail=f"{name_b or 'Second person'} birth location coordinates are required")
 
     try:
         western_provider = SwissEphProvider()
-        vedic_provider = VedAstroProvider()
 
         synastry_service = SynastryService(western_provider)
         compatibility_service = CompatibilityService(western_provider)
+        ai_svc = _get_ai_service()
         interpreter = _get_ai_interpreter()
 
+        logger.info("Step 1: Calculating raw synastry data via Swiss Ephemeris...")
         synastry = synastry_service.calculate_synastry(person_a, person_b)
-        dimensions = compatibility_service.calculate_compatibility(
-            person_a, person_b, request.ayanamsa or "Lahiri"
-        )
+        dimensions = compatibility_service.calculate_compatibility(person_a, person_b)
+        logger.info(f"Step 1 DONE: {len(synastry.planet_aspects)} aspects, overall={dimensions.overall}")
+        logger.info(f"Step 1 DIMENSIONS: emotional={dimensions.emotional}, communication={dimensions.communication}, values={dimensions.values}, attraction={dimensions.attraction}, conflict={dimensions.conflict}, stability={dimensions.stability}, growth={dimensions.growth}, overall={dimensions.overall}")
 
-        vedic_compatibility = None
-        if request.include_vedic:
-            try:
-                vedic_compatibility = vedic_provider.get_vedic_compatibility(
-                    person_a, person_b, request.ayanamsa or "Lahiri"
-                )
-            except Exception as e:
-                logger.warning(f"Vedic compatibility failed: {e}")
-
+        logger.info("Step 2: Generating AI interpretations from raw data...")
         interpretation = interpreter.interpret_synastry(
-            synastry, vedic_compatibility, dimensions
+            synastry,
+            dimensions=dimensions,
+            person_a_name=name_a,
+            person_b_name=name_b,
         )
-
-        vedic_response = None
-        if vedic_compatibility:
-            vedic_response = VedicCompatibilityResponse(
-                system="vedic_sidereal",
-                ayanamsa=request.ayanamsa or "Lahiri",
-                kuta_score=vedic_compatibility.kuta_score,
-                kuta_details=vedic_compatibility.kuta_details,
-                summary=vedic_compatibility.summary,
-            )
+        ai_used = ai_svc is not None and getattr(interpreter, "last_used_ai", False)
+        logger.info(f"Step 2 DONE: ai_used={ai_used} (ai_service_configured={ai_svc is not None})")
+        logger.info(f"Step 2 INTERPRETATION: summary={len(interpretation.summary)}chars, strengths={len(interpretation.strengths)}, challenges={len(interpretation.challenges)}, comm={len(interpretation.communication)}chars, emotional={len(interpretation.emotional_dynamic)}chars")
+        logger.info(f"Step 2 STRENGTHS: {interpretation.strengths}")
+        logger.info(f"Step 2 CHALLENGES: {interpretation.challenges}")
 
         person_a_chart = None
         if synastry.person_a_chart:
@@ -324,9 +327,11 @@ def calculate_interpretation(
             sextiles=[_synastry_aspect_to_response(a) for a in synastry.sextiles],
         )
 
+        logger.info(f"RESPONSE: {len(synastry.planet_aspects)} planet aspects, {len(synastry.conjunctions)} conjunctions, {len(synastry.trines)} trines, {len(synastry.squares)} squares, {len(synastry.sextiles)} sextiles")
+        logger.info(f"RESPONSE ASPECTS: {'; '.join([f'{a.planet_a.value}-{a.planet_b.value} {a.aspect.value} orb={a.orb:.1f}' for a in synastry.planet_aspects[:5]])}")
+
         return CompatibilityResponse(
             western_synastry=synastry_response,
-            vedic_compatibility=vedic_response,
             dimensions=CompatibilityDimensionsResponse(
                 emotional=dimensions.emotional,
                 communication=dimensions.communication,
@@ -346,7 +351,17 @@ def calculate_interpretation(
                 values=interpretation.values,
                 growth_dynamic=interpretation.growth_dynamic,
                 important_aspects=interpretation.important_aspects,
+                ai_used=ai_used,
+                personality_a=interpretation.personality_a,
+                personality_b=interpretation.personality_b,
+                love_language=interpretation.love_language,
+                trust_loyalty=interpretation.trust_loyalty,
+                intimacy_text=interpretation.intimacy_text,
+                conflict_style=interpretation.conflict_style,
+                overall_verdict=interpretation.overall_verdict,
+                coach_tips=interpretation.coach_tips or [],
             ),
+            ai_used=ai_used,
         )
 
     except Exception as e:
@@ -364,13 +379,21 @@ def generate_report(
 ):
     person_a = _birth_data_request_to_domain(request.person_a)
     person_b = _birth_data_request_to_domain(request.person_b)
+    name_a, name_b = _resolve_names(request)
+
+    if person_a.latitude is None or person_a.longitude is None:
+        raise HTTPException(status_code=400, detail=f"{name_a or 'First person'} birth location coordinates are required")
+    if person_b.latitude is None or person_b.longitude is None:
+        raise HTTPException(status_code=400, detail=f"{name_b or 'Second person'} birth location coordinates are required")
 
     try:
         provider = SwissEphProvider()
         from .services.report_service import ReportService
         ai_interpreter = _get_ai_interpreter()
-        report_service = ReportService(provider, interpreter=ai_interpreter)
+        ai_svc = _get_ai_service()
+        report_service = ReportService(provider, interpreter=ai_interpreter, ai_service=ai_svc)
 
+        logger.info("Report: Step 1 - Calculating raw astrology data...")
         shared_hobbies = []
         shared_values = []
         shared_intentions = []
@@ -381,11 +404,14 @@ def generate_report(
             shared_hobbies=shared_hobbies,
             shared_values=shared_values,
             shared_intentions=shared_intentions,
-            user_a_name=request.person_a.location_name or "",
-            user_b_name=request.person_b.location_name or "",
+            user_a_name=name_a,
+            user_b_name=name_b,
         )
+        logger.info(f"Report: Step 2 - AI interpretations generated, ai_used={ai_svc is not None}")
 
-        return report_service.report_to_dict(report)
+        result = report_service.report_to_dict(report)
+        result['ai_used'] = ai_svc is not None and getattr(ai_interpreter, "last_used_ai", False)
+        return result
 
     except Exception as e:
         logger.error(f"Report generation failed: {e}")

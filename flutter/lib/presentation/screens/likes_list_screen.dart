@@ -5,10 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:syno_app/domain/entities/match.dart';
 import 'package:syno_app/presentation/providers/auth_providers.dart';
 import 'package:syno_app/presentation/widgets/match_found_dialog.dart';
-import 'package:syno_app/domain/entities/synastry_data.dart';
+
 import 'package:syno_app/domain/entities/user.dart';
 import 'package:syno_app/presentation/providers/match_provider.dart';
-import 'package:syno_app/presentation/providers/auth_providers.dart';
 import 'package:syno_app/presentation/widgets/match_score_badge.dart';
 import 'package:syno_app/theme.dart';
 import 'package:syno_app/presentation/providers/theme_provider.dart';
@@ -154,16 +153,10 @@ class LikesListScreen extends ConsumerWidget {
                   birthDate: like.birthDate != null ? DateTime.tryParse(like.birthDate!) : null,
                 ),
                 finalScore: (like.compatibilityScore ?? 0).toDouble(),
-                synastryScore: 0,
+                synastryScore: (like.compatibilityScore ?? 0).toDouble(),
                 behavioralScore: 0,
                 topReasons: const <String>[],
-                cosmicInsight: 'Someone is interested in you!',
-                synastryData: SynastryData(
-                  moonScore: 0, mercuryScore: 0, venusMarsScore: 0,
-                  nodesScore: 0, saturnScore: 0,
-                  detailedAspects: const <Aspect>[],
-                  interpretation: '',
-                ),
+                cosmicInsight: '',
                 status: MatchStatus.accepted,
                 createdAt: like.createdAt ?? DateTime.now(),
                 backendMatchId: like.matchId,
@@ -285,15 +278,9 @@ class LikesListScreen extends ConsumerWidget {
                           matchedUser: matchedUser,
                           finalScore: (like.compatibilityScore ?? 50).toDouble(),
                           synastryScore: (like.compatibilityScore ?? 50).toDouble(),
-                          behavioralScore: 50.0,
+                          behavioralScore: null,
                           topReasons: const <String>[],
                           cosmicInsight: '',
-                          synastryData: SynastryData(
-                            moonScore: 50, mercuryScore: 50, venusMarsScore: 50,
-                            nodesScore: 50, saturnScore: 50,
-                            detailedAspects: const <Aspect>[],
-                            interpretation: '',
-                          ),
                           status: MatchStatus.accepted,
                           createdAt: DateTime.now(),
                           backendMatchId: like.matchId,

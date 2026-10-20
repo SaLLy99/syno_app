@@ -72,8 +72,16 @@ class _LocationSearchDialogState extends ConsumerState<LocationSearchDialog> {
                         return ListTile(
                           title: Text(item.localizedDisplayName, style: const TextStyle(color: Colors.white)),
                           onTap: () {
-                            // Convert LocationItem to Location (User entity)
-                            final Location location = Location(id: item.id, name: item.displayName,translationKey:item.translationKey);
+                            final Location location = Location(
+                              id: item.id,
+                              name: item.displayName,
+                              translationKey: item.translationKey,
+                              type: item.type,
+                              parent: item.parent != null ? LocationParent(id: item.parent!.id, name: item.parent!.name, translationKey: item.parent!.translationKey) : null,
+                              latitude: item.latitude,
+                              longitude: item.longitude,
+                              timezone: item.timezone,
+                            );
                             Navigator.of(context).pop(location);
                           },
                         );

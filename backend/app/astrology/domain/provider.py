@@ -1,12 +1,9 @@
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from ..domain.models import (
     BirthData,
     WesternChart,
-    VedicChart,
     SynastryResult,
-    VedicCompatibilityResult,
 )
 
 
@@ -23,29 +20,10 @@ class AstrologyProvider(ABC):
         ...
 
     @abstractmethod
-    def get_vedic_chart(
-        self,
-        birth_data: BirthData,
-        ayanamsa: str = "Lahiri",
-    ) -> VedicChart:
-        """Calculate a Vedic (sidereal) natal chart."""
-        ...
-
-    @abstractmethod
     def get_synastry(
         self,
         person_a: BirthData,
         person_b: BirthData,
     ) -> SynastryResult:
         """Calculate Western synastry between two people."""
-        ...
-
-    @abstractmethod
-    def get_vedic_compatibility(
-        self,
-        person_a: BirthData,
-        person_b: BirthData,
-        ayanamsa: str = "Lahiri",
-    ) -> VedicCompatibilityResult:
-        """Calculate Vedic (Kuta) compatibility between two people."""
         ...

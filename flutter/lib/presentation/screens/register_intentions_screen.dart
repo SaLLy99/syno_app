@@ -42,7 +42,7 @@ class _RegisterIntentionsScreenState
 
     return OnboardingScaffold(
       title: 'register.intentions_title'.tr(),
-      progress: 5 / 9,
+      progress: 6 / 10,
       onContinue: _onNext,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16.0),

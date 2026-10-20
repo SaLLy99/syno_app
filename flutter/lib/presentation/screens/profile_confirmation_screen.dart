@@ -2,6 +2,7 @@ import 'package:cross_file/src/types/interface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:syno_app/data/services/user_service.dart';
 import 'package:syno_app/presentation/providers/registration_provider.dart';
 import 'package:syno_app/presentation/providers/theme_provider.dart';
@@ -39,6 +40,11 @@ class ProfileConfirmationScreen extends ConsumerWidget {
         photoPaths,
         firstIsPrimary: true,
       );
+
+      // Save active mode to local storage
+      final String activeMode = registrationState.profileData.activeMode ?? 'dating';
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('app_mode', activeMode);
 
       if (themeData.isNotEmpty) {
         final AppThemeData newTheme = AppThemeData.fromJson(themeData);

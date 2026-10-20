@@ -95,7 +95,7 @@ class _RegisterNameScreenState extends ConsumerState<RegisterNameScreen> {
   Widget build(BuildContext context) {
     return OnboardingScaffold(
       title: 'register.name_title'.tr(),
-      progress: 1 / 9,
+      progress: 1 / 10,
       onContinue: _onContinue,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24.0),

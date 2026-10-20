@@ -12,7 +12,6 @@ from app.astrology.domain.models import (
     AspectData,
     HouseCusp,
     WesternChart,
-    VedicChart,
     SynastryResult,
     CompatibilityDimensions,
     InterpretationResult,
@@ -141,21 +140,6 @@ class TestCacheKeys:
         key1 = generate_chart_cache_key(bd, AstrologySystem.WESTERN_TROPICAL)
         key2 = generate_chart_cache_key(bd, AstrologySystem.WESTERN_TROPICAL)
         assert key1 == key2
-
-    def test_chart_cache_key_different_systems(self):
-        from app.astrology.cache.keys import generate_chart_cache_key
-
-        bd = BirthData(
-            birth_date=date(1996, 6, 26),
-            birth_time=time(22, 44),
-            timezone="+04:00",
-            latitude=41.7151,
-            longitude=44.8271,
-        )
-
-        key_western = generate_chart_cache_key(bd, AstrologySystem.WESTERN_TROPICAL)
-        key_vedic = generate_chart_cache_key(bd, AstrologySystem.VEDIC_SIDEREAL, "Lahiri")
-        assert key_western != key_vedic
 
     def test_synastry_cache_key_order_independent(self):
         from app.astrology.cache.keys import generate_synastry_cache_key

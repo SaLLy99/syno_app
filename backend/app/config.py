@@ -28,13 +28,13 @@ class Settings(BaseSettings):
     twilio_phone: str = ""
 
     # Astrology Provider Settings
-    vedastro_api_key: str = "FreeAPIUser"
-    astrology_provider: str = "swisseph"  # swisseph, vedastro, combined
-    default_ayanamsa: str = "Lahiri"
+    astrology_provider: str = "swisseph"
 
     # AI Interpretation Settings (Google Gemini - Free Tier)
+    # 3.6-flash free tier is ~20 req/day; lite models are more available.
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.0-flash"
+    gemini_model: str = "gemini-3.1-flash-lite"
+    gemini_fallback_models: str = "gemini-3.6-flash,gemini-3.5-flash"
     ai_interpretation_enabled: bool = True
 
     model_config = SettingsConfigDict(

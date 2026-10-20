@@ -13,6 +13,11 @@ class DiscoverPreferences {
   final Map<String, double> weights;
   final String birthTimeRequirement;
 
+  // Matching signal weights (0-100, normalized to sum to 100)
+  final int weightNatalChart;
+  final int weightInterests;
+  final int weightBehavior;
+
   final String? wantsChildren;
   final String? smoking;
   final String? drinking;
@@ -53,6 +58,9 @@ class DiscoverPreferences {
       'spiritual': 50,
     },
     this.birthTimeRequirement = 'optional',
+    this.weightNatalChart = 60,
+    this.weightInterests = 10,
+    this.weightBehavior = 30,
     this.wantsChildren,
     this.smoking,
     this.drinking,
@@ -94,6 +102,9 @@ class DiscoverPreferences {
         'spiritual': (json['weight_spiritual'] as int? ?? 50).toDouble(),
       },
       birthTimeRequirement: json['birth_time_requirement'] as String? ?? 'optional',
+      weightNatalChart: json['weight_natal_chart'] as int? ?? 60,
+      weightInterests: json['weight_interests'] as int? ?? 10,
+      weightBehavior: json['weight_behavior'] as int? ?? 30,
       wantsChildren: json['wants_children'] as String?,
       smoking: json['smoking'] as String?,
       drinking: json['drinking'] as String?,
@@ -133,6 +144,9 @@ class DiscoverPreferences {
     'weight_chemistry': weights['chemistry']?.toInt() ?? 50,
     'weight_spiritual': weights['spiritual']?.toInt() ?? 50,
     'birth_time_requirement': birthTimeRequirement,
+    'weight_natal_chart': weightNatalChart,
+    'weight_interests': weightInterests,
+    'weight_behavior': weightBehavior,
     'wants_children': wantsChildren,
     'smoking': smoking,
     'drinking': drinking,
@@ -164,6 +178,9 @@ class DiscoverPreferences {
     String? priorityType,
     Map<String, double>? weights,
     String? birthTimeRequirement,
+    int? weightNatalChart,
+    int? weightInterests,
+    int? weightBehavior,
     String? wantsChildren,
     String? smoking,
     String? drinking,
@@ -194,6 +211,9 @@ class DiscoverPreferences {
       priorityType: priorityType ?? this.priorityType,
       weights: weights ?? this.weights,
       birthTimeRequirement: birthTimeRequirement ?? this.birthTimeRequirement,
+      weightNatalChart: weightNatalChart ?? this.weightNatalChart,
+      weightInterests: weightInterests ?? this.weightInterests,
+      weightBehavior: weightBehavior ?? this.weightBehavior,
       wantsChildren: wantsChildren ?? this.wantsChildren,
       smoking: smoking ?? this.smoking,
       drinking: drinking ?? this.drinking,
@@ -246,5 +266,18 @@ class DiscoverPreferences {
     'friendship': '🤝',
     'chemistry': '⚡',
     'spiritual': '✨',
+  };
+
+  // Matching signal labels
+  static const Map<String, String> signalLabels = {
+    'natal_chart': 'Natal Chart',
+    'interests': 'Common Interests',
+    'behavior': 'User Behavior',
+  };
+
+  static const Map<String, String> signalIcons = {
+    'natal_chart': '🌟',
+    'interests': '🎯',
+    'behavior': '💫',
   };
 }

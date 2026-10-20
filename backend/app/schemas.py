@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, field_validator
-from typing import List, Optional
+from typing import List, Optional, Literal
 from datetime import date, datetime
 import json
 from fastapi import Form
@@ -51,6 +51,7 @@ class Location(OrmBaseModel):
     translation_key: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+    timezone: Optional[str] = None
 
 class UserPhoto(OrmBaseModel):
     id: int
@@ -216,6 +217,7 @@ class Profile(ProfileBase, OrmBaseModel):
     """The main response model for a user's profile."""
     id: int
     user_id: int
+    active_mode: str = "dating"
     created_at: datetime
     updated_at: datetime
     
@@ -262,6 +264,9 @@ class UserPreferencesCreate(BaseModel):
     weight_chemistry: Optional[int] = 50
     weight_spiritual: Optional[int] = 50
     birth_time_requirement: Optional[str] = 'optional'
+    weight_natal_chart: Optional[int] = 60
+    weight_interests: Optional[int] = 10
+    weight_behavior: Optional[int] = 30
     wants_children: Optional[str] = None
     smoking: Optional[str] = None
     drinking: Optional[str] = None
@@ -301,6 +306,9 @@ class UserPreferencesResponse(OrmBaseModel):
     weight_chemistry: int
     weight_spiritual: int
     birth_time_requirement: str
+    weight_natal_chart: int
+    weight_interests: int
+    weight_behavior: int
     wants_children: Optional[str]
     smoking: Optional[str]
     drinking: Optional[str]
@@ -342,12 +350,69 @@ class UserByEmailRequest(BaseModel):
     email: EmailStr
 
 
+# --- Schemas for Dual Mode (Dating + BFF) ---
+
+class ModeSwitchRequest(BaseModel):
+    mode: Literal["dating", "bff"]
+
+class ModeResponse(BaseModel):
+    active_mode: str
+
+class UserAppModeResponse(OrmBaseModel):
+    id: int
+    profile_id: int
+    mode: str
+    min_age: int
+    max_age: int
+    max_distance: int
+    genders: List[str]
+    orientations: List[str]
+    weight_romance: int
+    weight_emotional: int
+    weight_communication: int
+    weight_long_term: int
+    weight_marriage: int
+    weight_friendship: int
+    weight_chemistry: int
+    weight_spiritual: int
+    weight_natal_chart: int
+    weight_interests: int
+    weight_behavior: int
+    photos_only: bool
+    complete_profiles_only: bool
+    hide_swiped: bool
+    hide_inactive: bool
+
+class UserAppModeUpdate(BaseModel):
+    min_age: Optional[int] = None
+    max_age: Optional[int] = None
+    max_distance: Optional[int] = None
+    genders: Optional[List[str]] = None
+    orientations: Optional[List[str]] = None
+    weight_romance: Optional[int] = None
+    weight_emotional: Optional[int] = None
+    weight_communication: Optional[int] = None
+    weight_long_term: Optional[int] = None
+    weight_marriage: Optional[int] = None
+    weight_friendship: Optional[int] = None
+    weight_chemistry: Optional[int] = None
+    weight_spiritual: Optional[int] = None
+    weight_natal_chart: Optional[int] = None
+    weight_interests: Optional[int] = None
+    weight_behavior: Optional[int] = None
+    photos_only: Optional[bool] = None
+    complete_profiles_only: Optional[bool] = None
+    hide_swiped: Optional[bool] = None
+    hide_inactive: Optional[bool] = None
+
+
 # --- Schemas for Matches ---
 
 class MatchCreate(BaseModel):
     matched_user_id: int
     status: str = "pending"
     compatibility_score: Optional[int] = None
+    mode: str = "dating"
 
 class MatchUpdate(BaseModel):
     status: str
@@ -358,6 +423,7 @@ class MatchResponse(OrmBaseModel):
     matched_user_id: int
     status: str
     compatibility_score: Optional[int]
+    mode: str = "dating"
     created_at: datetime
     updated_at: datetime
 
@@ -367,6 +433,7 @@ class MatchWithProfileResponse(OrmBaseModel):
     matched_user_id: int
     status: str
     compatibility_score: Optional[int]
+    mode: str = "dating"
     created_at: datetime
     updated_at: datetime
     matched_profile: Optional[dict] = None
@@ -410,6 +477,7 @@ class ChatListResponse(OrmBaseModel):
     matched_user_id: int
     matched_profile: Optional[dict] = None
     compatibility_score: Optional[int] = None
+    mode: str = "dating"
     last_message: Optional[str] = None
     last_message_at: Optional[datetime] = None
     last_message_sender_id: Optional[int] = None
@@ -420,6 +488,7 @@ class ReceivedLikeResponse(OrmBaseModel):
     match_id: int
     user_id: int
     compatibility_score: Optional[int] = None
+    mode: str = "dating"
     created_at: datetime
     profile: Optional[dict] = None
 
@@ -443,17 +512,30 @@ class SmartDiscoverItem(OrmBaseModel):
     professions: List[dict] = []
     educations: List[dict] = []
     compatibility_score: int = 0
+    chart_score: Optional[int] = None
+    chart_partial: bool = False
+    profile_similarity_score: Optional[int] = None
+    synastry_score: Optional[int] = None
+    behavioral_score: Optional[int] = None
+    composite_score: Optional[int] = None
     weighted_score: int = 0
+    score_parts: List[dict] = []
     top_reasons: List[str] = []
     cosmic_insight: str = ""
     liked_by_user: bool = False
+    mode: str = "dating"
+    synastry_data: Optional[dict] = None
 
 
 class RecommendationResponse(OrmBaseModel):
     id: int
     recommended_user_id: int
     score: int
+    # Headline % = natal chart score (same number as discover/matches).
+    compatibility_score: Optional[int] = None
+    chart_partial: bool = False
     reasons: List[str] = []
     cosmic_insight: str = ""
     recommendation_date: str
+    mode: str = "dating"
     profile: Optional[dict] = None

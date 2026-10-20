@@ -22,6 +22,9 @@ class LocationItem {
   final String type;
   final String translationKey;
   final LocationItemParent? parent;
+  final double? latitude;
+  final double? longitude;
+  final String? timezone;
 
   LocationItem({
     required this.id,
@@ -29,6 +32,9 @@ class LocationItem {
     required this.type,
     required this.translationKey,
     this.parent,
+    this.latitude,
+    this.longitude,
+    this.timezone,
   });
 
   factory LocationItem.fromJson(Map<String, dynamic> json) {
@@ -38,6 +44,9 @@ class LocationItem {
       type: json['type']?.toString() ?? '',
       translationKey: json['translation_key']?.toString() ?? json['translationKey']?.toString() ?? '',
       parent: json['parent'] != null ? LocationItemParent.fromJson(json['parent']) : null,
+      latitude: (json['latitude'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble(),
+      timezone: json['timezone'] as String?,
     );
   }
 

@@ -68,7 +68,7 @@ class _RegisterPhotosScreenState extends ConsumerState<RegisterPhotosScreen> {
   }
 
   void _onNext() {
-    context.push('/register-identity');
+    context.push('/register-mode');
   }
 
   @override
@@ -78,7 +78,7 @@ class _RegisterPhotosScreenState extends ConsumerState<RegisterPhotosScreen> {
 
     return OnboardingScaffold(
       title: 'register.photos_title'.tr(),
-      progress: 2 / 9,
+      progress: 2 / 10,
       canContinue: canComplete,
       onContinue: _onNext,
       continueLabel: canComplete

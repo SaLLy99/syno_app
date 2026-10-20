@@ -496,12 +496,13 @@ def decline_incoming_like(db: Session, match_id: int, user_id: int) -> bool:
 
 # --- Match Management ---
 
-def create_match(db: Session, user_id: int, matched_user_id: int, status: str = "pending", compatibility_score: int = None) -> Optional[models.Match]:
+def create_match(db: Session, user_id: int, matched_user_id: int, status: str = "pending", compatibility_score: int = None, mode: str = "dating") -> Optional[models.Match]:
     if user_id == matched_user_id:
         return None
     existing = db.query(models.Match).filter(
         models.Match.user_id == user_id,
-        models.Match.matched_user_id == matched_user_id
+        models.Match.matched_user_id == matched_user_id,
+        models.Match.mode == mode,
     ).first()
     if existing:
         existing.status = status
@@ -514,7 +515,8 @@ def create_match(db: Session, user_id: int, matched_user_id: int, status: str = 
         user_id=user_id,
         matched_user_id=matched_user_id,
         status=status,
-        compatibility_score=compatibility_score
+        compatibility_score=compatibility_score,
+        mode=mode,
     )
     db.add(match)
     db.commit()
@@ -772,3 +774,173 @@ def verify_otp_phone_logic(db: Session, phone: str, provided_code: str):
     otp_record.used_flag = True
     db.commit()
     return True, "otp.success"
+
+
+# --- Dual Mode (Dating + BFF) ---
+
+def get_or_create_app_mode(db: Session, profile_id: int, mode: str) -> models.UserAppMode:
+    """Get or create mode-specific preferences for a profile."""
+    app_mode = db.query(models.UserAppMode).filter(
+        models.UserAppMode.profile_id == profile_id,
+        models.UserAppMode.mode == mode
+    ).first()
+    if not app_mode:
+        app_mode = models.UserAppMode(profile_id=profile_id, mode=mode)
+        db.add(app_mode)
+        db.commit()
+        db.refresh(app_mode)
+    return app_mode
+
+
+def update_app_mode(db: Session, profile_id: int, mode: str, data: dict) -> models.UserAppMode:
+    """Update mode-specific preferences."""
+    app_mode = get_or_create_app_mode(db, profile_id, mode)
+    for key, value in data.items():
+        if value is not None and hasattr(app_mode, key):
+            setattr(app_mode, key, value)
+    db.commit()
+    db.refresh(app_mode)
+    return app_mode
+
+
+def switch_active_mode(db: Session, user_id: int, mode: str) -> Optional[models.Profile]:
+    """Switch the user's active mode (dating or bff)."""
+    profile = get_profile_by_user_id(db, user_id=user_id)
+    if not profile:
+        return None
+    profile.active_mode = mode
+    db.commit()
+    db.refresh(profile)
+    return profile
+
+
+def get_chat_list_by_mode(db: Session, user_id: int, mode: str) -> List[dict]:
+    """Get chat list filtered by mode."""
+    blocked_ids = get_blocked_user_ids(db, user_id)
+    matches = db.query(models.Match).filter(
+        models.Match.user_id == user_id,
+        models.Match.status == "accepted",
+        models.Match.mode == mode,
+        ~models.Match.matched_user_id.in_(blocked_ids) if blocked_ids else True,
+    ).order_by(models.Match.created_at.desc()).all()
+    result = []
+    seen_pairs = set()
+    for match in matches:
+        reverse_match = db.query(models.Match).filter(
+            models.Match.user_id == match.matched_user_id,
+            models.Match.matched_user_id == user_id,
+            models.Match.status == "accepted",
+            models.Match.mode == mode,
+        ).first()
+        pair_key = (min(user_id, match.matched_user_id), max(user_id, match.matched_user_id), mode)
+        if pair_key in seen_pairs:
+            continue
+        seen_pairs.add(pair_key)
+        if reverse_match:
+            canonical_match_id = min(match.id, reverse_match.id)
+            match_ids = [match.id, reverse_match.id]
+        else:
+            canonical_match_id = match.id
+            match_ids = [match.id]
+        other_profile = db.query(models.Profile).options(
+            joinedload(models.Profile.photos).load_only(models.UserPhoto.id, models.UserPhoto.is_primary, models.UserPhoto.upload_order),
+            joinedload(models.Profile.sex)
+        ).filter(models.Profile.user_id == match.matched_user_id).first()
+        last_msg = db.query(models.Message).filter(
+            models.Message.match_id.in_(match_ids)
+        ).order_by(models.Message.created_at.desc()).first()
+        unread_count = db.query(models.Message).filter(
+            models.Message.match_id.in_(match_ids),
+            models.Message.sender_id != user_id,
+            models.Message.is_read == False
+        ).count()
+        profile_dict = None
+        if other_profile:
+            primary_photo = next((p for p in other_profile.photos if p.is_primary), (other_profile.photos[0] if other_profile.photos else None))
+            other_user = db.query(models.SynoUser).filter(models.SynoUser.id == match.matched_user_id).first()
+            profile_dict = {
+                "id": other_profile.user_id,
+                "user_id": other_profile.user_id,
+                "name": other_profile.name,
+                "photo_url": f"/api/photos/{primary_photo.id}" if primary_photo else None,
+                "sex": other_profile.sex.name if other_profile.sex else None,
+                "last_active_at": other_user.last_active_at.isoformat() if other_user and other_user.last_active_at else None,
+            }
+        result.append({
+            "match_id": canonical_match_id,
+            "matched_user_id": match.matched_user_id,
+            "matched_profile": profile_dict,
+            "compatibility_score": match.compatibility_score,
+            "mode": match.mode,
+            "last_message": last_msg.content if last_msg else None,
+            "last_message_at": last_msg.created_at if last_msg else match.created_at,
+            "last_message_sender_id": last_msg.sender_id if last_msg else None,
+            "is_read": unread_count == 0,
+            "unread_count": unread_count,
+        })
+    return result
+
+
+def get_received_likes_by_mode(db: Session, user_id: int, mode: str) -> List[dict]:
+    """Get received likes filtered by mode."""
+    blocked_ids = get_blocked_user_ids(db, user_id)
+    matches = db.query(models.Match).filter(
+        models.Match.matched_user_id == user_id,
+        models.Match.status == "accepted",
+        models.Match.mode == mode,
+        ~models.Match.user_id.in_(blocked_ids) if blocked_ids else True,
+    ).order_by(models.Match.created_at.desc()).all()
+    result = []
+    for match in matches:
+        reverse = db.query(models.Match).filter(
+            models.Match.user_id == user_id,
+            models.Match.matched_user_id == match.user_id,
+            models.Match.status == "accepted",
+            models.Match.mode == mode,
+        ).first()
+        if reverse:
+            continue
+        profile = db.query(models.Profile).options(
+            joinedload(models.Profile.photos).load_only(models.UserPhoto.id, models.UserPhoto.is_primary, models.UserPhoto.upload_order),
+            joinedload(models.Profile.sex),
+            joinedload(models.Profile.location),
+        ).filter(models.Profile.user_id == match.user_id).first()
+        if not profile:
+            continue
+        primary_photo = next((p for p in profile.photos if p.is_primary), (profile.photos[0] if profile.photos else None))
+        result.append({
+            "match_id": match.id,
+            "user_id": match.user_id,
+            "compatibility_score": match.compatibility_score,
+            "mode": match.mode,
+            "created_at": match.created_at,
+            "profile": {
+                "id": profile.user_id,
+                "user_id": profile.user_id,
+                "name": profile.name,
+                "last_name": profile.last_name,
+                "birth_date": profile.birth_date.isoformat() if profile.birth_date else None,
+                "bio": profile.bio,
+                "location": {"id": profile.location.id, "name": profile.location.name, "latitude": profile.location.latitude, "longitude": profile.location.longitude} if profile.location else None,
+                "sex": {"id": profile.sex.id, "name": profile.sex.name} if profile.sex else None,
+                "photo_url": f"/api/photos/{primary_photo.id}" if primary_photo else None,
+            }
+        })
+    return result
+
+
+def get_matches_for_user_by_mode(db: Session, user_id: int, mode: str) -> List[models.Match]:
+    """Get matches for a user filtered by mode."""
+    return db.query(models.Match).filter(
+        models.Match.user_id == user_id,
+        models.Match.mode == mode,
+    ).order_by(models.Match.created_at.desc()).all()
+
+
+def get_accepted_matches_for_user_by_mode(db: Session, user_id: int, mode: str) -> List[models.Match]:
+    """Get accepted matches for a user filtered by mode."""
+    return db.query(models.Match).filter(
+        models.Match.user_id == user_id,
+        models.Match.status == "accepted",
+        models.Match.mode == mode,
+    ).order_by(models.Match.created_at.desc()).all()

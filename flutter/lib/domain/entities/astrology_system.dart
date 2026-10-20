@@ -2,8 +2,7 @@ import 'package:flutter_riverpod/legacy.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum AstrologySystem {
-  western('Western', 'Tropical Zodiac'),
-  eastern('Eastern', 'Sidereal Zodiac (Lahiri)');
+  western('Western', 'Tropical Zodiac');
 
   final String label;
   final String description;

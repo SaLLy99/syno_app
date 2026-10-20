@@ -14,6 +14,7 @@ class SwipeableCard extends ConsumerStatefulWidget {
   final VoidCallback? onPass;
   final VoidCallback? onSuperLike;
   final VoidCallback? onViewProfile;
+  final VoidCallback? onViewCosmic;
 
   const SwipeableCard({
     super.key,
@@ -24,6 +25,7 @@ class SwipeableCard extends ConsumerStatefulWidget {
     this.onPass,
     this.onSuperLike,
     this.onViewProfile,
+    this.onViewCosmic,
   });
 
   @override
@@ -461,31 +463,64 @@ class _SwipeableCardState extends ConsumerState<SwipeableCard>
               ),
             ],
             const SizedBox(height: 12),
-            GestureDetector(
-              onTap: () => widget.onViewProfile?.call(),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 11),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.person_outline, color: Colors.white.withOpacity(0.9), size: 16),
-                    const SizedBox(width: 6),
-                    Text(
-                      'View Full Profile',
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.9),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => widget.onViewProfile?.call(),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 11),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.person_outline, color: Colors.white.withOpacity(0.9), size: 16),
+                          const SizedBox(width: 6),
+                          Text(
+                            'View Full Profile',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.9),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
+                const SizedBox(width: 10),
+                GestureDetector(
+                  onTap: () => widget.onViewCosmic?.call(),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF6C63FF), Color(0xFF3B82F6)],
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.auto_awesome, color: Colors.white, size: 16),
+                        const SizedBox(width: 6),
+                        const Text(
+                          'Match Info',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

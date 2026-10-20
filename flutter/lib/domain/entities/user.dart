@@ -226,6 +226,7 @@ class Location {
   final LocationParent? parent;
   final double? latitude;
   final double? longitude;
+  final String? timezone;
 
   Location({
     required this.id,
@@ -235,6 +236,7 @@ class Location {
     this.parent,
     this.latitude,
     this.longitude,
+    this.timezone,
   });
 
   factory Location.fromJson(Map<String, dynamic> json) => Location(
@@ -247,6 +249,7 @@ class Location {
             : null,
         latitude: (json['latitude'] as double?) ?? (json['lat'] as double?),
         longitude: (json['longitude'] as double?) ?? (json['lon'] as double?),
+        timezone: json['timezone'] as String?,
       );
 
   String get localizedDisplayName {
@@ -346,6 +349,7 @@ class User {
   final String? cosmicInsight;
   final bool isDeactivated;
   final DateTime? deactivatedAt;
+  final String activeMode;
 
   User({
     required this.id,
@@ -376,6 +380,7 @@ class User {
     this.cosmicInsight,
     this.isDeactivated = false,
     this.deactivatedAt,
+    this.activeMode = 'dating',
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -441,6 +446,7 @@ class User {
         deactivatedAt: json['deactivated_at'] != null
             ? DateTime.tryParse(json['deactivated_at'] as String)
             : null,
+        activeMode: json['active_mode'] as String? ?? 'dating',
       );
     } catch (e, stacktrace) {
       debugPrint('Error parsing User from JSON: $e');
@@ -480,15 +486,8 @@ class User {
     return null;
   }
 
-  String? get zodiacSignEastern {
-    if (birthDate == null) return null;
-    final calculator = NatalChartCalculator();
-    final chart = calculator.calculate(birthDate!, birthTime, system: AstrologySystem.eastern);
-    return chart.getSunSign();
-  }
-
   String? getZodiacSign(AstrologySystem system) {
-    return system == AstrologySystem.eastern ? zodiacSignEastern : zodiacSign;
+    return zodiacSign;
   }
 
   Map<String, dynamic> toJson() {
@@ -531,6 +530,7 @@ class User {
       'cosmic_insight': cosmicInsight,
       'is_deactivated': isDeactivated,
       'deactivated_at': deactivatedAt?.toIso8601String(),
+      'active_mode': activeMode,
     };
   }
 
@@ -562,6 +562,7 @@ class User {
     String? cosmicInsight,
     bool? isDeactivated,
     DateTime? deactivatedAt,
+    String? activeMode,
   }) {
     return User(
       id: id ?? this.id,
@@ -592,6 +593,7 @@ class User {
       cosmicInsight: cosmicInsight ?? this.cosmicInsight,
       isDeactivated: isDeactivated ?? this.isDeactivated,
       deactivatedAt: deactivatedAt ?? this.deactivatedAt,
+      activeMode: activeMode ?? this.activeMode,
     );
   }
 }

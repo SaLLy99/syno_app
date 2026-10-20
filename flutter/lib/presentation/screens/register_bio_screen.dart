@@ -33,7 +33,7 @@ class _RegisterBioScreenState extends ConsumerState<RegisterBioScreen> {
   Widget build(BuildContext context) {
     return OnboardingScaffold(
       title: 'register.bio_title'.tr(),
-      progress: 9 / 9,
+      progress: 10 / 10,
       onContinue: _onNext,
       child: Padding(
         padding: const EdgeInsets.all(24.0),

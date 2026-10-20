@@ -1,78 +1,94 @@
-# SYNO — Astrology-Enhanced AI Dating App
+# SYNO
 
-SYNO is a minimalist cosmic dating application that bridges ancient astrological wisdom with modern AI behavioral analysis. It calculates compatibility through natal chart synastry and interaction patterns to help users find their "Cosmic Match."
+SYNO is a Flutter dating app with a FastAPI backend. It combines profile and preference matching with astrology reports and behavioral scoring. The mobile app is localized in English, Georgian, and Russian.
 
-## 🌌 Overview
+## Project Layout
 
-SYNO follows a **Clean Architecture** pattern, ensuring a separation of concerns between the business logic, data management, and the user interface.
+- `flutter/`: Flutter client, UI, Riverpod state, API services, and translations.
+- `backend/app/`: FastAPI application, authentication, database access, matching, and astrology services.
+- `backend/tests/`: Backend unit and integration tests.
+- `backend/docker-compose.yml`: Local PostgreSQL and backend services.
 
-### Key Features
-- **Synastry Engine:** Real-time calculation of compatibility across Moon (emotions), Mercury (communication), Venus/Mars (romance), Nodes (karma), and Saturn (stability).
-- **Behavioral AI:** Analyzes personality questionnaires to refine matching beyond planetary alignments.
-- **Dynamic Theming:** Custom "Deep Space," "Starlight," and "Nebula" themes that persist across devices.
-- **Bilingual Support:** Full support for English, Russian, and Georgian via `easy_localization`.
+The Flutter client calls the backend over HTTP. The backend owns persistence and server-side matching and astrology services; Flutter owns navigation, presentation, and client state. See [Flutter architecture](flutter/architecture.md) for the module map.
 
----
+## Requirements
 
-## 🚀 Tech Stack
+- Flutter SDK compatible with Dart `^3.6.0`.
+- Python 3.11 (used by the backend Docker image and CI).
+- Docker Desktop / Docker Compose for the container-based setup, or PostgreSQL for a local backend.
 
-### Frontend (Flutter)
-- **State Management:** Riverpod (Functional Providers & StateNotifiers)
-- **Navigation:** GoRouter with Auth Guards
-- **Networking:** Dio with Interceptors for token handling
-- **Localization:** Easy Localization
+## Run With Docker
 
-### Backend (Python/FastAPI)
-- **Framework:** FastAPI
-- **ORM:** SQLAlchemy with PostgreSQL (or SQLite for local dev)
-- **Authentication:** OAuth2 with JWT (JSON Web Tokens)
-- **Data Validation:** Pydantic models
+From the repository root:
 
----
+```bash
+cd backend
+docker compose up --build
+```
 
-## 🛠️ Getting Started
+This starts PostgreSQL and the API on port `8000`. The Compose file contains development database credentials; do not use them in a deployed environment. Stop the services with `Ctrl+C`, or run `docker compose down` from `backend/`.
 
-### Prerequisites
-- Flutter SDK (Stable)
-- Python 3.9+
-- Node.js (if using specific astrological CLI tools)
+## Run Locally
 
-### Backend Setup
-1. Navigate to the backend directory:
-   ```bash
-   cd backend
-   ```
-2. Create and activate a virtual environment:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-4. Run the server:
-   ```bash
-   uvicorn app.main:app --reload
-   ```
+### Backend
 
-### Frontend Setup
-1. Navigate to the flutter directory:
-   ```bash
-   cd flutter
-   ```
-2. Install Flutter packages:
-   ```bash
-   flutter pub get
-   ```
-3. Create a `.env` file in `assets/env/` based on `.env.example`:
-   ```env
-   BACKEND_URL=http://localhost:8000
-   ```
-4. Run the app:
-   ```bash
-   flutter run
-   ```
+Create a virtual environment and install dependencies from `backend/`:
 
-## 📝 License
-Copyright © 2024 SYNO Startup. All rights reserved.
+```bash
+cd backend
+python -m venv .venv
+```
+
+Activate it (`.venv\Scripts\Activate.ps1` in PowerShell, or `source .venv/bin/activate` on macOS/Linux), then run:
+
+```bash
+pip install -r requirements.txt
+```
+
+Create `backend/.env` from `backend/.env.example`, set `DATABASE_URL` to a reachable PostgreSQL database, and replace `SECRET_KEY` with a private random value. Then start the API:
+
+```bash
+uvicorn app.main:app --reload
+```
+
+The API listens on `http://localhost:8000` by default.
+
+### Flutter
+
+From `flutter/`, create `assets/env/.env` from `assets/env/.env.example`. Set `BACKEND_URL` to the API address reachable from the target device. Android emulators generally use `http://10.0.2.2:8000`; desktop, web, or an iOS simulator can generally use `http://localhost:8000`. A physical device needs the development machine's LAN address.
+
+Then run:
+
+```bash
+cd flutter
+flutter pub get
+flutter run
+```
+
+## Verification
+
+Run backend tests (the same test command used in CI):
+
+```bash
+cd backend
+pytest .
+```
+
+Run Flutter static analysis and tests:
+
+```bash
+cd flutter
+flutter analyze
+flutter test
+```
+
+## Before Committing
+
+- Review `git status` and the complete diff, including deleted and newly added files.
+- Do not commit `.env` files, credentials, local databases, uploads, or generated build/cache output. `.gitignore` does not stop tracking a file that is already in Git; verify tracked environment files before committing.
+- Run the backend tests and Flutter analysis/tests above. CI currently runs the backend test suite.
+- Confirm database migrations or initialization SQL are included when a schema change requires them.
+
+## Configuration
+
+The backend reads settings from environment variables and `backend/.env`. The Flutter app loads `flutter/assets/env/.env` at startup. The checked-in `.env.example` files contain local-development placeholders only; provide private credentials through local environment files or a deployment secret manager.

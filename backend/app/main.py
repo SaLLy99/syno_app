@@ -145,6 +145,18 @@ def get_analytics_dashboard(
             "total_messages": total_messages,
             "unread_messages": unread_messages,
         },
+        "by_mode": {
+            "dating": {
+                "likes_given": db.query(models.Match).filter(models.Match.user_id == current_user.id, models.Match.mode == "dating").count(),
+                "likes_received": db.query(models.Match).filter(models.Match.matched_user_id == current_user.id, models.Match.status == "accepted", models.Match.mode == "dating").count(),
+                "matches": db.query(models.Match).filter(models.Match.user_id == current_user.id, models.Match.status == "accepted", models.Match.mode == "dating").count(),
+            },
+            "bff": {
+                "likes_given": db.query(models.Match).filter(models.Match.user_id == current_user.id, models.Match.mode == "bff").count(),
+                "likes_received": db.query(models.Match).filter(models.Match.matched_user_id == current_user.id, models.Match.status == "accepted", models.Match.mode == "bff").count(),
+                "matches": db.query(models.Match).filter(models.Match.user_id == current_user.id, models.Match.status == "accepted", models.Match.mode == "bff").count(),
+            },
+        },
         "profile_strength": _calculate_profile_strength(profile),
         "tips": tips,
     }
@@ -278,6 +290,16 @@ def track_event(
     )
     db.add(event)
     db.commit()
+
+    # Update behavior profile on key events
+    key_events = {"profile_view", "profile_like", "profile_pass", "message_sent", "session_start"}
+    if event_type in key_events:
+        try:
+            from .behavior_updater import update_behavior_profile
+            update_behavior_profile(db, current_user.id)
+        except Exception as e:
+            logging.debug(f"Behavior profile update failed: {e}")
+
     return {"status": "ok"}
 
 # Run startup migrations to fix schema issues on existing databases
@@ -940,6 +962,7 @@ def run_startup_migrations():
                 reasons TEXT,
                 cosmic_insight TEXT,
                 recommendation_date DATE NOT NULL,
+                mode VARCHAR(10) DEFAULT 'dating',
                 created_at TIMESTAMP DEFAULT NOW()
             );
         """))
@@ -950,6 +973,7 @@ def run_startup_migrations():
                 user_id INTEGER REFERENCES syno_users(id) ON DELETE CASCADE,
                 event_type VARCHAR(50) NOT NULL,
                 metadata TEXT,
+                mode VARCHAR(10),
                 created_at TIMESTAMP DEFAULT NOW()
             );
         """))
@@ -973,14 +997,108 @@ def run_startup_migrations():
         # Add lat/lon columns to locations table
         db.execute(text("ALTER TABLE locations ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION;"))
         db.execute(text("ALTER TABLE locations ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION;"))
+        db.execute(text("ALTER TABLE locations ADD COLUMN IF NOT EXISTS timezone VARCHAR(50);"))
+        # --- Dual Mode (Dating + BFF) migrations ---
+        db.execute(text("ALTER TABLE profiles ADD COLUMN IF NOT EXISTS active_mode VARCHAR(10) DEFAULT 'dating';"))
+        db.execute(text("ALTER TABLE matches ADD COLUMN IF NOT EXISTS mode VARCHAR(10) DEFAULT 'dating';"))
+        db.execute(text("ALTER TABLE recommendations ADD COLUMN IF NOT EXISTS mode VARCHAR(10) DEFAULT 'dating';"))
+        db.execute(text("ALTER TABLE match_cache ADD COLUMN IF NOT EXISTS mode VARCHAR(10) DEFAULT 'dating';"))
+        db.execute(text("ALTER TABLE analytics_events ADD COLUMN IF NOT EXISTS mode VARCHAR(10);"))
+        db.execute(text("""
+            CREATE TABLE IF NOT EXISTS user_app_modes (
+                id SERIAL PRIMARY KEY,
+                profile_id INTEGER REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+                mode VARCHAR(10) NOT NULL,
+                min_age INT DEFAULT 18,
+                max_age INT DEFAULT 50,
+                max_distance INT DEFAULT 100,
+                genders VARCHAR(50)[] DEFAULT '{}',
+                orientations VARCHAR(50)[] DEFAULT '{}',
+                weight_romance INT DEFAULT 50,
+                weight_emotional INT DEFAULT 50,
+                weight_communication INT DEFAULT 50,
+                weight_long_term INT DEFAULT 50,
+                weight_marriage INT DEFAULT 50,
+                weight_friendship INT DEFAULT 50,
+                weight_chemistry INT DEFAULT 50,
+                weight_spiritual INT DEFAULT 50,
+                photos_only BOOLEAN DEFAULT FALSE,
+                complete_profiles_only BOOLEAN DEFAULT FALSE,
+                hide_swiped BOOLEAN DEFAULT TRUE,
+                hide_inactive BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW(),
+                UNIQUE(profile_id, mode)
+            );
+        """))
+        # --- Matching Signal Weight columns ---
+        db.execute(text("ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS weight_natal_chart INT DEFAULT 60;"))
+        db.execute(text("ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS weight_interests INT DEFAULT 10;"))
+        db.execute(text("ALTER TABLE user_preferences ADD COLUMN IF NOT EXISTS weight_behavior INT DEFAULT 30;"))
+        db.execute(text("ALTER TABLE user_app_modes ADD COLUMN IF NOT EXISTS weight_natal_chart INT DEFAULT 60;"))
+        db.execute(text("ALTER TABLE user_app_modes ADD COLUMN IF NOT EXISTS weight_interests INT DEFAULT 10;"))
+        db.execute(text("ALTER TABLE user_app_modes ADD COLUMN IF NOT EXISTS weight_behavior INT DEFAULT 30;"))
+        # --- User Behavior Profiles table ---
+        db.execute(text("""
+            CREATE TABLE IF NOT EXISTS user_behavior_profiles (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES syno_users(id) ON DELETE CASCADE UNIQUE NOT NULL,
+                selectivity DOUBLE PRECISION DEFAULT 0.5,
+                avg_profiles_per_session DOUBLE PRECISION DEFAULT 10.0,
+                avg_response_time_minutes DOUBLE PRECISION DEFAULT 60.0,
+                avg_message_length DOUBLE PRECISION DEFAULT 50.0,
+                conversation_depth DOUBLE PRECISION DEFAULT 5.0,
+                initiator_ratio DOUBLE PRECISION DEFAULT 0.5,
+                sessions_per_week DOUBLE PRECISION DEFAULT 3.0,
+                avg_session_minutes DOUBLE PRECISION DEFAULT 10.0,
+                peak_hour INT DEFAULT 20,
+                openness_behavioral DOUBLE PRECISION DEFAULT 50.0,
+                conscientiousness_behavioral DOUBLE PRECISION DEFAULT 50.0,
+                extraversion_behavioral DOUBLE PRECISION DEFAULT 50.0,
+                agreeableness_behavioral DOUBLE PRECISION DEFAULT 50.0,
+                emotional_stability_behavioral DOUBLE PRECISION DEFAULT 50.0,
+                computed_at TIMESTAMP DEFAULT NOW(),
+                updated_at TIMESTAMP DEFAULT NOW()
+            );
+        """))
         db.commit()
         # Auto-seed locations from REST Countries API if empty
         try:
-            from .location_service import seed_locations_from_api
-            import asyncio
-            asyncio.get_event_loop().run_until_complete(seed_locations_from_api(db))
+            existing_count = db.execute(text("SELECT COUNT(*) FROM locations")).scalar()
+            if existing_count == 0:
+                import httpx
+                REST_COUNTRIES_URL = "https://restcountries.com/v3.1/all?fields=name,capital,latlng,cca2"
+                response = httpx.get(REST_COUNTRIES_URL, timeout=30.0)
+                response.raise_for_status()
+                data = response.json()
+                added_countries = 0
+                added_cities = 0
+                for item in data:
+                    name = item.get("name", {}).get("common", "")
+                    capital_list = item.get("capital", [])
+                    capital = capital_list[0] if capital_list else None
+                    latlng = item.get("latlng", [])
+                    cca2 = item.get("cca2", "")
+                    if not name or not latlng:
+                        continue
+                    lat = latlng[0] if len(latlng) > 0 else None
+                    lon = latlng[1] if len(latlng) > 1 else None
+                    exists = db.execute(text("SELECT 1 FROM locations WHERE name = :name AND type = 'country'"), {"name": name}).fetchone()
+                    if not exists:
+                        db.execute(text("INSERT INTO locations (name, type, latitude, longitude, translation_key) VALUES (:name, 'country', :lat, :lon, :tk)"), {"name": name, "lat": lat, "lon": lon, "tk": f"profile.locations.{name.lower().replace(' ', '_')}"})
+                        db.flush()
+                        added_countries += 1
+                        if capital:
+                            db.execute(text("INSERT INTO locations (name, type, latitude, longitude, translation_key, parent_id) VALUES (:name, 'city', :lat, :lon, :tk, (SELECT id FROM locations WHERE name = :pname AND type = 'country' LIMIT 1))"), {"name": capital, "lat": lat, "lon": lon, "tk": f"profile.locations.{capital.lower().replace(' ', '_')}", "pname": name})
+                            added_cities += 1
+                db.commit()
+                logging.info(f"Location seeding completed: {added_countries} countries, {added_cities} cities")
+            else:
+                from app.location_service import backfill_location_coords
+                result = backfill_location_coords(db)
+                logging.info(f"Location backfill: {result}")
         except Exception as e:
-            logging.warning(f"Location seeding skipped: {e}")
+            logging.warning(f"Location seeding/backfill skipped: {e}")
         logging.info("Startup migrations completed successfully.")
     except Exception as e:
         db.rollback()
@@ -1443,8 +1561,21 @@ def read_intentions(db: Session = Depends(get_db)):
     return crud.get_intentions(db)
 
 @app.get("/api/location/search", response_model=List[schemas.Location])
-def search_locations(q: Optional[str] = None, db: Session = Depends(get_db)):
-    return crud.search_locations(db, query=q)
+async def search_locations(q: Optional[str] = None, db: Session = Depends(get_db)):
+    results = crud.search_locations(db, query=q)
+
+    from app.location_service import resolve_location_from_nominatim
+    for loc in results:
+        if loc.latitude is None or loc.longitude is None:
+            resolved = await resolve_location_from_nominatim(loc.name)
+            if resolved:
+                loc.latitude = resolved["latitude"]
+                loc.longitude = resolved["longitude"]
+                if not loc.timezone:
+                    loc.timezone = resolved.get("timezone", "+00:00")
+    db.commit()
+
+    return results
 
 
 @app.post("/api/locations/seed", summary="Seed locations from REST Countries API (run once)")
@@ -1452,6 +1583,29 @@ async def seed_locations(db: Session = Depends(get_db)):
     from app.location_service import seed_locations_from_api
     result = await seed_locations_from_api(db)
     return result
+
+
+@app.post("/api/locations/backfill", summary="Backfill missing lat/lon/timezone for existing locations")
+def backfill_locations(db: Session = Depends(get_db)):
+    from app.location_service import backfill_location_coords
+    result = backfill_location_coords(db)
+    return result
+
+
+@app.get("/api/locations/resolve", summary="Resolve location name to coordinates via Nominatim")
+async def resolve_location(q: str, timezone: Optional[str] = None):
+    try:
+        from app.location_service import resolve_location_from_nominatim
+        result = await resolve_location_from_nominatim(q)
+        if not result:
+            raise HTTPException(status_code=404, detail=f"Could not resolve location: {q}")
+        if timezone:
+            result["timezone"] = timezone
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Resolve failed: {str(e)}")
 
 
 @app.get("/api/locations/search-async", summary="Search locations with API fallback")
@@ -1883,6 +2037,59 @@ def update_user_preferences(
     return prefs
 
 
+# ----------------- DUAL MODE (Dating + BFF) -----------------
+
+@app.post("/api/mode/switch", summary="Switch active mode (dating or bff)")
+def switch_mode(
+    mode_data: schemas.ModeSwitchRequest,
+    db: Session = Depends(get_db),
+    current_user: models.SynoUser = Depends(get_current_active_user)
+):
+    profile = crud.switch_active_mode(db, user_id=current_user.id, mode=mode_data.mode)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    return {"active_mode": profile.active_mode}
+
+
+@app.get("/api/mode/current", summary="Get current active mode")
+def get_current_mode(
+    db: Session = Depends(get_db),
+    current_user: models.SynoUser = Depends(get_current_active_user)
+):
+    profile = crud.get_profile_by_user_id(db, user_id=current_user.id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    return {"active_mode": profile.active_mode or "dating"}
+
+
+@app.get("/api/mode/preferences", response_model=schemas.UserAppModeResponse, summary="Get mode-specific preferences")
+def get_mode_preferences(
+    mode: str = "dating",
+    db: Session = Depends(get_db),
+    current_user: models.SynoUser = Depends(get_current_active_user)
+):
+    db_profile = crud.get_profile_by_user_id(db, user_id=current_user.id)
+    if not db_profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    app_mode = crud.get_or_create_app_mode(db, profile_id=db_profile.id, mode=mode)
+    return app_mode
+
+
+@app.put("/api/mode/preferences", response_model=schemas.UserAppModeResponse, summary="Update mode-specific preferences")
+def update_mode_preferences(
+    mode: str = "dating",
+    prefs_data: schemas.UserAppModeUpdate = None,
+    db: Session = Depends(get_db),
+    current_user: models.SynoUser = Depends(get_current_active_user)
+):
+    db_profile = crud.get_profile_by_user_id(db, user_id=current_user.id)
+    if not db_profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    update_dict = prefs_data.model_dump(exclude_unset=True) if prefs_data else {}
+    app_mode = crud.update_app_mode(db, profile_id=db_profile.id, mode=mode, data=update_dict)
+    return app_mode
+
+
 @app.get("/api/discover")
 def get_discover(
     db: Session = Depends(get_db),
@@ -1962,6 +2169,7 @@ def get_discover(
 
 @app.get("/api/discover/smart", response_model=List[schemas.SmartDiscoverItem], summary="Smart discovery with server-side scoring")
 def get_smart_discover(
+    mode: str = "dating",
     db: Session = Depends(get_db),
     current_user: models.SynoUser = Depends(get_current_active_user)
 ):
@@ -1975,12 +2183,13 @@ def get_smart_discover(
         models.UserPreferences.profile_id == db_profile.id
     ).first()
 
-    results = get_smart_discover_list(db, current_user, preferences)
+    results = get_smart_discover_list(db, current_user, preferences, mode=mode)
     return results
 
 
 @app.get("/api/recommendations/daily", response_model=List[schemas.RecommendationResponse], summary="Get daily top pick recommendations")
 def get_daily_recommendations(
+    mode: str = "dating",
     db: Session = Depends(get_db),
     current_user: models.SynoUser = Depends(get_current_active_user)
 ):
@@ -1990,7 +2199,7 @@ def get_daily_recommendations(
     if not db_profile:
         return []
 
-    results = generate_daily_recommendations(db, current_user)
+    results = generate_daily_recommendations(db, current_user, mode=mode)
     return results
 
 
@@ -2078,17 +2287,30 @@ def create_or_update_match(
         user_id=current_user.id,
         matched_user_id=match_data.matched_user_id,
         status=match_data.status,
-        compatibility_score=match_data.compatibility_score
+        compatibility_score=match_data.compatibility_score,
+        mode=match_data.mode,
     )
+
+    # Update behavior profile after swipe action
+    try:
+        from .behavior_updater import update_behavior_profile
+        update_behavior_profile(db, current_user.id)
+    except Exception as e:
+        logging.debug(f"Behavior profile update after swipe failed: {e}")
+
     return match
 
 
 @app.get("/api/matches", response_model=List[schemas.MatchWithProfileResponse], summary="Get all matches for current user")
 def get_my_matches(
+    mode: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: models.SynoUser = Depends(get_current_active_user)
 ):
-    matches = crud.get_matches_for_user(db, user_id=current_user.id)
+    if mode:
+        matches = crud.get_matches_for_user_by_mode(db, user_id=current_user.id, mode=mode)
+    else:
+        matches = crud.get_matches_for_user(db, user_id=current_user.id)
     result = []
     for m in matches:
         other_id = m.matched_user_id if m.user_id == current_user.id else m.user_id
@@ -2106,6 +2328,7 @@ def get_my_matches(
                 "name": profile.name,
                 "last_name": profile.last_name,
                 "birth_date": profile.birth_date.isoformat() if profile.birth_date else None,
+                "birth_time": profile.birth_time,
                 "bio": profile.bio,
                 "location": {"id": profile.location.id, "name": profile.location.name, "latitude": profile.location.latitude, "longitude": profile.location.longitude} if profile.location else None,
                 "sex": {"id": profile.sex.id, "name": profile.sex.name} if profile.sex else None,
@@ -2117,6 +2340,7 @@ def get_my_matches(
             matched_user_id=m.matched_user_id,
             status=m.status,
             compatibility_score=m.compatibility_score,
+            mode=m.mode or "dating",
             created_at=m.created_at,
             updated_at=m.updated_at,
             matched_profile=matched_profile,
@@ -2173,8 +2397,8 @@ def get_compatibility_report(
     if not current_profile or not other_profile:
         raise HTTPException(status_code=404, detail="Profile not found")
 
-    if not current_profile.birth_time or not other_profile.birth_time:
-        raise HTTPException(status_code=400, detail="Birth time required for detailed report")
+    if not current_profile.birth_date or not other_profile.birth_date:
+        raise HTTPException(status_code=400, detail="Birth date required for detailed report")
 
     if not current_profile.location or not other_profile.location:
         raise HTTPException(status_code=400, detail="Location required for detailed report")
@@ -2185,26 +2409,45 @@ def get_compatibility_report(
         from .astrology.providers.western import SwissEphProvider
         from .astrology.services.report_service import ReportService
 
-        def _parse_birth_time(time_str: str) -> dtime:
-            parts = time_str.split(":")
-            return dtime(int(parts[0]), int(parts[1]))
+        # Missing birth time is not fatal: we compute at 12:00 local and flag
+        # the whole report as partial (houses/Ascendant become approximate).
+        chart_partial = False
+
+        def _parse_birth_time(profile) -> dtime:
+            nonlocal chart_partial
+            if profile.birth_time:
+                parts = profile.birth_time.split(":")
+                return dtime(int(parts[0]), int(parts[1]))
+            chart_partial = True
+            return dtime(12, 0)
+
+        def _get_timezone(loc) -> str:
+            tz = getattr(loc, 'timezone', None) if loc else None
+            if tz:
+                return tz
+            return "+00:00"
 
         birth_a = BirthData(
             birth_date=current_profile.birth_date,
-            birth_time=_parse_birth_time(current_profile.birth_time),
-            timezone="+00:00",
-            latitude=current_profile.location.latitude if hasattr(current_profile.location, 'latitude') else 41.7151,
-            longitude=current_profile.location.longitude if hasattr(current_profile.location, 'longitude') else 44.8271,
+            birth_time=_parse_birth_time(current_profile),
+            timezone=_get_timezone(current_profile.location),
+            latitude=getattr(current_profile.location, 'latitude', None),
+            longitude=getattr(current_profile.location, 'longitude', None),
             location_name=current_profile.location.name,
         )
         birth_b = BirthData(
             birth_date=other_profile.birth_date,
-            birth_time=_parse_birth_time(other_profile.birth_time),
-            timezone="+00:00",
-            latitude=other_profile.location.latitude if hasattr(other_profile.location, 'latitude') else 41.7151,
-            longitude=other_profile.location.longitude if hasattr(other_profile.location, 'longitude') else 44.8271,
+            birth_time=_parse_birth_time(other_profile),
+            timezone=_get_timezone(other_profile.location),
+            latitude=getattr(other_profile.location, 'latitude', None),
+            longitude=getattr(other_profile.location, 'longitude', None),
             location_name=other_profile.location.name,
         )
+
+        if birth_a.latitude is None or birth_a.longitude is None:
+            raise HTTPException(status_code=400, detail="Your birth location coordinates are missing")
+        if birth_b.latitude is None or birth_b.longitude is None:
+            raise HTTPException(status_code=400, detail="Match birth location coordinates are missing")
 
         hobbies_a = {h.name for h in current_profile.hobbies} if current_profile.hobbies else set()
         hobbies_b = {h.name for h in other_profile.hobbies} if other_profile.hobbies else set()
@@ -2224,8 +2467,83 @@ def get_compatibility_report(
         profile_quality = calculate_profile_quality_score(other_profile)
         mutual = calculate_mutual_interest_score(db, current_user.id, other_user_id)
 
+        # Behavioral compatibility - None when neither user has observed
+        # behaviour yet (default profiles are not a signal).
+        from .matching_engine import _calculate_behavioral_score
+
+        behavioral_compat = _calculate_behavioral_score(db, current_user.id, other_user_id, mode="dating")
+
+        # Canonical discovery score: same function + same weights as the
+        # discover list and match list, so the report % can never drift.
+        from .matching_engine import (
+            compute_full_compatibility_score,
+            resolve_signal_weights,
+            calculate_profile_similarity,
+            profile_similarity_has_data,
+            compute_chart_score,
+        )
+
+        mode = match.mode or "dating"
+        preferences = db.query(models.UserPreferences).filter(
+            models.UserPreferences.profile_id == current_profile.id
+        ).first()
+        mode_prefs = db.query(models.UserAppMode).filter(
+            models.UserAppMode.profile_id == current_profile.id,
+            models.UserAppMode.mode == mode,
+        ).first()
+
+        if preferences:
+            user_weights = {
+                'weight_natal_chart': getattr(preferences, 'weight_natal_chart', 60),
+                'weight_interests': getattr(preferences, 'weight_interests', 10),
+                'weight_behavior': getattr(preferences, 'weight_behavior', 30),
+            }
+        elif mode_prefs:
+            user_weights = {
+                'weight_natal_chart': getattr(mode_prefs, 'weight_natal_chart', 60),
+                'weight_interests': getattr(mode_prefs, 'weight_interests', 30),
+                'weight_behavior': getattr(mode_prefs, 'weight_behavior', 10),
+            }
+        else:
+            user_weights = None
+
+        signal_weights = resolve_signal_weights(user_weights, mode)
+
+        # Chart score is computed once and reused for the headline % and the
+        # ranking input, so the two can never disagree.
+        chart_value, chart_flag = compute_chart_score(current_profile, other_profile)
+        chart_partial = chart_partial or chart_flag
+
+        (
+            canonical_score, canonical_synastry, canonical_behavioral,
+            _activity, _mutual, _weighted, _insight, _reasons,
+        ) = compute_full_compatibility_score(
+            db, current_user.id, current_profile, other_profile,
+            mode=mode, user_weights=user_weights,
+            chart=(chart_value, chart_flag),
+        )
+
+        # Interests/values are only a number when both profiles actually
+        # have something comparable - otherwise the part stays null.
+        profile_has_data = profile_similarity_has_data(current_profile, other_profile)
+        canonical_profile_sim = (
+            calculate_profile_similarity(
+                current_profile, other_profile,
+                hobbies_weight=signal_weights["hobbies_weight"],
+                values_weight=signal_weights["values_weight"],
+                intentions_weight=signal_weights["intentions_weight"],
+            )
+            if profile_has_data
+            else None
+        )
+
         provider = SwissEphProvider()
-        report_service = ReportService(provider)
+        from .astrology.router import _get_ai_interpreter, _get_ai_service
+        ai_interpreter = _get_ai_interpreter()
+        ai_service = _get_ai_service()
+        report_service = ReportService(
+            provider, interpreter=ai_interpreter, ai_service=ai_service
+        )
 
         report = report_service.generate_report(
             person_a=birth_a,
@@ -2238,9 +2556,24 @@ def get_compatibility_report(
             behavior_activity=activity,
             behavior_profile_quality=profile_quality,
             behavior_mutual_interest=mutual,
+            behavioral_compatibility=behavioral_compat if behavioral_compat is not None else 50.0,
+            # Headline % = the chart score. Behaviour shows as its own part.
+            overall_score=canonical_synastry if canonical_synastry is not None else None,
+            profile_similarity_score=canonical_profile_sim,
+            behavior_score=canonical_behavioral,
+            behavior_has_data=canonical_behavioral is not None,
+            profile_has_data=profile_has_data,
+            score_partial=chart_partial,
+            composite_score=_weighted,
+            chart_weight=signal_weights["synastry"],
+            behavior_weight=signal_weights["behavioral"],
+            profile_weight=signal_weights["profile_similarity"],
         )
 
-        return report_service.report_to_dict(report)
+        result = report_service.report_to_dict(report)
+        result["ai_used"] = ai_service is not None and getattr(ai_interpreter, "last_used_ai", False)
+        result["score_source"] = "natal_chart"
+        return result
 
     except HTTPException:
         raise
@@ -2342,6 +2675,13 @@ async def send_message(
         sender_name=sender_name,
         content=msg_data.content
     )
+
+    # Update behavior profile after sending message
+    try:
+        from .behavior_updater import update_behavior_profile
+        update_behavior_profile(db, current_user.id)
+    except Exception as e:
+        logging.debug(f"Behavior profile update after message failed: {e}")
 
     return message
 
@@ -2483,9 +2823,12 @@ async def get_chat_media(filename: str):
 
 @app.get("/api/chats", response_model=List[schemas.ChatListResponse], summary="Get chat list (mutual matches)")
 def get_chat_list(
+    mode: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: models.SynoUser = Depends(get_current_active_user)
 ):
+    if mode:
+        return crud.get_chat_list_by_mode(db, user_id=current_user.id, mode=mode)
     return crud.get_chat_list(db, user_id=current_user.id)
 
 
@@ -2495,9 +2838,12 @@ def get_chat_list(
 
 @app.get("/api/likes/received", response_model=List[schemas.ReceivedLikeResponse], summary="Get incoming likes (people who liked you)")
 def get_received_likes(
+    mode: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: models.SynoUser = Depends(get_current_active_user)
 ):
+    if mode:
+        return crud.get_received_likes_by_mode(db, user_id=current_user.id, mode=mode)
     return crud.get_received_likes(db, user_id=current_user.id)
 
 
@@ -2522,3 +2868,75 @@ def decline_incoming_like(
     success = crud.decline_incoming_like(db, match_id=match_id, user_id=current_user.id)
     if not success:
         raise HTTPException(status_code=404, detail="Like not found")
+
+
+# ============================================================
+# BEHAVIOR PROFILE ENDPOINTS
+# ============================================================
+
+@app.get("/api/users/me/behavior-profile", summary="Get your behavioral profile")
+def get_behavior_profile(
+    db: Session = Depends(get_db),
+    current_user: models.SynoUser = Depends(get_current_active_user)
+):
+    """Get the current user's behavioral profile derived from their actions."""
+    from .behavior_updater import get_or_create_behavior_profile
+
+    profile = get_or_create_behavior_profile(db, current_user.id)
+    return {
+        "user_id": profile.user_id,
+        "selectivity": profile.selectivity,
+        "avg_profiles_per_session": profile.avg_profiles_per_session,
+        "avg_response_time_minutes": profile.avg_response_time_minutes,
+        "avg_message_length": profile.avg_message_length,
+        "conversation_depth": profile.conversation_depth,
+        "initiator_ratio": profile.initiator_ratio,
+        "sessions_per_week": profile.sessions_per_week,
+        "avg_session_minutes": profile.avg_session_minutes,
+        "peak_hour": profile.peak_hour,
+        "openness_behavioral": profile.openness_behavioral,
+        "conscientiousness_behavioral": profile.conscientiousness_behavioral,
+        "extraversion_behavioral": profile.extraversion_behavioral,
+        "agreeableness_behavioral": profile.agreeableness_behavioral,
+        "emotional_stability_behavioral": profile.emotional_stability_behavioral,
+        "computed_at": profile.computed_at.isoformat() if profile.computed_at else None,
+    }
+
+
+@app.post("/api/users/me/behavior-profile/refresh", summary="Force refresh your behavioral profile")
+def refresh_behavior_profile(
+    db: Session = Depends(get_db),
+    current_user: models.SynoUser = Depends(get_current_active_user)
+):
+    """Force recalculation of the behavioral profile from all available data."""
+    from .behavior_updater import update_behavior_profile
+
+    profile = update_behavior_profile(db, current_user.id)
+    return {
+        "status": "refreshed",
+        "computed_at": profile.computed_at.isoformat() if profile.computed_at else None,
+    }
+
+
+@app.get("/api/behavioral-compatibility/{other_user_id}", summary="Get behavioral compatibility with another user")
+def get_behavioral_compatibility(
+    other_user_id: int,
+    mode: str = "dating",
+    db: Session = Depends(get_db),
+    current_user: models.SynoUser = Depends(get_current_active_user)
+):
+    """Get behavioral compatibility score and reasons with another user."""
+    from .behavior_updater import get_or_create_behavior_profile
+    from .behavioral_scorer import calculate_behavioral_compatibility, generate_behavioral_reasons
+
+    behavior_a = get_or_create_behavior_profile(db, current_user.id)
+    behavior_b = get_or_create_behavior_profile(db, other_user_id)
+
+    score = calculate_behavioral_compatibility(behavior_a, behavior_b, mode=mode)
+    reasons = generate_behavioral_reasons(behavior_a, behavior_b, score, mode)
+
+    return {
+        "behavioral_score": round(score),
+        "reasons": reasons,
+        "mode": mode,
+    }
